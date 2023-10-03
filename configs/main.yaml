@@ -1,7 +1,7 @@
 defaults:
   - algorithm: pets
   - dynamics_model: gaussian_mlp_ensemble
-  - overrides: pets_maze #pets_cartpole|pets_maze
+  - overrides: pets_hypergrid #pets_cartpole|pets_maze|pets_hypergrid
   - action_optimizer: cem
 
 seed: 0

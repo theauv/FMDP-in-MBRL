@@ -1,5 +1,5 @@
 # @package _group_
-_target_: factored_models.maze_models.FactoredGaussianMLP #mbrl.models.GaussianMLP|factored_models.maze_models.FactoredGaussianMLP
+_target_: factored_models.grid_models.FactoredGaussianMLP #mbrl.models.GaussianMLP|factored_models.grid_models.FactoredGaussianMLP
 device: ${device}
 num_layers: 1 #4
 in_size: ???

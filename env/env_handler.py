@@ -7,6 +7,7 @@ import mbrl
 from mbrl.util.env import EnvHandler, Freeze, _handle_learned_rewards_and_seed
 
 from env.maze import ContinuousMaze
+from env.hypergrid import ContinuousHyperGrid
 import env.termination_fns as term_fns
 import env.reward_fns as rew_fns
 
@@ -30,6 +31,10 @@ class EnvironmentHandler(EnvHandler):
             env = ContinuousMaze(render_mode)
             term_fn = term_fns.maze
             reward_fn = rew_fns.maze
+        elif cfg.overrides.env == "hypergrid":
+            env = ContinuousHyperGrid(render_mode)
+            term_fn = term_fns.hypergrid
+            reward_fn = rew_fns.hypergrid
         else:
             return EnvHandler.make_env(cfg)
 

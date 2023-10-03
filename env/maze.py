@@ -11,6 +11,8 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 
+#ATTENTION MAKE SURE EVERYTHING WORKS WITH REWARD AND TERMINATION FUNCTIONS
+
 
 def get_intersect(A: np.ndarray, B: np.ndarray, C: np.ndarray, D: np.ndarray) -> bool:
     """
@@ -47,7 +49,9 @@ class ContinuousMaze(gym.Env):
 
     def __init__(self, render_mode: Optional[str] = None) -> None:
 
+        # Should be in a env_config
         self.step_penalty = -0.1
+        self.step_size = 10  # Could also be learned
 
         self.action_space = spaces.Box(-1, 1, (2,), dtype=np.float32)
         self.observation_space = spaces.Box(
@@ -148,7 +152,7 @@ class ContinuousMaze(gym.Env):
             ]
         )
 
-    def winning_position(self) -> bool:
+    def winning_state(self) -> bool:
         """
         :return: Whether the agent escaped the maze or not
         """
@@ -174,9 +178,7 @@ class ContinuousMaze(gym.Env):
                 self.state = old_state
 
         # Check if this is a final state
-        terminated = False
-        if self.winning_position():
-            terminated = True
+        terminated = self.winning_state()
 
         # Reward: penalty for taking another step
         reward = self.step_penalty
