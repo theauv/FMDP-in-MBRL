@@ -1,6 +1,6 @@
 defaults:
-  - algorithm: pets
-  - dynamics_model: gaussian_mlp_ensemble
+  - algorithm: pets_adapted
+  - dynamics_model: factored_gaussian_mlp_ensemble
   - overrides: pets_hypergrid #pets_cartpole|pets_maze|pets_hypergrid
   - action_optimizer: cem
 

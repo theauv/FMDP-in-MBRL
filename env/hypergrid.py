@@ -14,8 +14,8 @@ import pylab
 STEP_PENALTY = -1
 GRID_DIM = 2
 GRID_SIZE = 5
-SIZE_END_BOX = 1 # Box in which the agent have to go to finish the game
-STEP_SIZE = 10
+SIZE_END_BOX = 1  # Box in which the agent have to go to finish the game
+STEP_SIZE = 1
 
 
 class ContinuousHyperGrid(gym.Env):
@@ -30,7 +30,9 @@ class ContinuousHyperGrid(gym.Env):
         self.step_penalty = STEP_PENALTY
         self.grid_dim = GRID_DIM
         self.grid_size = GRID_SIZE
-        self.size_end_box = SIZE_END_BOX # Box in which the agent have to go to finish the game
+        self.size_end_box = (
+            SIZE_END_BOX
+        )  # Box in which the agent have to go to finish the game
         self.step_size = STEP_SIZE  # Could also be learned
 
         self.action_space = spaces.Box(-1, 1, (self.grid_dim,), dtype=np.float32)
