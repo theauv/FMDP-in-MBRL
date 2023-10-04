@@ -27,7 +27,7 @@ def hypergrid(action: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
 
     done = torch.ones(next_obs.shape[0], dtype=bool)
     for i in range(GRID_DIM):
-        done *= (next_obs[:, i] > (GRID_SIZE - SIZE_END_BOX))
+        done *= next_obs[:, i] > (GRID_SIZE - SIZE_END_BOX)
 
     done = done[:, None]  # augment dimension
     return done

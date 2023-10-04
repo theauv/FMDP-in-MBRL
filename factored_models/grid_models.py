@@ -12,6 +12,8 @@ class FactoredGaussianMLP(GaussianMLP):
         in_size: int,
         out_size: int,
         device: Union[str, torch.device],
+        factored_in_size: int = 2,  # state, action
+        factored_out_size: int = 1,  # next_state
         num_layers: int = 4,
         ensemble_size: int = 1,
         hid_size: int = 200,
@@ -21,8 +23,8 @@ class FactoredGaussianMLP(GaussianMLP):
         activation_fn_cfg: Optional[Union[Dict, omegaconf.DictConfig]] = None,
     ):
 
-        self.factored_in_size = 2 #1 input for the current state, 1 input for the action
-        self.factored_out_size = 1 #Might not work if we want to learn the reward function too !!!!
+        self.factored_in_size = factored_in_size
+        self.factored_out_size = factored_out_size
 
         super().__init__(
             self.factored_in_size,
@@ -42,10 +44,10 @@ class FactoredGaussianMLP(GaussianMLP):
 
     def create_factored_input(self, x):
 
-        state, action = torch.split(x, self.in_size//2, dim=-1)
+        state, action = torch.split(x, self.in_size // 2, dim=-1)
 
-        states = torch.split(state, self.factored_in_size//2, dim=-1)
-        actions = torch.split(action, self.factored_in_size//2, dim=-1)
+        states = torch.split(state, self.factored_in_size // 2, dim=-1)
+        actions = torch.split(action, self.factored_in_size // 2, dim=-1)
 
         xs = []
         for state, action in zip(states, actions):
@@ -53,7 +55,6 @@ class FactoredGaussianMLP(GaussianMLP):
             xs.append(x)
 
         return xs
-
 
     def forward(
         self,

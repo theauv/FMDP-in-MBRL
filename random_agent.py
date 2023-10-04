@@ -18,7 +18,7 @@ for _ in range(1000):
     action = env.action_space.sample()  # this is where you would insert your policy
     observation, reward, terminated, truncated, info = env.step(action)
 
-    n_steps +=1
+    n_steps += 1
     rewards += reward
 
     if terminated or truncated:
@@ -32,8 +32,8 @@ env.close()
 pygame.display.quit()
 pygame.quit()
 
-matplotlib.use('TkAgg')
-fig, axs = plt.subplots(1,2)
+matplotlib.use("TkAgg")
+fig, axs = plt.subplots(1, 2)
 axs[0].plot(all_n_steps)
 axs[1].plot(all_rewards)
 axs[0].set_xlabel("Episode")
