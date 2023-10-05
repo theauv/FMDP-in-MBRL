@@ -1,0 +1,9 @@
+# @package _group_
+with_tracking: true
+api_name: wandb
+wandb:             
+  project: hucrl_fmdp
+  group: null
+  name: test_hypergrid
+  settings: null
+  tags: null
