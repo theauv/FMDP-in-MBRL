@@ -4,6 +4,6 @@ api_name: wandb
 wandb:             
   project: hucrl_fmdp
   group: null
-  name: test_hypergrid
+  name: hypergrid_factored_no_step_size
   settings: null
   tags: null

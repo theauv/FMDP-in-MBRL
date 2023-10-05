@@ -30,9 +30,7 @@ class ContinuousHyperGrid(gym.Env):
         self.size_end_box = (
             SIZE_END_BOX
         )  # Box in which the agent have to go to finish the game
-        #self.step_size = STEP_SIZE  # Could also be learned
 
-        #self.action_space = spaces.Box(-1, 1, (self.grid_dim,), dtype=np.float32)
         self.action_space = spaces.Box(-self.grid_size, self.grid_size, (self.grid_dim,), dtype=np.float32)
         self.observation_space = spaces.Box(
             low=-self.grid_size,
@@ -76,7 +74,7 @@ class ContinuousHyperGrid(gym.Env):
 
         # Update state
         old_state = self.state
-        self.state = (old_state + action * self.step_size + self.grid_size) % (
+        self.state = (old_state + action + self.grid_size) % (
             self.grid_size * 2
         ) - self.grid_size  # High dim box is a closed world
         self.all_distances.append(
