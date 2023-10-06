@@ -9,7 +9,7 @@ import mbrl.algorithms.pets as pets
 import mbrl.algorithms.planet as planet
 
 import src.algorithm.pets_adapted as pets_adatpted
-from src.env.env_handler import EnvironmentHandler
+from src.env.env_handler import HandMadeEnvHandler
 from src.util.util import get_run_kwargs
 
 
@@ -25,7 +25,7 @@ def run(cfg: omegaconf.DictConfig):
             raise ValueError("Unsupported API")
 
     # create env and random seed
-    env, term_fn, reward_fn = EnvironmentHandler.make_env(cfg)
+    env, term_fn, reward_fn = HandMadeEnvHandler.make_env(cfg)
     np.random.seed(cfg.seed)
     torch.manual_seed(cfg.seed)
 
@@ -35,7 +35,7 @@ def run(cfg: omegaconf.DictConfig):
     if cfg.algorithm.name == "pets":
         return pets.train(env, term_fn, reward_fn, cfg)
     if cfg.algorithm.name == "mbpo":
-        test_env, *_ = EnvironmentHandler.make_env(cfg)
+        test_env, *_ = HandMadeEnvHandler.make_env(cfg)
         return mbpo.train(env, test_env, term_fn, cfg)
     if cfg.algorithm.name == "planet":
         return planet.train(env, cfg)

@@ -13,6 +13,10 @@ from src.env.constants import *
 matplotlib.use("Agg")
 
 
+# TODO: Have a env_config file to deal with these global variables
+# Warning: Be careful with how it will be handled in the term and reward functions
+# Might want to have them as class methods... Need to be careful though
+
 STEP_PENALTY = -1
 GRID_DIM = 2
 GRID_SIZE = 3.0  # Box(-GRID_SIZE, GRID_SIZE)

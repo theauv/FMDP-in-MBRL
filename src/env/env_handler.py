@@ -1,6 +1,7 @@
 from typing import Union, Optional, Dict, Tuple
 import omegaconf
 import gymnasium as gym
+import numpy as np
 
 import mbrl
 from mbrl.util.env import EnvHandler, Freeze, _handle_learned_rewards_and_seed
@@ -10,10 +11,34 @@ from src.env.hypergrid import ContinuousHyperGrid
 import src.env.termination_fns as term_fns
 import src.env.reward_fns as rew_fns
 
+#TODO: Take a look back to all of this implementation (partially and quickly implemented, needs review)
 
-class EnvironmentHandler(EnvHandler):
 
-    freeze = Freeze
+class HandMadeEnvFreeze(Freeze):
+
+    def __init__(self, env: gym.wrappers.TimeLimit):
+        self._env = env
+        self._init_state: np.ndarray = None
+        self._elapsed_steps = 0
+        self._step_count = 0
+
+        if not HandMadeEnvHandler.is_correct_env_type(env):
+            raise RuntimeError("Tried to freeze an unsupported environment.")
+
+    def __enter__(self):
+        self.state = HandMadeEnvHandler.get_current_state(self._env)
+
+    def __exit__(self, *_args):
+        HandMadeEnvHandler.set_env_state(self.state, self._env)
+
+def _is_handmade_gym_env(env: gym.wrappers.TimeLimit) -> bool:
+    env = env.unwrapped
+    return isinstance(env, ContinuousMaze) or isinstance(env, ContinuousHyperGrid)
+
+
+class HandMadeEnvHandler(EnvHandler):
+
+    freeze = HandMadeEnvFreeze
 
     @staticmethod
     def make_env(
@@ -50,3 +75,28 @@ class EnvironmentHandler(EnvHandler):
         env, reward_fn = _handle_learned_rewards_and_seed(cfg, env, reward_fn)
 
         return env, term_fn, reward_fn
+    
+    @staticmethod
+    def is_correct_env_type(env: gym.wrappers.TimeLimit) -> bool:
+        return _is_handmade_gym_env(env)
+    
+    @staticmethod
+    def make_env_from_str(env_name: str) -> gym.Env:
+        raise NotImplementedError
+    
+
+    @staticmethod
+    def get_current_state(env: gym.wrappers.TimeLimit) -> Tuple:
+        if _is_handmade_gym_env(env):
+            env = env.unwrapped
+            return env.state
+        else:
+            raise ValueError("Only handmade Environment are supported by this EnvHandler")
+    
+    @staticmethod
+    def set_env_state(state: Tuple, env: gym.wrappers.TimeLimit) -> None:
+        if _is_handmade_gym_env(env):
+            env = env.unwrapped
+            env.state = state
+        else:
+            raise ValueError("Only handmade Environment are supported by this EnvHandler")

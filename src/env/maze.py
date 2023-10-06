@@ -8,9 +8,6 @@ from gymnasium.error import DependencyNotInstalled
 from src.env.constants import *
 
 
-# TODO MAKE SURE EVERYTHING WORKS WITH REWARD AND TERMINATION FUNCTIONS
-
-
 def get_intersect(A: np.ndarray, B: np.ndarray, C: np.ndarray, D: np.ndarray) -> bool:
     """
     Get the intersection of [A, B] and [C, D]. Return False if segment don't cross.
