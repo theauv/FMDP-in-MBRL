@@ -12,11 +12,10 @@ from src.env.env_handler import EnvironmentHandler
 @hydra.main(config_path="configs", config_name="main")
 def run(cfg: omegaconf.DictConfig):
 
-    #create env and random seed
+    # create env and random seed
     env, term_fn, reward_fn = EnvironmentHandler.make_env(cfg)
     np.random.seed(cfg.seed)
     torch.manual_seed(cfg.seed)
-
 
     observation, info = env.reset(seed=42)
 

@@ -3,6 +3,7 @@ env: "maze"
 learned_rewards: false
 trial_length: 50 #200
 num_steps: 300 #5000
+num_episodes: 50 #Number of env episodes before end of training
 render_mode: human #null|rgb_array|human
 
 num_elites: 1 #5

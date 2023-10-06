@@ -105,14 +105,17 @@ def train(
 
     # ---------------------------------------------------------
     # ----------------- Create callback tables ----------------
-    callbacks = CallbackWandb()
+    callbacks = CallbackWandb(cfg.experiment.with_tracking)
 
     # ---------------------------------------------------------
     # --------------------- Training Loop ---------------------
     env_steps = 0
     current_trial = 0
     max_total_reward = -np.inf
-    while env_steps < cfg.overrides.num_steps:
+    while (
+        env_steps < cfg.overrides.num_steps
+        and current_trial < cfg.overrides.num_episodes
+    ):
         obs, _ = env.reset()
         agent.reset()
         terminated = False

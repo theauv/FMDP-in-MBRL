@@ -5,9 +5,7 @@ import git
 import logging
 
 
-def get_run_kwargs(
-    configs: omegaconf.DictConfig,
-) -> Dict:
+def get_run_kwargs(configs: omegaconf.DictConfig,) -> Dict:
     """
     Gather the important informations to initialize the wandb api
 
@@ -32,11 +30,8 @@ def get_run_kwargs(
 
     # TODO: Add pipeline recover from a checkpoint ? (Might be done in another process function)
 
-    if experiment_config.with_tracking:
-        init_run_kwargs = omegaconf.OmegaConf.to_container(wandb_config, resolve=True)
-        init_run_kwargs["config"] = omegaconf.OmegaConf.to_container(
-            configs, resolve=True
-        )
+    init_run_kwargs = omegaconf.OmegaConf.to_container(wandb_config, resolve=True)
+    init_run_kwargs["config"] = omegaconf.OmegaConf.to_container(configs, resolve=True)
 
     return init_run_kwargs
 

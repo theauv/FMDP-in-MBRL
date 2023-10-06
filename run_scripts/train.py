@@ -13,19 +13,23 @@ from src.env.env_handler import EnvironmentHandler
 from src.util.util import get_run_kwargs
 
 
-@hydra.main(config_path="configs", config_name="main")
+@hydra.main(config_path="../configs", config_name="main")
 def run(cfg: omegaconf.DictConfig):
-    #set-up run and api
-    if cfg.experiment.api_name == "wandb":
-        # start a new wandb run to track this script
-        wandb.init(**get_run_kwargs(cfg))
+    # set-up run and api
+    if cfg.experiment.with_tracking:
+        cfg.overrides.render_mode = "rgb_array"
+        if cfg.experiment.api_name == "wandb":
+            # start a new wandb run to track this script
+            wandb.init(**get_run_kwargs(cfg))
+        else:
+            raise ValueError("Unsupported API")
 
-    #create env and random seed
+    # create env and random seed
     env, term_fn, reward_fn = EnvironmentHandler.make_env(cfg)
     np.random.seed(cfg.seed)
     torch.manual_seed(cfg.seed)
 
-    #train the agent and model with the given algorithm
+    # train the agent and model with the given algorithm
     if cfg.algorithm.name == "pets_adapted":
         return pets_adatpted.train(env, term_fn, reward_fn, cfg)
     if cfg.algorithm.name == "pets":
@@ -35,7 +39,6 @@ def run(cfg: omegaconf.DictConfig):
         return mbpo.train(env, test_env, term_fn, cfg)
     if cfg.algorithm.name == "planet":
         return planet.train(env, cfg)
-    wandb.finish()
 
 
 if __name__ == "__main__":

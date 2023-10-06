@@ -14,6 +14,7 @@ class FactoredGaussianMLP(GaussianMLP):
     It processes each factored state-action input of dimension [factored_in_size] such that the output
     is simply the concatenation of all the outputs of the factored state-action inputs.
     """
+
     def __init__(
         self,
         in_size: int,

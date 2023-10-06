@@ -5,10 +5,8 @@ import numpy as np
 from gymnasium import logger, spaces
 from gymnasium.error import DependencyNotInstalled
 
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
+from src.env.constants import *
+
 
 # TODO MAKE SURE EVERYTHING WORKS WITH REWARD AND TERMINATION FUNCTIONS
 
