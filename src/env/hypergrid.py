@@ -19,9 +19,8 @@ matplotlib.use("Agg")
 
 STEP_PENALTY = -1
 GRID_DIM = 2
-GRID_SIZE = 3.0  # Box(-GRID_SIZE, GRID_SIZE)
+GRID_SIZE = 5.  # Box(-GRID_SIZE, GRID_SIZE)
 SIZE_END_BOX = 1.0  # Box in which the agent have to go to finish the game
-STEP_SIZE = 1
 
 
 class ContinuousHyperGrid(gym.Env):

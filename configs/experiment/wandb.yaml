@@ -1,9 +1,9 @@
 # @package _group_
-with_tracking: false
+with_tracking: true
 api_name: wandb
 wandb:             
   project: hucrl_fmdp
-  group: test #null
-  name: test_callbacks
+  group:  null
+  name: hypergrid
   settings: null
   tags: null
