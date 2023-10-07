@@ -9,8 +9,6 @@ from mbrl.util.env import EnvHandler, Freeze, _handle_learned_rewards_and_seed
 
 from src.env.maze import ContinuousMaze
 from src.env.hypergrid import ContinuousHyperGrid
-import src.env.termination_fns as term_fns
-import src.env.reward_fns as rew_fns
 
 #TODO: Take a look back to all of this implementation (partially and quickly implemented, needs review)
 #Good enough for now
@@ -80,13 +78,17 @@ class HandMadeEnvHandler(EnvHandler):
             reward_fn = mbrl.env.reward_fns.cartpole
         elif cfg.overrides.env == "maze":
             env = ContinuousMaze(render_mode)
-            term_fn = term_fns.maze
-            reward_fn = rew_fns.maze
+            term_fn = env.termination_fn
+            reward_fn = env.reward_fn
         elif cfg.overrides.env == "hypergrid":
-            env = ContinuousHyperGrid(render_mode)
-            term_fn = term_fns.hypergrid
-            reward_fn = rew_fns.hypergrid
+            env = ContinuousHyperGrid(cfg.overrides.env_config, render_mode)
+            term_fn = env.termination_fn #term_fns.hypergrid
+            reward_fn = env.reward_fn #rew_fns.hypergrid
         else:
+            warn(
+                 "You are loading an environment outside of the scope of this local project \
+                 (see MBRL library)"
+            )
             return EnvHandler.make_env(cfg)
 
         env = gym.wrappers.TimeLimit(

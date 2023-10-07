@@ -1,23 +1,16 @@
 from typing import Optional, Dict, Tuple
 
 import gymnasium as gym
-import numpy as np
 from gymnasium import logger, spaces
 from gymnasium.error import DependencyNotInstalled
 import matplotlib
 import matplotlib.backends.backend_agg as agg
+import numpy as np
+import omegaconf
 import pylab
+import torch
 
 from src.env.constants import *
-
-# TODO: Have an env_config file to deal with these global variables
-# Warning: Be careful with how it will be handled in the term and reward functions
-# Might want to have them as class methods... Need to be careful though
-
-STEP_PENALTY = -1
-GRID_DIM = 2
-GRID_SIZE = 5.  # Box(-GRID_SIZE, GRID_SIZE)
-SIZE_END_BOX = 1.0  # Box in which the agent have to go to finish the game
 
 
 class ContinuousHyperGrid(gym.Env):
@@ -26,14 +19,12 @@ class ContinuousHyperGrid(gym.Env):
     # WHAT IS METADATA ???
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": [50]}
 
-    def __init__(self, render_mode: Optional[str] = None) -> None:
-        # Should be in a env_config (problem with term_fn and reward_fn)
-        self.step_penalty = STEP_PENALTY
-        self.grid_dim = GRID_DIM
-        self.grid_size = GRID_SIZE
-        self.size_end_box = (
-            SIZE_END_BOX
-        )  # Box in which the agent have to go to finish the game
+    def __init__(self, env_config: Optional[omegaconf.DictConfig], render_mode: Optional[str] = None) -> None:
+
+        self.step_penalty = env_config.step_penalty
+        self.grid_dim = env_config.grid_dim
+        self.grid_size = env_config.grid_size
+        self.size_end_box = env_config.size_end_box
 
         self.action_space = spaces.Box(
             -self.grid_size, self.grid_size, (self.grid_dim,), dtype=np.float32
@@ -263,3 +254,37 @@ class ContinuousHyperGrid(gym.Env):
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
+
+    def termination_fn(self, action: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
+        """
+        Termination function associated to the hypergrid env
+
+        :param action: batch of actions
+        :param next_obs: batch of next_obs
+        :return: batch of bool tensors whether the associated (action, next_obs) 
+                is a final state
+        """
+        assert len(next_obs.shape) == 2
+
+        done = torch.ones(next_obs.shape[0], dtype=bool)
+        for i in range(self.grid_dim):
+            done *= next_obs[:, i] > (self.grid_size - self.size_end_box)
+
+        done = done[:, None]  # augment dimension
+        return done
+    
+    def reward_fn(self, action: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
+        """
+        Reward function associated to the hypergrid env
+
+        :param action: batch of actions
+        :param next_obs: batch of next_obs
+        :return: batch of rewards associated to each (action, next_obs)
+        """
+        assert len(next_obs.shape) == len(action.shape) == 2
+
+        return (
+            (~self.termination_fn(action, next_obs) * self.step_penalty)
+            .float()
+            .view(-1, 1)
+        )

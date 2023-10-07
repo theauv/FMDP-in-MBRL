@@ -1,9 +1,10 @@
 from typing import Optional, Dict, Tuple
 
 import gymnasium as gym
-import numpy as np
 from gymnasium import logger, spaces
 from gymnasium.error import DependencyNotInstalled
+import numpy as np
+import torch
 
 from src.env.constants import *
 
@@ -277,3 +278,41 @@ class ContinuousMaze(gym.Env):
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
+
+
+    def termination_fn(self, action: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
+        """
+        Termination function associated to the maze env
+
+        :param action: batch of actions
+        :param next_obs: batch of next_obs
+        :return: batch of bool tensors whether the associated (action, next_obs) 
+                is a final state
+        """
+        assert len(next_obs.shape) == 2
+
+        game_limit = 10.0
+
+        x, y = next_obs[:, 0], next_obs[:, 1]
+
+        not_done = (
+            (x > -game_limit) * (x < game_limit) * (y > -game_limit) * (y < game_limit)
+        )
+
+        done = ~not_done
+        done = done[:, None]  # augment dimension
+        return done
+    
+    def reward_fn(self, action: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
+        """
+        Reward function associated to the maze env
+
+        :param action: batch of actions
+        :param next_obs: batch of next_obs
+        :return: batch of rewards associated to each (action, next_obs)
+        """
+        assert len(next_obs.shape) == len(action.shape) == 2
+
+        penalty_step = -0.1
+
+        return (~self.termination_fn(action, next_obs) * penalty_step).float().view(-1, 1)

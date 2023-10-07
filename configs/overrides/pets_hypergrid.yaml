@@ -1,5 +1,10 @@
 # @package _group_
 env: "hypergrid"
+env_config:
+  step_penalty: -1
+  grid_dim: 2
+  grid_size: 5.  # Box(-grid_size, grid_size)
+  size_end_box: 1.0  # Box(grid_size-size_end_box, grid_size)
 learned_rewards: false #Not supported yet
 trial_length: 20000 #Max length episode
 num_steps: 500000 #Number of env steps before end of training
