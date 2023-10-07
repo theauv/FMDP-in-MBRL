@@ -14,7 +14,7 @@ def get_run_kwargs(configs: omegaconf.DictConfig,) -> Dict:
     """
 
     experiment_config = configs.experiment
-    wandb_config = experiment_config.wandb
+    wandb_config = experiment_config.run_configs
     # Rename the run
     repo = git.Repo(search_parent_directories=True)
     sha = repo.head.object.hexsha

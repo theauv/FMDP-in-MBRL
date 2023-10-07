@@ -112,6 +112,7 @@ def train(
     env_steps = 0
     current_trial = 0
     max_total_reward = -np.inf
+
     while (
         env_steps < cfg.overrides.num_steps
         and current_trial < cfg.overrides.num_episodes
@@ -122,6 +123,8 @@ def train(
         truncated = False
         total_reward = 0.0
         steps_trial = 0
+
+        #Make 1 episode
         while not terminated and not truncated:
             # --------------- Model Training -----------------
             if env_steps % cfg.algorithm.freq_train_model == 0:

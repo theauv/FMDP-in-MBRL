@@ -2,6 +2,7 @@ from typing import Union, Optional, Dict, Tuple
 import omegaconf
 import gymnasium as gym
 import numpy as np
+from warnings import warn
 
 import mbrl
 from mbrl.util.env import EnvHandler, Freeze, _handle_learned_rewards_and_seed
@@ -12,6 +13,25 @@ import src.env.termination_fns as term_fns
 import src.env.reward_fns as rew_fns
 
 #TODO: Take a look back to all of this implementation (partially and quickly implemented, needs review)
+#Good enough for now
+
+ENVSHANDMADE = ["maze", "hypergrid"]
+
+def get_handler(cfg: Union[Dict, omegaconf.ListConfig, omegaconf.DictConfig]) -> EnvHandler:
+    """
+    :param cfg: general configs (see configs directory)
+    :return: The right EnvHandler associated to the environment requested by the configs
+    """
+    cfg = omegaconf.OmegaConf.create(cfg)
+    env_name = cfg.overrides.env
+    if env_name in ENVSHANDMADE:
+        return HandMadeEnvHandler()
+    else:
+        warn("You are trying to load an environment outside of this local project.\
+             If this was not intentional, make sure you did add your environment \
+             name in ENVSHANDMADE list"
+        )
+        return mbrl.util.create_handler(cfg)
 
 
 class HandMadeEnvFreeze(Freeze):
@@ -83,18 +103,26 @@ class HandMadeEnvHandler(EnvHandler):
     @staticmethod
     def make_env_from_str(env_name: str) -> gym.Env:
         raise NotImplementedError
-    
 
     @staticmethod
     def get_current_state(env: gym.wrappers.TimeLimit) -> Tuple:
+        warn(
+            "This function has not been implemented, if this message is shown make \
+             sure you did the changes necessary"
+        )
         if _is_handmade_gym_env(env):
             env = env.unwrapped
+            print("get", env.state)
             return env.state
         else:
             raise ValueError("Only handmade Environment are supported by this EnvHandler")
     
     @staticmethod
     def set_env_state(state: Tuple, env: gym.wrappers.TimeLimit) -> None:
+        warn(
+            "This function has not been implemented, if this message is shown make \
+             sure you did the changes necessary"
+        )
         if _is_handmade_gym_env(env):
             env = env.unwrapped
             env.state = state

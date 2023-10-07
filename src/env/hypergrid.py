@@ -10,10 +10,7 @@ import pylab
 
 from src.env.constants import *
 
-matplotlib.use("Agg")
-
-
-# TODO: Have a env_config file to deal with these global variables
+# TODO: Have an env_config file to deal with these global variables
 # Warning: Be careful with how it will be handled in the term and reward functions
 # Might want to have them as class methods... Need to be careful though
 
@@ -226,6 +223,7 @@ class ContinuousHyperGrid(gym.Env):
 
             self.surf = pygame.transform.flip(self.surf, False, True)
         else:
+            matplotlib.use("Agg")
             # Plot plt graph of the l1 distance from the ending box
             fig = pylab.figure(
                 figsize=[4, 4],  # Inches

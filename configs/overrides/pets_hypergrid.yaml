@@ -1,9 +1,9 @@
 # @package _group_
 env: "hypergrid"
 learned_rewards: false #Not supported yet
-trial_length: 200 #Max length episode
+trial_length: 20000 #Max length episode
 num_steps: 500000 #Number of env steps before end of training
-num_episodes: 100 #Number of env episodes before end of training
+num_episodes: 200 #Number of env episodes before end of training
 render_mode: human #null|rgb_array|human
 
 num_elites: 3 #5

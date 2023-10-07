@@ -1,34 +1,27 @@
-import torch
-import numpy as np
-import argparse
 import argparse
 import pathlib
 from typing import List, Optional, Tuple
-
-import mbrl
-from mbrl.diagnostics.visualize_model_preds import Visualizer
-
-from src.env.env_handler import HandMadeEnvHandler
-
+from time import sleep
+import numpy as np
 import matplotlib
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
-import numpy as np
 import torch
 
 import mbrl
+from mbrl.diagnostics.visualize_model_preds import Visualizer
 import mbrl.models
 import mbrl.planning
 import mbrl.util.common
+
+from src.env.env_handler import get_handler
+
 
 VisData = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
 
 #TODO: Make sure that agent+model correctly loaded !!!!
-
-# TODO: Needs more work + make it clean !!!!
-# Combine Random Agent with it
-# Good enough for now to visualize quality of trained agents
+#Seems to be good 
 
 
 class AdaptedVisualizer(Visualizer):
@@ -36,7 +29,7 @@ class AdaptedVisualizer(Visualizer):
         self,
         lookahead: int,
         results_dir: str,
-        agent_dir: Optional[str],
+        random_agent: bool = False,
         num_steps: Optional[int] = None,
         num_model_samples: int = 1,
         model_subdir: Optional[str] = None,
@@ -62,7 +55,7 @@ class AdaptedVisualizer(Visualizer):
         self.cfg.overrides.render_mode = "human"
 
         #Only changed line
-        self.handler = HandMadeEnvHandler()
+        self.handler = get_handler(self.cfg)
         self.env, term_fn, reward_fn = self.handler.make_env(self.cfg)
 
         self.reward_fn = reward_fn
@@ -81,13 +74,12 @@ class AdaptedVisualizer(Visualizer):
             generator=torch.Generator(self.dynamics_model.device),
         )
 
-        #Set agent_dir
-        agent_dir = self.results_path
-
+        #Instanciate the agent
         self.agent: mbrl.planning.Agent
-        if agent_dir is None:
+        if random_agent:
             self.agent = mbrl.planning.RandomAgent(self.env)
         else:
+            agent_dir = self.results_path
             agent_cfg = mbrl.util.common.load_hydra_cfg(agent_dir)
             if (
                 agent_cfg.algorithm.agent._target_
@@ -134,6 +126,7 @@ class AdaptedVisualizer(Visualizer):
             if terminated or truncated:
                 all_n_steps.append(n_steps)
                 all_rewards.append(rewards)
+                sleep(0.5)
                 observation, info = self.env.reset()
                 n_steps = 0
                 rewards = 0
@@ -159,13 +152,7 @@ if __name__ == "__main__":
         help="The directory where the original experiment was run.",
     )
     parser.add_argument("--lookahead", type=int, default=25)
-    parser.add_argument(
-        "--agent_dir",
-        type=str,
-        default=None,
-        help="The directory where the agent configuration and data is stored. "
-        "If not provided, a random agent will be used.",
-    )
+    parser.add_argument('--random_agent', default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--num_steps", type=int, default=200)
     parser.add_argument(
         "--model_subdir",
@@ -184,10 +171,10 @@ if __name__ == "__main__":
     visualizer = AdaptedVisualizer(
         lookahead=args.lookahead,
         results_dir=args.experiments_dir,
-        agent_dir=args.agent_dir,
+        random_agent=args.random_agent,
         num_steps=args.num_steps,
         num_model_samples=args.num_model_samples,
         model_subdir=args.model_subdir,
     )
 
-    all_n_steps, all_rewards = visualizer.simple_run()
+    visualizer.simple_run()
