@@ -19,7 +19,11 @@ class ContinuousHyperGrid(gym.Env):
     # WHAT IS METADATA ???
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": [50]}
 
-    def __init__(self, env_config: Optional[omegaconf.DictConfig], render_mode: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        env_config: Optional[omegaconf.DictConfig],
+        render_mode: Optional[str] = None,
+    ) -> None:
 
         self.step_penalty = env_config.step_penalty
         self.grid_dim = env_config.grid_dim
@@ -58,7 +62,10 @@ class ContinuousHyperGrid(gym.Env):
         They are distributed over the subspace [-self.initial_box_size, self.initial_box_size]^self.dim_grid
         :return: a random initial state
         """
-        return np.random.rand(self.grid_dim)*self.initial_box_size - self.initial_box_size 
+        return (
+            np.random.rand(self.grid_dim) * self.initial_box_size
+            - self.initial_box_size
+        )
 
     def winning_state(self) -> bool:
         """
@@ -177,33 +184,16 @@ class ContinuousHyperGrid(gym.Env):
             self.surf = pygame.Surface((self.screen_dim, self.screen_dim))
             self.surf.fill(BLACK)
 
-            #Plot starting square
+            # Plot starting square
             x = -self.initial_box_size * self.scale + self.offset
             y = self.initial_box_size * self.scale + self.offset
-            starting_box = (
-                (x, x),
-                (y, x),
-                (
-                    y,
-                    y,
-                ),
-                (x, y),
-            )
+            starting_box = ((x, x), (y, x), (y, y), (x, y))
             gfxdraw.polygon(self.surf, starting_box, WHITE)
-
 
             # Plot ending box
             x = self.grid_size * self.scale + self.offset
-            y = (self.grid_size-self.size_end_box) * self.scale + self.offset
-            end_box_wall = (
-                (x, x),
-                (y, x),
-                (
-                    y,
-                    y,
-                ),
-                (x, y),
-            )
+            y = (self.grid_size - self.size_end_box) * self.scale + self.offset
+            end_box_wall = ((x, x), (y, x), (y, y), (x, y))
             if self.winning_state():
                 gfxdraw.filled_polygon(self.surf, end_box_wall, GREEN)
             else:
@@ -255,7 +245,9 @@ class ContinuousHyperGrid(gym.Env):
             pygame.quit()
             self.isopen = False
 
-    def termination_fn(self, action: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
+    def termination_fn(
+        self, action: torch.Tensor, next_obs: torch.Tensor
+    ) -> torch.Tensor:
         """
         Termination function associated to the hypergrid env
 
@@ -272,7 +264,7 @@ class ContinuousHyperGrid(gym.Env):
 
         done = done[:, None]  # augment dimension
         return done
-    
+
     def reward_fn(self, action: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
         """
         Reward function associated to the hypergrid env

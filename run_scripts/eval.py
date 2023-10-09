@@ -20,8 +20,8 @@ from src.env.env_handler import get_handler
 VisData = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
 
-#TODO: Make sure that agent+model correctly loaded !!!!
-#Seems to be good 
+# TODO: Make sure that agent+model correctly loaded !!!!
+# Seems to be good
 
 
 class AdaptedVisualizer(Visualizer):
@@ -54,7 +54,7 @@ class AdaptedVisualizer(Visualizer):
         self.cfg = mbrl.util.common.load_hydra_cfg(self.results_path)
         self.cfg.overrides.render_mode = "human"
 
-        #Only changed line
+        # Only changed line
         self.handler = get_handler(self.cfg)
         self.env, term_fn, reward_fn = self.handler.make_env(self.cfg)
 
@@ -74,7 +74,7 @@ class AdaptedVisualizer(Visualizer):
             generator=torch.Generator(self.dynamics_model.device),
         )
 
-        #Instanciate the agent
+        # Instanciate the agent
         self.agent: mbrl.planning.Agent
         if random_agent:
             self.agent = mbrl.planning.RandomAgent(self.env)
@@ -116,8 +116,12 @@ class AdaptedVisualizer(Visualizer):
         n_steps = 0
         rewards = 0
         for env_step in range(1000):
-            print(f"Total env step: {env_step} Episode: {len(all_n_steps)} Current episode step: {n_steps}")
-            action = self.agent.act(observation)  # this is where you would insert your policy
+            print(
+                f"Total env step: {env_step} Episode: {len(all_n_steps)} Current episode step: {n_steps}"
+            )
+            action = self.agent.act(
+                observation
+            )  # this is where you would insert your policy
             observation, reward, terminated, truncated, info = self.env.step(action)
 
             n_steps += 1
@@ -152,7 +156,9 @@ if __name__ == "__main__":
         help="The directory where the original experiment was run.",
     )
     parser.add_argument("--lookahead", type=int, default=25)
-    parser.add_argument('--random_agent', default=False, action=argparse.BooleanOptionalAction)
+    parser.add_argument(
+        "--random_agent", default=False, action=argparse.BooleanOptionalAction
+    )
     parser.add_argument("--num_steps", type=int, default=200)
     parser.add_argument(
         "--model_subdir",

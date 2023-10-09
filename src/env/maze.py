@@ -279,8 +279,9 @@ class ContinuousMaze(gym.Env):
             pygame.quit()
             self.isopen = False
 
-
-    def termination_fn(self, action: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
+    def termination_fn(
+        self, action: torch.Tensor, next_obs: torch.Tensor
+    ) -> torch.Tensor:
         """
         Termination function associated to the maze env
 
@@ -302,7 +303,7 @@ class ContinuousMaze(gym.Env):
         done = ~not_done
         done = done[:, None]  # augment dimension
         return done
-    
+
     def reward_fn(self, action: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
         """
         Reward function associated to the maze env
@@ -315,4 +316,6 @@ class ContinuousMaze(gym.Env):
 
         penalty_step = -0.1
 
-        return (~self.termination_fn(action, next_obs) * penalty_step).float().view(-1, 1)
+        return (
+            (~self.termination_fn(action, next_obs) * penalty_step).float().view(-1, 1)
+        )

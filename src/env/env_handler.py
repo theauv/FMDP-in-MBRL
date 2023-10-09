@@ -10,12 +10,15 @@ from mbrl.util.env import EnvHandler, Freeze, _handle_learned_rewards_and_seed
 from src.env.maze import ContinuousMaze
 from src.env.hypergrid import ContinuousHyperGrid
 
-#TODO: Take a look back to all of this implementation (partially and quickly implemented, needs review)
-#Good enough for now
+# TODO: Take a look back to all of this implementation (partially and quickly implemented, needs review)
+# Good enough for now
 
 ENVSHANDMADE = ["maze", "hypergrid"]
 
-def get_handler(cfg: Union[Dict, omegaconf.ListConfig, omegaconf.DictConfig]) -> EnvHandler:
+
+def get_handler(
+    cfg: Union[Dict, omegaconf.ListConfig, omegaconf.DictConfig]
+) -> EnvHandler:
     """
     :param cfg: general configs (see configs directory)
     :return: The right EnvHandler associated to the environment requested by the configs
@@ -25,7 +28,8 @@ def get_handler(cfg: Union[Dict, omegaconf.ListConfig, omegaconf.DictConfig]) ->
     if env_name in ENVSHANDMADE:
         return HandMadeEnvHandler()
     else:
-        warn("You are trying to load an environment outside of this local project.\
+        warn(
+            "You are trying to load an environment outside of this local project.\
              If this was not intentional, make sure you did add your environment \
              name in ENVSHANDMADE list"
         )
@@ -33,7 +37,6 @@ def get_handler(cfg: Union[Dict, omegaconf.ListConfig, omegaconf.DictConfig]) ->
 
 
 class HandMadeEnvFreeze(Freeze):
-
     def __init__(self, env: gym.wrappers.TimeLimit):
         self._env = env
         self._init_state: np.ndarray = None
@@ -49,12 +52,16 @@ class HandMadeEnvFreeze(Freeze):
     def __exit__(self, *_args):
         HandMadeEnvHandler.set_env_state(self.state, self._env)
 
+
 def _is_handmade_gym_env(env: gym.wrappers.TimeLimit) -> bool:
     env = env.unwrapped
     return isinstance(env, ContinuousMaze) or isinstance(env, ContinuousHyperGrid)
 
 
 class HandMadeEnvHandler(EnvHandler):
+    """
+    Environment handler dealing with the gym environment implemented in scr.env
+    """
 
     freeze = HandMadeEnvFreeze
 
@@ -82,11 +89,11 @@ class HandMadeEnvHandler(EnvHandler):
             reward_fn = env.reward_fn
         elif cfg.overrides.env == "hypergrid":
             env = ContinuousHyperGrid(cfg.overrides.env_config, render_mode)
-            term_fn = env.termination_fn #term_fns.hypergrid
-            reward_fn = env.reward_fn #rew_fns.hypergrid
+            term_fn = env.termination_fn  # term_fns.hypergrid
+            reward_fn = env.reward_fn  # rew_fns.hypergrid
         else:
             warn(
-                 "You are loading an environment outside of the scope of this local project \
+                "You are loading an environment outside of the scope of this local project \
                  (see MBRL library)"
             )
             return EnvHandler.make_env(cfg)
@@ -97,11 +104,11 @@ class HandMadeEnvHandler(EnvHandler):
         env, reward_fn = _handle_learned_rewards_and_seed(cfg, env, reward_fn)
 
         return env, term_fn, reward_fn
-    
+
     @staticmethod
     def is_correct_env_type(env: gym.wrappers.TimeLimit) -> bool:
         return _is_handmade_gym_env(env)
-    
+
     @staticmethod
     def make_env_from_str(env_name: str) -> gym.Env:
         raise NotImplementedError
@@ -117,8 +124,10 @@ class HandMadeEnvHandler(EnvHandler):
             print("get", env.state)
             return env.state
         else:
-            raise ValueError("Only handmade Environment are supported by this EnvHandler")
-    
+            raise ValueError(
+                "Only handmade Environment are supported by this EnvHandler"
+            )
+
     @staticmethod
     def set_env_state(state: Tuple, env: gym.wrappers.TimeLimit) -> None:
         warn(
@@ -129,4 +138,6 @@ class HandMadeEnvHandler(EnvHandler):
             env = env.unwrapped
             env.state = state
         else:
-            raise ValueError("Only handmade Environment are supported by this EnvHandler")
+            raise ValueError(
+                "Only handmade Environment are supported by this EnvHandler"
+            )

@@ -37,8 +37,8 @@ def train(
     This function is adapted from the original mbrl.algorithms.pets one to handle callbacks and 
     possible future changes.
 
-    :param termination_fn: src.env.termination_fns associated to the given environment
-    :param reward_fn: src.env.reward_fns associated to the given environment
+    :param termination_fn: termination function associated to the given environment
+    :param reward_fn: reward function associated to the given environment
     :param cfg: configuration file (see configs directory)
     :param silent: no logs if True , defaults to False
     :param work_dir: directory where results will be saved, defaults to None
@@ -124,7 +124,7 @@ def train(
         total_reward = 0.0
         steps_trial = 0
 
-        #Make 1 episode
+        # Make 1 episode
         while not terminated and not truncated:
             # --------------- Model Training -----------------
             if env_steps % cfg.algorithm.freq_train_model == 0:
