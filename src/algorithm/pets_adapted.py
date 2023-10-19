@@ -7,6 +7,7 @@ import os
 from typing import Optional
 
 import gymnasium as gym
+import hydra
 import numpy as np
 import omegaconf
 import torch
@@ -20,6 +21,7 @@ import mbrl.util.math
 
 from src.callbacks.wandb_callbacks import CallbackWandb
 from src.callbacks.constants import RESULTS_LOG_NAME, EVAL_LOG_FORMAT
+from src.util.util import create_one_dim_tr_model_overriden
 
 
 def train(
@@ -66,7 +68,10 @@ def train(
         logger.register_group(RESULTS_LOG_NAME, EVAL_LOG_FORMAT, color="green")
 
     # -------- Create and populate initial env dataset --------
-    dynamics_model = mbrl.util.common.create_one_dim_tr_model(cfg, obs_shape, act_shape)
+    model_path = cfg.overrides.get("model_path", None)
+    dynamics_model = create_one_dim_tr_model_overriden(
+        cfg, obs_shape, act_shape, model_path
+    )
     use_double_dtype = cfg.algorithm.get("normalize_double_precision", False)
     dtype = np.double if use_double_dtype else np.float32
     replay_buffer = mbrl.util.common.create_replay_buffer(
@@ -92,7 +97,8 @@ def train(
     model_env = mbrl.models.ModelEnv(
         env, dynamics_model, termination_fn, reward_fn, generator=torch_generator
     )
-    model_trainer = mbrl.models.ModelTrainer(
+    model_trainer = hydra.utils.instantiate(
+        cfg.dynamics_model.model_trainer,
         dynamics_model,
         optim_lr=cfg.overrides.model_lr,
         weight_decay=cfg.overrides.model_wd,

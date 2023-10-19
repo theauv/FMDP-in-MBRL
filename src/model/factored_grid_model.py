@@ -1,8 +1,12 @@
-from typing import Dict, Optional, Tuple, Union, List
+from typing import Any, Dict, Optional, Tuple, Union, List
+from mbrl.types import ModelInput
 import omegaconf
 import torch
 
 from mbrl.models.gaussian_mlp import GaussianMLP
+
+
+# TODO: In a very general set-up, the "factored" sub-models should ne be the same
 
 
 class FactoredGaussianMLP(GaussianMLP):
@@ -33,14 +37,16 @@ class FactoredGaussianMLP(GaussianMLP):
 
         self.factored_in_size = factored_in_size
         self.factored_out_size = factored_out_size
+        self.factor = in_size // self.factored_in_size
 
+        # "Factored submodels"
         super().__init__(
             self.factored_in_size,
             self.factored_out_size,
             device,
             num_layers,
             ensemble_size,
-            hid_size,
+            hid_size // self.factor,
             deterministic,
             propagation_method,
             learn_logvar_bounds,

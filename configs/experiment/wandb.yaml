@@ -1,9 +1,9 @@
 # @package _group_
-with_tracking: false #true
+with_tracking: true #true
 api_name: wandb
 run_configs:             
   project: hucrl_fmdp
   group:  null
-  name: hypergrid
+  name: lasso_5dim
   settings: null
   tags: null

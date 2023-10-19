@@ -3,6 +3,7 @@ import torch
 import omegaconf
 import hydra
 import numpy as np
+import warnings
 
 import mbrl.algorithms.mbpo as mbpo
 import mbrl.algorithms.pets as pets
@@ -33,11 +34,14 @@ def run(cfg: omegaconf.DictConfig):
     if cfg.algorithm.name == "pets_adapted":
         return pets_adatpted.train(env, term_fn, reward_fn, cfg)
     if cfg.algorithm.name == "pets":
+        warnings.warn("Might not be supported yet in the scope of this project")
         return pets.train(env, term_fn, reward_fn, cfg)
     if cfg.algorithm.name == "mbpo":
+        warnings.warn("Might not be supported yet in the scope of this project")
         test_env, *_ = HandMadeEnvHandler.make_env(cfg)
         return mbpo.train(env, test_env, term_fn, cfg)
     if cfg.algorithm.name == "planet":
+        warnings.warn("Might not be supported yet in the scope of this project")
         return planet.train(env, cfg)
 
 

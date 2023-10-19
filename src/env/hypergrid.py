@@ -31,18 +31,17 @@ class ContinuousHyperGrid(gym.Env):
         self.size_end_box = env_config.size_end_box
 
         self.action_space = spaces.Box(
-            -self.grid_size, self.grid_size, (self.grid_dim,), dtype=np.float32
+            -self.grid_size / 2, self.grid_size / 2, (self.grid_dim,), dtype=np.float32
         )
         self.observation_space = spaces.Box(
-            low=-self.grid_size,
-            high=self.grid_size,
+            low=-self.grid_size / 2,
+            high=self.grid_size / 2,
             shape=(self.grid_dim,),
             dtype=np.float32,
         )
 
         self.all_distances = []
         self.state = None
-        self.initial_box_size = 0.5
 
         self.render_mode = render_mode
         self.viewer = None  # Useless?
@@ -56,26 +55,34 @@ class ContinuousHyperGrid(gym.Env):
 
         self.steps_beyond_terminated = None
 
-    def initial_state(self) -> np.array:
+    def get_initial_state(self) -> np.array:
         """
         The initial states are all equally likely.
-        They are distributed over the subspace [-self.initial_box_size, self.initial_box_size]^self.dim_grid
+        They are distributed over the whole hyperspace (except the winning subspace)
         :return: a random initial state
         """
-        return (
-            np.random.rand(self.grid_dim) * self.initial_box_size
-            - self.initial_box_size
-        )
 
-    def winning_state(self) -> bool:
+        # TODO: Rethink this function, not very optimal
+
+        x = np.ones(self.grid_dim) * self.grid_size / 2
+        while self.is_winning_state(x):
+            x = np.random.rand(self.grid_dim) * self.grid_size - self.grid_size / 2
+
+        return x
+
+    def is_winning_state(self, x: Optional[np.array] = None) -> bool:
         """
         :return: Whether the agent is in a winning position,
         the winning positions are a small subspace of the environment.
         Its size is defined by the attribute self.size_end_box
         """
+
+        if x is None:
+            x = self.state
+
         win = 1
         for i in range(self.grid_dim):
-            win *= self.state[i] > (self.grid_size - self.size_end_box)
+            win *= x[i] > (self.grid_size / 2 - self.size_end_box)
 
         return bool(win)
 
@@ -85,13 +92,13 @@ class ContinuousHyperGrid(gym.Env):
         # Update state
         old_state = self.state
         self.state = (old_state + action + self.grid_size) % (
-            self.grid_size * 2
-        ) - self.grid_size  # High dim box is a closed world
+            self.grid_size
+        ) - self.grid_size / 2  # High dim box is a closed world
         self.all_distances.append(
             sum(
                 list(
                     map(
-                        lambda x: max(0, self.grid_size - self.size_end_box - x),
+                        lambda x: max(0, self.grid_size / 2 - self.size_end_box - x),
                         self.state,
                     )
                 )
@@ -99,7 +106,7 @@ class ContinuousHyperGrid(gym.Env):
         )
 
         # Check if this is a final state
-        terminated = self.winning_state()
+        terminated = self.is_winning_state()
 
         # Reward: penalty for taking another step
         reward = self.step_penalty
@@ -132,18 +139,20 @@ class ContinuousHyperGrid(gym.Env):
 
     def reset(self, seed: Optional[int] = None) -> Tuple[np.ndarray, Dict]:
         super().reset(seed=seed)
-        self.state = self.initial_state()  # Remark: extend to randomly starting point?
-        self.steps_beyond_terminated = None
-        self.all_distances.append(
-            sum(
-                list(
-                    map(
-                        lambda x: max(0, self.grid_size - self.size_end_box - x),
-                        self.state,
-                    )
+        self.state = (
+            self.get_initial_state()
+        )  # Remark: extend to randomly starting point?
+        self.initial_state = self.state
+        self.initial_distance = sum(
+            list(
+                map(
+                    lambda x: max(0, self.grid_size / 2 - self.size_end_box - x),
+                    self.initial_state,
                 )
             )
         )
+        self.all_distances = [self.initial_distance]
+        self.steps_beyond_terminated = None
         self.steps_beyond_terminated = None
         if self.render_mode == "human":
             self.render()
@@ -185,16 +194,19 @@ class ContinuousHyperGrid(gym.Env):
             self.surf.fill(BLACK)
 
             # Plot starting square
-            x = -self.initial_box_size * self.scale + self.offset
-            y = self.initial_box_size * self.scale + self.offset
-            starting_box = ((x, x), (y, x), (y, y), (x, y))
+            init_box_size = 0.2
+            x_1 = (self.initial_state[0] - init_box_size / 2) * self.scale + self.offset
+            x_2 = (self.initial_state[0] + init_box_size / 2) * self.scale + self.offset
+            y_1 = (self.initial_state[1] - init_box_size / 2) * self.scale + self.offset
+            y_2 = (self.initial_state[1] + init_box_size / 2) * self.scale + self.offset
+            starting_box = ((x_1, y_2), (x_1, y_1), (x_2, y_1), (x_2, y_2))
             gfxdraw.polygon(self.surf, starting_box, WHITE)
 
             # Plot ending box
-            x = self.grid_size * self.scale + self.offset
-            y = (self.grid_size - self.size_end_box) * self.scale + self.offset
+            x = self.grid_size / 2 * self.scale + self.offset
+            y = (self.grid_size / 2 - self.size_end_box) * self.scale + self.offset
             end_box_wall = ((x, x), (y, x), (y, y), (x, y))
-            if self.winning_state():
+            if self.is_winning_state():
                 gfxdraw.filled_polygon(self.surf, end_box_wall, GREEN)
             else:
                 gfxdraw.filled_polygon(self.surf, end_box_wall, RED)
@@ -211,7 +223,10 @@ class ContinuousHyperGrid(gym.Env):
                 dpi=100,  # 100 dots per inch, so the resulting buffer is 400x400 pixels
             )
             ax = fig.gca()
-            ax.plot(self.all_distances)
+            ax.plot(self.all_distances, "o")
+            ax.plot(self.initial_distance, "ro")
+            if self.is_winning_state():
+                ax.plot(len(self.all_distances), self.all_distances[-1], "go")
             ax.set_xlabel("step")
             ax.set_ylabel("Distance from finishing box (l1 norm)")
 
@@ -260,7 +275,7 @@ class ContinuousHyperGrid(gym.Env):
 
         done = torch.ones(next_obs.shape[0], dtype=bool)
         for i in range(self.grid_dim):
-            done *= next_obs[:, i] > (self.grid_size - self.size_end_box)
+            done *= next_obs[:, i] > (self.grid_size / 2 - self.size_end_box)
 
         done = done[:, None]  # augment dimension
         return done
