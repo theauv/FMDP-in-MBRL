@@ -1,6 +1,8 @@
 from typing import Dict
 import wandb
 
+import torch
+
 from mbrl.models import Model
 
 # TODO: Make it more modular maybe ? (Not trivial as it would mean touch mbrl functions)
@@ -11,14 +13,18 @@ class CallbackWandb:
     Class dealing with the generated callbacks during a training run
     """
 
-    def __init__(self, with_tracking: bool = True) -> None:
+    def __init__(
+        self, with_tracking: bool = True, max_traj_iterations: int = 0
+    ) -> None:
         """
         Define the different metrics usseful to track and plot
 
         :param with_tracking: if we don't want to track and plot in wandb, default is True
         """
 
+        self.max_traj_iterations = max_traj_iterations
         self.with_tracking = with_tracking
+        self.env_step = 0
 
         # Define new metrics for each tracked values
         if self.with_tracking:
@@ -30,6 +36,12 @@ class CallbackWandb:
             wandb.define_metric("total_avg_loss", step_metric="train_iteration")
             wandb.define_metric("eval_score", step_metric="train_iteration")
             wandb.define_metric("best_eval_score", step_metric="train_iteration")
+
+            wandb.define_metric("trajectory_optimizer_iteration", hidden=True)
+            wandb.define_metric(
+                "trajectory_optimizer_eval",
+                step_metric="trajectory_optimizer_iteration",
+            )
 
     def model_train_callback(
         self,
@@ -70,6 +82,24 @@ class CallbackWandb:
             "episode_steps": episode_steps,
             "episode_reward": episode_reward,
             "env_episode": episode,
+        }
+
+        self.episodes_steps = episode_steps
+
+        wandb.log(tracked_values)
+
+    def trajectory_optimizer_callback(self, population, values, iterations):
+
+        if not self.with_tracking:
+            return
+
+        best_value = torch.max(values)
+
+        tracked_values = {
+            "best_trajectory_value": best_value,
+            "trajectory_optimization_iteration": self.env_step
+            * self.max_traj_iterations
+            + iterations,
         }
 
         wandb.log(tracked_values)

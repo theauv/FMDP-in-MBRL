@@ -21,7 +21,10 @@ import mbrl.util.math
 
 from src.callbacks.wandb_callbacks import CallbackWandb
 from src.callbacks.constants import RESULTS_LOG_NAME, EVAL_LOG_FORMAT
-from src.util.util import create_one_dim_tr_model_overriden
+from src.util.util import (
+    create_one_dim_tr_model_overriden,
+    step_env_and_add_to_buffer_callback,
+)
 
 
 def train(
@@ -110,8 +113,10 @@ def train(
     )
 
     # ---------------------------------------------------------
-    # ----------------- Create callback tables ----------------
-    callbacks = CallbackWandb(cfg.experiment.with_tracking)
+    # ----------------- Callbacks -----------------------------
+    callbacks = CallbackWandb(
+        cfg.experiment.with_tracking, max_traj_iterations=cfg.overrides.cem_num_iters
+    )
 
     # ---------------------------------------------------------
     # --------------------- Training Loop ---------------------
@@ -144,14 +149,20 @@ def train(
                 )
 
             # --- Doing env step using the agent and adding to model dataset ---
+            callbacks.env_step += 1
             (
                 next_obs,
                 reward,
                 terminated,
                 truncated,
                 _,
-            ) = mbrl.util.common.step_env_and_add_to_buffer(
-                env, obs, agent, {}, replay_buffer
+            ) = step_env_and_add_to_buffer_callback(  # locally overriden to handle callbacks
+                env,
+                obs,
+                agent,
+                {},
+                replay_buffer,
+                optimizer_callback=callbacks.trajectory_optimizer_callback,
             )
 
             obs = next_obs

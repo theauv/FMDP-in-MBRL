@@ -5,7 +5,7 @@ model_trainer:
 wrapper:
   _target_: src.model.lasso_net.LassoOneDTransitionRewardModel
 model:
-  _target_: src.model.lasso_net.LassoNetGaussianMLP
+  _target_: src.model.gaussian_lasso_net.LassoNetGaussianMLP
   device: ${device}
   num_layers: 2 #4
   in_size: ???

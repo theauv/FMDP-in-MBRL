@@ -423,7 +423,7 @@ class AdaptedVisualizer(Visualizer):
         for key, value in states_dependencies.items():
             print(key, value)
 
-    def model_weights_dependencies(self):
+    def model_weights_dependencies(self, verbose=True):
         """
         This function gives another idea of the correlation between the 
         next_state space and the state_action space in the learned model_env.
@@ -437,6 +437,14 @@ class AdaptedVisualizer(Visualizer):
         """
 
         all_weights = get_weights_model(self.model_env.dynamics_model.model)
+
+        if verbose:
+            for key, values in all_weights.items():
+                if key == "hidden_weights" or key == "hidden_biases":
+                    for i, layer in enumerate(values):
+                        print(f"{key}_{i}: {layer.shape}")
+                else:
+                    print(key, values.shape)
 
         deterministic = True
         is_skip = False
@@ -453,7 +461,9 @@ class AdaptedVisualizer(Visualizer):
 
         if "skip" in all_weights.keys():
             is_skip = True  # Unused for now
-            start_weights = weights[0].T
+            start_weights = start_weights.T
+            for i, weight in enumerate(weights):
+                weights[i] = weight.T
 
         for next_state in range(self.env.observation_space.shape[0]):
             print("---------------------------------------")
