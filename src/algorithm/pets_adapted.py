@@ -24,6 +24,7 @@ from src.callbacks.constants import RESULTS_LOG_NAME, EVAL_LOG_FORMAT
 from src.util.util import (
     create_one_dim_tr_model_overriden,
     step_env_and_add_to_buffer_callback,
+    train_model_and_save_model_and_data_overriden,
 )
 
 
@@ -115,7 +116,9 @@ def train(
     # ---------------------------------------------------------
     # ----------------- Callbacks -----------------------------
     callbacks = CallbackWandb(
-        cfg.experiment.with_tracking, max_traj_iterations=cfg.overrides.cem_num_iters
+        cfg.experiment.with_tracking,
+        max_traj_iterations=cfg.overrides.cem_num_iters,
+        model_out_size=dynamics_model.model.out_size,
     )
 
     # ---------------------------------------------------------
@@ -139,13 +142,14 @@ def train(
         while not terminated and not truncated:
             # --------------- Model Training -----------------
             if env_steps % cfg.algorithm.freq_train_model == 0:
-                mbrl.util.common.train_model_and_save_model_and_data(
+                train_model_and_save_model_and_data_overriden(
                     dynamics_model,
                     model_trainer,
                     cfg.overrides,
                     replay_buffer,
                     work_dir=work_dir,
                     callback=callbacks.model_train_callback,
+                    callback_sparsity=callbacks.model_sparsity,
                 )
 
             # --- Doing env step using the agent and adding to model dataset ---

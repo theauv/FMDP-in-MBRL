@@ -9,7 +9,7 @@ import mbrl.algorithms.mbpo as mbpo
 import mbrl.algorithms.pets as pets
 import mbrl.algorithms.planet as planet
 
-import src.algorithm.pets_adapted as pets_adatpted
+import src.algorithm.pets_adapted as pets_adapted
 from src.env.env_handler import HandMadeEnvHandler
 from src.util.util import get_run_kwargs
 
@@ -32,7 +32,7 @@ def run(cfg: omegaconf.DictConfig):
 
     # train the agent and model with the given algorithm
     if cfg.algorithm.name == "pets_adapted":
-        return pets_adatpted.train(env, term_fn, reward_fn, cfg)
+        return pets_adapted.train(env, term_fn, reward_fn, cfg)
     if cfg.algorithm.name == "pets":
         warnings.warn("Might not be supported yet in the scope of this project")
         return pets.train(env, term_fn, reward_fn, cfg)

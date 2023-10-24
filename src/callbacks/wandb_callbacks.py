@@ -14,7 +14,10 @@ class CallbackWandb:
     """
 
     def __init__(
-        self, with_tracking: bool = True, max_traj_iterations: int = 0
+        self,
+        with_tracking: bool = True,
+        max_traj_iterations: int = 0,
+        model_out_size: int = None,
     ) -> None:
         """
         Define the different metrics usseful to track and plot
@@ -25,6 +28,7 @@ class CallbackWandb:
         self.max_traj_iterations = max_traj_iterations
         self.with_tracking = with_tracking
         self.env_step = 0
+        self.model_out_size = model_out_size
 
         # Define new metrics for each tracked values
         if self.with_tracking:
@@ -42,6 +46,10 @@ class CallbackWandb:
                 "trajectory_optimizer_eval",
                 step_metric="trajectory_optimizer_iteration",
             )
+
+            # wandb.define_metric("lambda", hidden=True)
+            # for i in range(self.model_out_size):
+            #     wandb.define_metric(f"lassonet_{i}", step_metric="lambda")
 
     def model_train_callback(
         self,
@@ -101,5 +109,15 @@ class CallbackWandb:
             * self.max_traj_iterations
             + iterations,
         }
+
+        wandb.log(tracked_values)
+
+    def model_sparsity(self, model_features_counts, lambda_):
+
+        if not self.with_tracking:
+            return
+
+        tracked_values = model_features_counts
+        # tracked_values["lambda"] = lambda_
 
         wandb.log(tracked_values)

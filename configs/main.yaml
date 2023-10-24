@@ -1,7 +1,7 @@
 defaults:
   - algorithm: pets_adapted
-  - dynamics_model: factored_simple #factored_gaussian_mlp_ensemble|lasso_gaussian_mlp_ensemble|gaussian_mlp_ensemble
-  - overrides: pets_hypergrid #pets_cartpole|pets_maze|pets_hypergrid
+  - dynamics_model: simple
+  - overrides: pets_hypergrid
   - action_optimizer: cem
   - experiment: wandb
 

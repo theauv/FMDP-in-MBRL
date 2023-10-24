@@ -105,22 +105,6 @@ class Simple(Model):
     ) -> Tuple[torch.Tensor, Optional[Dict[str, torch.Tensor]]]:
 
         return (self.forward(model_input), model_state)
-        if deterministic or self.deterministic:
-            return (
-                self.forward(
-                    model_input,
-                    rng=rng,
-                    propagation_indices=model_state["propagation_indices"],
-                )[0],
-                model_state,
-            )
-        assert rng is not None
-        means, logvars = self.forward(
-            model_input, rng=rng, propagation_indices=model_state["propagation_indices"]
-        )
-        variances = logvars.exp()
-        stds = torch.sqrt(variances)
-        return torch.normal(means, stds, generator=rng), model_state
 
 
 class GridFactoredSimple(Simple):
@@ -202,7 +186,7 @@ class LassoSimple(Simple):
         M: float = 10.0,
     ):
 
-        Model.__init__(device)  # If does not work try super().super().__init__()
+        Model.__init__(self, device)  # If does not work try super().super().__init__()
 
         self.in_size = in_size
         self.out_size = out_size
@@ -217,6 +201,9 @@ class LassoSimple(Simple):
             )
             self.lassonets.append(lassonet)
 
+        self.apply(truncated_normal_init)
+        self.to(self.device)
+
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
 
         for i, lassonet in enumerate(self.lassonets):
@@ -227,8 +214,9 @@ class LassoSimple(Simple):
                 pred = torch.cat([pred, next_pred], dim=-1)
         return pred
 
-    def each_eval_score(
+    def lassonet_eval_score(
         self,
+        lassonet: LassoNetAdapted,
         model_in: torch.Tensor,
         target: Optional[torch.Tensor] = None,
         lambda_: float = None,
@@ -238,25 +226,18 @@ class LassoSimple(Simple):
             warnings.warn("You did not give any lambda, default lambda = 0.")
             lambda_ = 0.0
 
-        losses = []
-        # Compute the loss for each single output and its associated lassonet model
-        for i, lassonet in enumerate(self.lassonets):
+        with torch.no_grad():
+            pred_out = lassonet.forward(model_in)
+            loss = F.mse_loss(pred_out, target, reduction="none")
+            loss = (
+                loss  # .item()
+                + lambda_ * lassonet.l1_regularization_skip().item()
+                + self.gamma * lassonet.l2_regularization().item()
+                + self.gamma_skip * lassonet.l2_regularization_skip().item()
+            )
+            meta = {}
 
-            assert model_in.ndim == 2 and target.ndim == 2
-            with torch.no_grad():
-                pred_out = lassonet.forward(model_in)
-                target = target.repeat((1, 1, 1))[:, :, i]
-                loss = F.mse_loss(pred_out, target, reduction="none")
-                losses.append(
-                    (
-                        loss  # .item()
-                        + lambda_ * lassonet.l1_regularization_skip().item()
-                        + self.gamma * lassonet.l2_regularization().item()
-                        + self.gamma_skip * lassonet.l2_regularization_skip().item()
-                    ),
-                    {},
-                )
-            return losses
+        return loss, meta
 
     def eval_score(
         self,
@@ -265,21 +246,36 @@ class LassoSimple(Simple):
         lambda_: float = None,
         mode: str = "mean",
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
-        losses = self.each_eval_score(model_in, target, lambda_)
+
+        if lambda_ is None:
+            warnings.warn("You did not give any lambda, default lambda = 0.")
+            lambda_ = 0.0
+
+        assert model_in.ndim == 2 and target.ndim == 2
+
+        losses = []
+        metas = []
+        # Compute the loss for each single output and its associated lassonet model
+        for i, lassonet in enumerate(self.lassonets):
+            target = target.repeat((1, 1, 1))[:, :, i]
+            loss, meta = self.lassonet_eval_score(lassonet, model_in, target, lambda_)
+            losses.append(loss)
+            metas.append(meta)
 
         if mode == "mean":
             n_outputs = len(losses)
             assert n_outputs == self.out_size
-            return sum(losses) / n_outputs
+            return sum(losses) / n_outputs, {}
         elif mode == "separate":
-            return losses
+            return losses, metas
         else:
             raise ValueError(
                 f"There is no {mode} mode for the SimpleLasso eval_score method"
             )
 
-    def each_update(
+    def lassonet_update(
         self,
+        lassonet: LassoNetAdapted,
         model_in: ModelInput,
         optimizer: torch.optim.Optimizer,
         target: Optional[torch.Tensor] = None,
@@ -290,66 +286,74 @@ class LassoSimple(Simple):
             warnings.warn("You did not give any lambda, default lambda = 0.")
             lambda_ = 0.0
 
+        def closure():
+            optimizer.zero_grad()
+            loss, meta = self.loss(model_in, target)
+            ans = (
+                # TODO: Might not be a good idea full_loss + hiddenlayers reg
+                loss
+                + self.gamma * lassonet.l2_regularization()
+                + self.gamma_skip * lassonet.l2_regularization_skip()
+            )
+
+            # TODO Keep these prints ??
+            if ans + 1 == ans:
+                print(f"Loss is {ans}", file=sys.stderr)
+                print(f"Did you normalize input?", file=sys.stderr)
+                print(f"Loss: {loss}")
+                print(f"l2_regularization: {self.hidden_layers.l2_regularization()}")
+                print(
+                    f"l2_regularization_skip: {self.hidden_layers.l2_regularization_skip()}"
+                )
+                assert False
+            ans.backward()
+            if meta is not None:
+                with torch.no_grad():
+                    grad_norm = 0.0
+                    for p in list(
+                        filter(lambda p: p.grad is not None, self.parameters())
+                    ):
+                        grad_norm += p.grad.data.norm(2).item() ** 2
+                    meta["grad_norm"] = grad_norm
+            return ans, meta
+
+        ans, meta = optimizer.step(closure)
+        lassonet.prox(lambda_=lambda_ * optimizer.param_groups[0]["lr"], M=self.M)
+
+        return ans, meta
+
+    def update(
+        self,
+        model_in: ModelInput,
+        optimizers: List[torch.optim.Optimizer],
+        target: Optional[torch.Tensor] = None,
+        lambda_: float = None,
+        mode: str = "mean",
+    ) -> Tuple[float, Dict[str, Any]]:
+
+        if lambda_ is None:
+            warnings.warn("You did not give any lambda, default lambda = 0.")
+            lambda_ = 0.0
+
+        assert model_in.ndim == 2 and target.ndim == 2
+
         self.train()
 
         all_ans = []
         all_meta = []
         for i, lassonet in enumerate(self.lassonets):
 
-            def closure():
-                optimizer.zero_grad()
-                loss, meta = self.loss(model_in, target[:, i])
-                ans = (
-                    # TODO: Might not be a good idea full_loss + hiddenlayers reg
-                    loss
-                    + self.gamma * lassonet.l2_regularization()
-                    + self.gamma_skip * lassonet.l2_regularization_skip()
-                )
+            sub_target = target[:, i].unsqueeze(-1)
 
-                # TODO Keep these prints ??
-                if ans + 1 == ans:
-                    print(f"Loss is {ans}", file=sys.stderr)
-                    print(f"Did you normalize input?", file=sys.stderr)
-                    print(f"Loss: {loss}")
-                    print(
-                        f"l2_regularization: {self.hidden_layers.l2_regularization()}"
-                    )
-                    print(
-                        f"l2_regularization_skip: {self.hidden_layers.l2_regularization_skip()}"
-                    )
-                    assert False
-                ans.backward()
-                if meta is not None:
-                    with torch.no_grad():
-                        grad_norm = 0.0
-                        for p in list(
-                            filter(lambda p: p.grad is not None, self.parameters())
-                        ):
-                            grad_norm += p.grad.data.norm(2).item() ** 2
-                        meta["grad_norm"] = grad_norm
-                return ans, meta
-
-            ans, meta = optimizer.step(closure)
+            ans, meta = self.lassonet_update(
+                lassonet,
+                model_in,
+                optimizer=optimizers[i],
+                target=sub_target,
+                lambda_=lambda_,
+            )
             all_ans.append(ans.item())
             all_meta.append(meta)
-
-            # TODO: Useful ??
-            lassonet.prox(lambda_=lambda_ * optimizer.param_groups[0]["lr"], M=self.M)
-
-        return all_ans, all_meta
-
-    def update(
-        self,
-        model_in: ModelInput,
-        optimizer: torch.optim.Optimizer,
-        target: Optional[torch.Tensor] = None,
-        lambda_: float = None,
-        mode: str = "mean",
-    ) -> Tuple[float, Dict[str, Any]]:
-
-        all_ans, all_meta = self.each_update(
-            model_in, optimizer=optimizer, target=target, lambda_=lambda_
-        )
 
         if mode == "mean":
             n_outputs = len(all_ans)
