@@ -1,0 +1,14 @@
+# @package _group_
+model_trainer:
+  _target_: mbrl.models.ModelTrainer
+wrapper:
+  _target_: mbrl.models.OneDTransitionRewardModel
+model:
+  _target_: src.model.simple.Simple
+  device: ${device}
+  num_layers: 2 #4
+  in_size: ???
+  out_size: ???
+  hid_size: 50 #200
+  activation_fn_cfg: #null
+    _target_: torch.nn.SiLU
