@@ -1,7 +1,10 @@
 from typing import Dict
-import wandb
 
+from matplotlib import pyplot as plt
+import networkx as nx
+import numpy as np
 import torch
+import wandb
 
 from mbrl.models import Model
 
@@ -46,10 +49,6 @@ class CallbackWandb:
                 "trajectory_optimizer_eval",
                 step_metric="trajectory_optimizer_iteration",
             )
-
-            # wandb.define_metric("lambda", hidden=True)
-            # for i in range(self.model_out_size):
-            #     wandb.define_metric(f"lassonet_{i}", step_metric="lambda")
 
     def model_train_callback(
         self,
@@ -112,12 +111,44 @@ class CallbackWandb:
 
         wandb.log(tracked_values)
 
-    def model_sparsity(self, model_features_counts, lambda_):
+    def model_sparsity(self, which_lassonet = None, fig_loss = None, fig_theta = None, factors=None):
 
         if not self.with_tracking:
+            print(f"Lassonet {which_lassonet}")
+            plt.show()
             return
+        
+        if which_lassonet is not None:
 
-        tracked_values = model_features_counts
-        # tracked_values["lambda"] = lambda_
+            wandb.log({f'Loss pretraining lassonet {which_lassonet}' : wandb.Image(fig_loss), 
+                    f'Theta pretraining lassonet {which_lassonet}': wandb.Image(fig_theta),
+                    }) 
+        
 
-        wandb.log(tracked_values)
+        if factors is not None:
+
+            factors = np.array(factors)
+            outputs = range(len(factors))
+            inputs = range(np.max(factors)+1)
+
+            G = nx.DiGraph()
+
+            for x in inputs:
+                G.add_node(f'in_{x}', pos=(0,x), color='blue')
+
+            for x in outputs:
+                G.add_node(f'out_{x}', pos=(2,x), color='red')
+
+            for output, factor in enumerate(factors):
+                print(factor)
+                for input_ in factor:
+                    G.add_edge(f'in_{input_}', f'out_{output}')
+
+            pos=nx.get_node_attributes(G,'pos')
+            color=nx.get_node_attributes(G,'color')
+            graph_fig = plt.figure()
+            nx.draw_networkx(G, with_labels = True, pos=pos, node_color=color.values())
+
+            wandb.log({f'Learned DBN graph' : wandb.Image(graph_fig), 
+            }) 
+        

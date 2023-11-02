@@ -1,6 +1,5 @@
 from math import ceil
 from typing import Union, Optional, Dict, Tuple, Any, List
-import sys
 import warnings
 
 import hydra
@@ -13,12 +12,10 @@ from torch.functional import F
 
 from mbrl.models.model import Model
 from mbrl.models.util import truncated_normal_init
-from src.model.lasso_net import LassoNetAdapted
 
 
 class Simple(Model):
     """
-    TODO: Propagation indices and deterministic ???
     Simplest model supported by mbrl-lib
     """
 
@@ -62,12 +59,9 @@ class Simple(Model):
         return self.hidden_layers(x)
 
     def loss(self, model_in: torch.Tensor, target: torch.Tensor = None) -> torch.Tensor:
-        assert model_in.ndim == target.ndim
-        if model_in.ndim == 2:  # add model dimension
-            model_in = model_in.unsqueeze(0)
-            target = target.unsqueeze(0)
+        assert model_in.ndim == 2 and target.ndim == 2  # Not sure
         pred_out = self.forward(model_in)
-        return F.mse_loss(pred_out, target, reduction="none").sum((1, 2)).sum(), {}
+        return F.mse_loss(pred_out, target, reduction="none").sum(-1).sum(), {}
 
     def eval_score(
         self, model_in: torch.Tensor, target: Optional[torch.Tensor] = None
@@ -75,8 +69,7 @@ class Simple(Model):
         assert model_in.ndim == 2 and target.ndim == 2
         with torch.no_grad():
             pred_output = self.forward(model_in)
-            target = target.repeat((1, 1, 1))  # Why
-            return F.mse_loss(pred_output, target, reduction="none"), {}
+            return F.mse_loss(pred_output, target, reduction="none").unsqueeze(0), {}
 
     def save(self, save_dir: Union[str, pathlib.Path]):
         """Saves the model to the given directory."""
@@ -155,7 +148,6 @@ class GridFactoredSimple(Simple):
         return xs
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-
         xs = self.create_factored_input(x)
         for i, factored_x in enumerate(xs):
             if i == 0:
@@ -166,198 +158,155 @@ class GridFactoredSimple(Simple):
         return pred
 
 
-class LassoSimple(Simple):
-    """
-    This Model takes all its sense to be use with the associated LassoModelTrainer (and Wrapper).
-    """
-
+class FactoredSimple(Simple):
     def __init__(
         self,
         in_size: int,
         out_size: int,
+        raw_factors: List,
         device: Union[str, torch.device],
         num_layers: int = 4,
         hid_size: int = 200,
         activation_fn_cfg: Optional[Union[Dict, omegaconf.DictConfig]] = None,
-        groups: Optional[int] = None,
-        dropout: bool = False,
-        gamma: float = 0.0,
-        gamma_skip: float = 0.0,
-        M: float = 10.0,
     ):
+        """
+        :param raw_factors: Adjacency list for which each entry i is a tuple or a List of the inputs the output i
+        depends on
+        """
 
-        Model.__init__(self, device)  # If does not work try super().super().__init__()
+        Model.__init__(self, device)
 
         self.in_size = in_size
         self.out_size = out_size
-        self.gamma = gamma
-        self.gamma_skip = gamma_skip
-        self.M = M
 
-        self.lassonets = []
-        for i in range(self.out_size):
-            lassonet = LassoNetAdapted(
-                in_size, 1, activation_fn_cfg, num_layers, hid_size, groups, dropout
-            )
-            self.lassonets.append(lassonet)
+        self.model_factors = self.get_model_factors(raw_factors)
+        self.models = self.get_factored_models(
+            hid_size=hid_size,
+            num_layers=num_layers,
+            activation_fn_cfg=activation_fn_cfg,
+        )
 
         self.apply(truncated_normal_init)
         self.to(self.device)
 
+    @staticmethod
+    def get_model_factors(raw_factors):
+        """_summary_
+
+        :param raw_factors: List for which each entry i is a tuple or a List of the inputs the output i
+        depends on
+        :return: The Linked list of the factored models: [(in_1, out_1), ..., (in_n, out_n)]. in_i is the inputs
+        playing in a role in the model i, out_i the outputs of the model i.
+        """
+
+        factors = []
+        for output, inputs in enumerate(raw_factors):
+            inputs = list(inputs)
+            out = [output]
+            j = output + 1
+            while j < len(raw_factors):
+                other_inputs = list(raw_factors[j])
+                if inputs == other_inputs:
+                    out.append(j)
+                    raw_factors.pop(j)
+                j += 1
+            factors.append((inputs, out))
+
+        return factors
+
+    def get_factored_models(self, hid_size, num_layers, activation_fn_cfg):
+
+        models = []
+        total_out_size = 0
+        for model_factor in self.model_factors:
+            assert len(model_factor) == 2
+            in_size = len(model_factor[0])
+            out_size = len(model_factor[1])
+            total_out_size += out_size
+
+            # TODO: Check this operation
+            if hid_size > in_size + out_size:
+                reduction = max(in_size / self.in_size, out_size / self.out_size)
+                hid_size = ceil(hid_size * reduction)
+
+            model = Simple(
+                in_size=in_size,
+                out_size=out_size,
+                num_layers=num_layers,
+                hid_size=hid_size,
+                activation_fn_cfg=activation_fn_cfg,
+                device=self.device,
+            )
+            models.append(model)
+
+        assert total_out_size == self.out_size
+        return models
+
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
 
-        for i, lassonet in enumerate(self.lassonets):
-            if i == 0:
-                pred = lassonet.forward(x)
-            else:
-                next_pred = lassonet.forward(x)
-                pred = torch.cat([pred, next_pred], dim=-1)
-        return pred
+        assert len(x.shape) == 2
 
-    def lassonet_eval_score(
-        self,
-        lassonet: LassoNetAdapted,
-        model_in: torch.Tensor,
-        target: Optional[torch.Tensor] = None,
-        lambda_: float = None,
-    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
+        preds = torch.empty(x.shape[0], self.out_size)
+        for i, model_i in enumerate(self.models):
+            input_idx, output_idx = self.model_factors[i]
+            sub_x = x.index_select(-1, index=torch.tensor(input_idx))
+            pred = model_i.forward(sub_x)
+            for j, k in enumerate(output_idx):
+                preds[:, k] = pred[:, j]
 
-        if lambda_ is None:
-            warnings.warn("You did not give any lambda, default lambda = 0.")
-            lambda_ = 0.0
-
-        with torch.no_grad():
-            pred_out = lassonet.forward(model_in)
-            loss = F.mse_loss(pred_out, target, reduction="none")
-            loss = (
-                loss  # .item()
-                + lambda_ * lassonet.l1_regularization_skip().item()
-                + self.gamma * lassonet.l2_regularization().item()
-                + self.gamma_skip * lassonet.l2_regularization_skip().item()
-            )
-            meta = {}
-
-        return loss, meta
+        return preds
 
     def eval_score(
         self,
         model_in: torch.Tensor,
         target: Optional[torch.Tensor] = None,
-        lambda_: float = None,
-        mode: str = "mean",
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
-
-        if lambda_ is None:
-            warnings.warn("You did not give any lambda, default lambda = 0.")
-            lambda_ = 0.0
 
         assert model_in.ndim == 2 and target.ndim == 2
 
-        losses = []
+        eval_scores = []
         metas = []
         # Compute the loss for each single output and its associated lassonet model
-        for i, lassonet in enumerate(self.lassonets):
-            target = target.repeat((1, 1, 1))[:, :, i]
-            loss, meta = self.lassonet_eval_score(lassonet, model_in, target, lambda_)
-            losses.append(loss)
+        for i, model in enumerate(self.models):
+            sub_model_in = model_in.index_select(-1, torch.tensor(self.model_factors[i][0]))
+            sub_target = target.index_select(-1, torch.tensor(self.model_factors[i][1]))
+            eval_score, meta = model.eval_score(sub_model_in, sub_target)
+            eval_scores.append(eval_score)
             metas.append(meta)
 
-        if mode == "mean":
-            n_outputs = len(losses)
-            assert n_outputs == self.out_size
-            return sum(losses) / n_outputs, {}
-        elif mode == "separate":
-            return losses, metas
-        else:
-            raise ValueError(
-                f"There is no {mode} mode for the SimpleLasso eval_score method"
-            )
-
-    def lassonet_update(
-        self,
-        lassonet: LassoNetAdapted,
-        model_in: ModelInput,
-        optimizer: torch.optim.Optimizer,
-        target: Optional[torch.Tensor] = None,
-        lambda_: float = None,
-    ) -> Tuple[float, Dict[str, Any]]:
-
-        if lambda_ is None:
-            warnings.warn("You did not give any lambda, default lambda = 0.")
-            lambda_ = 0.0
-
-        def closure():
-            optimizer.zero_grad()
-            loss, meta = self.loss(model_in, target)
-            ans = (
-                # TODO: Might not be a good idea full_loss + hiddenlayers reg
-                loss
-                + self.gamma * lassonet.l2_regularization()
-                + self.gamma_skip * lassonet.l2_regularization_skip()
-            )
-
-            # TODO Keep these prints ??
-            if ans + 1 == ans:
-                print(f"Loss is {ans}", file=sys.stderr)
-                print(f"Did you normalize input?", file=sys.stderr)
-                print(f"Loss: {loss}")
-                print(f"l2_regularization: {self.hidden_layers.l2_regularization()}")
-                print(
-                    f"l2_regularization_skip: {self.hidden_layers.l2_regularization_skip()}"
-                )
-                assert False
-            ans.backward()
-            if meta is not None:
-                with torch.no_grad():
-                    grad_norm = 0.0
-                    for p in list(
-                        filter(lambda p: p.grad is not None, self.parameters())
-                    ):
-                        grad_norm += p.grad.data.norm(2).item() ** 2
-                    meta["grad_norm"] = grad_norm
-            return ans, meta
-
-        ans, meta = optimizer.step(closure)
-        lassonet.prox(lambda_=lambda_ * optimizer.param_groups[0]["lr"], M=self.M)
-
-        return ans, meta
+        return torch.cat(eval_scores, dim=-1), {}
 
     def update(
         self,
         model_in: ModelInput,
         optimizers: List[torch.optim.Optimizer],
         target: Optional[torch.Tensor] = None,
-        lambda_: float = None,
-        mode: str = "mean",
+        mode: str = "sum",
     ) -> Tuple[float, Dict[str, Any]]:
-
-        if lambda_ is None:
-            warnings.warn("You did not give any lambda, default lambda = 0.")
-            lambda_ = 0.0
 
         assert model_in.ndim == 2 and target.ndim == 2
 
         self.train()
 
-        all_ans = []
+        all_loss = []
         all_meta = []
-        for i, lassonet in enumerate(self.lassonets):
+        for i, model in enumerate(self.models):
 
-            sub_target = target[:, i].unsqueeze(-1)
+            sub_model_in = model_in.index_select(-1, torch.tensor(self.model_factors[i][0]))
+            sub_target = target.index_select(-1, torch.tensor(self.model_factors[i][1]))
 
-            ans, meta = self.lassonet_update(
-                lassonet,
-                model_in,
-                optimizer=optimizers[i],
-                target=sub_target,
-                lambda_=lambda_,
+            loss, meta = model.update(
+                sub_model_in, optimizer=optimizers[i], target=sub_target
             )
-            all_ans.append(ans.item())
+            all_loss.append(loss)
             all_meta.append(meta)
 
-        if mode == "mean":
-            n_outputs = len(all_ans)
-            assert n_outputs == self.out_size
-            return sum(all_ans) / n_outputs, {}
+        if mode == "sum":
+            return sum(all_loss), {}
         elif mode == "separate":
-            return all_ans, all_meta
+            return all_loss, all_meta
+        else:
+            raise ValueError(
+                f"There is no {mode} mode for the SimpleLasso eval_score method"
+            )
+

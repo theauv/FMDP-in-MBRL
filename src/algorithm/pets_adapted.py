@@ -21,9 +21,9 @@ import mbrl.util.math
 
 from src.callbacks.wandb_callbacks import CallbackWandb
 from src.callbacks.constants import RESULTS_LOG_NAME, EVAL_LOG_FORMAT
-from src.util.util import (
+from src.util.common_overriden import (
     create_one_dim_tr_model_overriden,
-    step_env_and_add_to_buffer_callback,
+    step_env_and_add_to_buffer_overriden,
     train_model_and_save_model_and_data_overriden,
 )
 
@@ -160,7 +160,7 @@ def train(
                 terminated,
                 truncated,
                 _,
-            ) = step_env_and_add_to_buffer_callback(  # locally overriden to handle callbacks
+            ) = step_env_and_add_to_buffer_overriden(  # locally overriden to handle callbacks
                 env,
                 obs,
                 agent,

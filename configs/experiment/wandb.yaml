@@ -4,6 +4,6 @@ api_name: wandb
 run_configs:             
   project: hucrl_fmdp
   group:  null
-  name: lasso_5dim
+  name: lasso_test
   settings: null
   tags: null

@@ -430,10 +430,10 @@ class AdaptedVisualizer(Visualizer):
         For each nex_state output, we want to observe the total weight contribution
         of each state_action input.
 
-        Careful, for the moment thi function only looks at the weights (not the bias,
+        Careful, for the moment this function only looks at the weights (not the bias,
         residual layers or any fancy NN architecture), therefore it's hard to tell whether 
         or not this function gives a relevant result...
-        TODO: Make this function more reliable 
+        TODO: Make this function more reliable
         """
 
         all_weights = get_weights_model(self.model_env.dynamics_model.model)

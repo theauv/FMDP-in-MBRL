@@ -1,22 +1,26 @@
 # @package _group_
 model_trainer:
   _target_: src.model.lasso_net.LassoModelTrainer
-  lambda_seq: [0.01, 0.1, 1., 10., 100.]
   lambda_start: 0.
-  path_multiplier: 1.02
+  lambda_max: 50.
+  lambda_step: 0.3
+  take_best_factors: 2 #int|null
+  num_pretraining_epochs: 50
+  theta_tol: 0.01
+  reinit: false
 wrapper:
   _target_: src.model.lasso_net.LassoOneDTransitionRewardModel
 model:
-  _target_: src.model.simple.LassoSimple
+  _target_: src.model.lasso_net.LassoSimple
   device: ${device}
-  num_layers: 1 #4
+  num_layers: 2
   in_size: ???
   out_size: ???
-  hid_size: 100 #200
+  hid_size: 50
   activation_fn_cfg:
     _target_: torch.nn.SiLU
   groups: null #Not sure what it is for now ?? TODO
-  dropout: false
+  dropout: false #keep as flase for now
   gamma: 0.0
   gamma_skip: 0.0
-  M: 10.0
+  M: 1.0
