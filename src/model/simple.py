@@ -1,16 +1,19 @@
 from math import ceil
 from typing import Union, Optional, Dict, Tuple, Any, List
-import warnings
 
 import hydra
 from mbrl.types import ModelInput
+from mbrl.util.logger import Logger
+import numpy as np
 import omegaconf
 import pathlib
 import torch
 from torch import nn
+from torch import optim
 from torch.functional import F
 
 from mbrl.models.model import Model
+from mbrl.models.model_trainer import ModelTrainer, MODEL_LOG_FORMAT
 from mbrl.models.util import truncated_normal_init
 
 
@@ -54,6 +57,8 @@ class Simple(Model):
 
         self.apply(truncated_normal_init)
         self.to(self.device)
+
+        self.factors = [np.arange(self.in_size) for output in range(self.out_size)]
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         return self.hidden_layers(x)
@@ -129,6 +134,10 @@ class GridFactoredSimple(Simple):
         self.in_size = in_size
         self.out_size = out_size
 
+        self.factors = [
+            [i, i + self.out_size] for i, output in enumerate(range(self.out_size))
+        ]
+
     def create_factored_input(self, x: torch.Tensor) -> List[torch.Tensor]:
         """
         :param x: whole state-action tensor
@@ -163,7 +172,7 @@ class FactoredSimple(Simple):
         self,
         in_size: int,
         out_size: int,
-        raw_factors: List,
+        factors: List,
         device: Union[str, torch.device],
         num_layers: int = 4,
         hid_size: int = 200,
@@ -179,7 +188,8 @@ class FactoredSimple(Simple):
         self.in_size = in_size
         self.out_size = out_size
 
-        self.model_factors = self.get_model_factors(raw_factors)
+        self.factors = factors
+        self.model_factors = self.get_model_factors(factors)
         self.models = self.get_factored_models(
             hid_size=hid_size,
             num_layers=num_layers,
@@ -188,6 +198,11 @@ class FactoredSimple(Simple):
 
         self.apply(truncated_normal_init)
         self.to(self.device)
+
+        print("YEAAAAAAAAAAAAAAAH")
+        print(factors)
+        print(self.model_factors)
+        print(self.models)
 
     @staticmethod
     def get_model_factors(raw_factors):
@@ -227,13 +242,13 @@ class FactoredSimple(Simple):
             # TODO: Check this operation
             if hid_size > in_size + out_size:
                 reduction = max(in_size / self.in_size, out_size / self.out_size)
-                hid_size = ceil(hid_size * reduction)
+                new_hid_size = ceil(hid_size * reduction)
 
             model = Simple(
                 in_size=in_size,
                 out_size=out_size,
                 num_layers=num_layers,
-                hid_size=hid_size,
+                hid_size=new_hid_size,
                 activation_fn_cfg=activation_fn_cfg,
                 device=self.device,
             )
@@ -257,9 +272,7 @@ class FactoredSimple(Simple):
         return preds
 
     def eval_score(
-        self,
-        model_in: torch.Tensor,
-        target: Optional[torch.Tensor] = None,
+        self, model_in: torch.Tensor, target: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
 
         assert model_in.ndim == 2 and target.ndim == 2
@@ -268,7 +281,9 @@ class FactoredSimple(Simple):
         metas = []
         # Compute the loss for each single output and its associated lassonet model
         for i, model in enumerate(self.models):
-            sub_model_in = model_in.index_select(-1, torch.tensor(self.model_factors[i][0]))
+            sub_model_in = model_in.index_select(
+                -1, torch.tensor(self.model_factors[i][0])
+            )
             sub_target = target.index_select(-1, torch.tensor(self.model_factors[i][1]))
             eval_score, meta = model.eval_score(sub_model_in, sub_target)
             eval_scores.append(eval_score)
@@ -292,7 +307,9 @@ class FactoredSimple(Simple):
         all_meta = []
         for i, model in enumerate(self.models):
 
-            sub_model_in = model_in.index_select(-1, torch.tensor(self.model_factors[i][0]))
+            sub_model_in = model_in.index_select(
+                -1, torch.tensor(self.model_factors[i][0])
+            )
             sub_target = target.index_select(-1, torch.tensor(self.model_factors[i][1]))
 
             loss, meta = model.update(
@@ -310,3 +327,37 @@ class FactoredSimple(Simple):
                 f"There is no {mode} mode for the SimpleLasso eval_score method"
             )
 
+
+class MultiModelsTrainer(ModelTrainer):
+    def __init__(
+        self,
+        model: Model,
+        optim_lr: float = 1e-4,
+        weight_decay: float = 1e-5,
+        optim_eps: float = 1e-8,
+        logger: Optional[Logger] = None,
+    ):
+
+        self.model = model
+        self._train_iteration = 0
+
+        self.logger = logger
+        if self.logger:
+            self.logger.register_group(
+                self._LOG_GROUP_NAME, MODEL_LOG_FORMAT, color="blue", dump_frequency=1
+            )
+
+        assert hasattr(
+            self.model.model, "models"
+        ), "This Model Trainer only works for models having multiple submodels \
+            in a list attribute 'models' e.g. FactoredSimple"
+
+        self.optimizer = []
+        for lassonet in self.model.model.models:
+            optimizer = optim.Adam(
+                lassonet.parameters(),
+                lr=optim_lr,
+                weight_decay=weight_decay,
+                eps=optim_eps,
+            )
+            self.optimizer.append(optimizer)

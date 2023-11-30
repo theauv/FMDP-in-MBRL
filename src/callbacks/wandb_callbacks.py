@@ -1,8 +1,7 @@
-from typing import Dict
+from typing import List
 
 from matplotlib import pyplot as plt
 import networkx as nx
-import numpy as np
 import torch
 import wandb
 
@@ -49,6 +48,16 @@ class CallbackWandb:
                 "trajectory_optimizer_eval",
                 step_metric="trajectory_optimizer_iteration",
             )
+
+    def env_callback(self, env):
+
+        if not self.with_tracking:
+            plt.imshow(env.render("rgb_array"))
+            plt.show()
+            return
+
+        image = wandb.Image(env.render("rgb_array"))
+        wandb.log({"Env": image})
 
     def model_train_callback(
         self,
@@ -111,44 +120,54 @@ class CallbackWandb:
 
         wandb.log(tracked_values)
 
-    def model_sparsity(self, which_lassonet = None, fig_loss = None, fig_theta = None, factors=None):
+    def model_sparsity(
+        self, which_lassonet=None, fig_loss=None, fig_theta=None, factors=None
+    ):
 
         if not self.with_tracking:
             print(f"Lassonet {which_lassonet}")
-            plt.show()
             return
-        
+
         if which_lassonet is not None:
 
-            wandb.log({f'Loss pretraining lassonet {which_lassonet}' : wandb.Image(fig_loss), 
-                    f'Theta pretraining lassonet {which_lassonet}': wandb.Image(fig_theta),
-                    }) 
-        
+            wandb.log(
+                {
+                    f"Loss pretraining lassonet {which_lassonet}": wandb.Image(
+                        fig_loss
+                    ),
+                    f"Theta pretraining lassonet {which_lassonet}": wandb.Image(
+                        fig_theta
+                    ),
+                }
+            )
 
-        if factors is not None:
-
-            factors = np.array(factors)
+    def model_dbn(self, factors: List):
+        def draw_dbn_graph(factors):
             outputs = range(len(factors))
-            inputs = range(np.max(factors)+1)
+            inputs = range(max(map(max, factors)) + 1)
 
             G = nx.DiGraph()
 
             for x in inputs:
-                G.add_node(f'in_{x}', pos=(0,x), color='blue')
+                G.add_node(f"in_{x}", pos=(0, x), color="blue")
 
             for x in outputs:
-                G.add_node(f'out_{x}', pos=(2,x), color='red')
+                G.add_node(f"out_{x}", pos=(2, x), color="red")
 
             for output, factor in enumerate(factors):
-                print(factor)
                 for input_ in factor:
-                    G.add_edge(f'in_{input_}', f'out_{output}')
+                    G.add_edge(f"in_{input_}", f"out_{output}")
 
-            pos=nx.get_node_attributes(G,'pos')
-            color=nx.get_node_attributes(G,'color')
+            pos = nx.get_node_attributes(G, "pos")
+            color = nx.get_node_attributes(G, "color")
             graph_fig = plt.figure()
-            nx.draw_networkx(G, with_labels = True, pos=pos, node_color=color.values())
+            nx.draw_networkx(G, with_labels=True, pos=pos, node_color=color.values())
+            return graph_fig
 
-            wandb.log({f'Learned DBN graph' : wandb.Image(graph_fig), 
-            }) 
-        
+        if not self.with_tracking:
+            graph_fig = draw_dbn_graph(factors)
+            plt.show()
+            return
+
+        graph_fig = draw_dbn_graph(factors)
+        wandb.log({f"Learned DBN graph": wandb.Image(graph_fig)})

@@ -1,5 +1,4 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-import itertools
 from math import ceil
 import sys
 import tqdm
@@ -26,7 +25,6 @@ from mbrl.util.logger import Logger
 from lassonet import LassoNet
 
 from src.model.simple import Simple, FactoredSimple
-from src.util.util import model_correlations
 
 
 SPARSITY_LOG_FORMAT = [
@@ -38,9 +36,8 @@ SPARSITY_LOG_FORMAT = [
     ("model_loss", "MLOSS", "float"),
     ("model_val_score", "MVSCORE", "float"),
     ("model_best_val_score", "MBVSCORE", "float"),
-    ("num_factors", "F", "int")
+    ("num_factors", "F", "int"),
 ]
-
 
 
 class LassoNetAdapted(LassoNet):
@@ -59,7 +56,6 @@ class LassoNetAdapted(LassoNet):
         groups: Optional[int] = None,
         dropout: Optional[bool] = None,
     ):
-
 
         self.in_size = in_size
         self.out_size = out_size
@@ -106,8 +102,10 @@ class LassoNetAdapted(LassoNet):
         else:
             result = self.skip(x)
         for i, theta in enumerate(self.layers):
-            if i==0 and skip_no_grad:
-                theta.weight = nn.Parameter(torch.where(self.mask, theta.weight, torch.tensor(0.)))
+            if i == 0 and skip_no_grad:
+                theta.weight = nn.Parameter(
+                    torch.where(self.mask, theta.weight, torch.tensor(0.0))
+                )
                 current_layer = theta(current_layer)
             else:
                 current_layer = theta(current_layer)
@@ -148,13 +146,15 @@ class LassoOneDTransitionRewardModel(OneDTransitionRewardModel):
             self.model, "lassonets"
         ), f"This Model Wrapper only works for Model with lassonets, model is {model._get_name()}"
 
-    def fix_model_sparsity(self, factors, reinit: bool =False) -> None:
+    def fix_model_sparsity(self, factors, reinit: bool = False) -> None:
+
+        self.model.set_factors(factors)
 
         if reinit:
             model = FactoredSimple(
                 in_size=self.model.in_size,
                 out_size=self.model.out_size,
-                raw_factors=factors,
+                factors=factors,
                 device=self.model.device,
                 num_layers=self.model.num_layers,
                 hid_size=self.model.hid_size,
@@ -166,15 +166,15 @@ class LassoOneDTransitionRewardModel(OneDTransitionRewardModel):
             with torch.no_grad():
                 for output, factor in enumerate(factors):
                     theta = self.model.lassonets[output].skip.weight.data.squeeze()
-                    theta[~factor] = 0.
-                    weights0 = self.model.lassonets[output].layers[0].weight.data.squeeze()
+                    theta[~factor] = 0.0
+                    weights0 = (
+                        self.model.lassonets[output].layers[0].weight.data.squeeze()
+                    )
                     mask = torch.zeros_like(weights0)
                     for input_ in factor:
-                        mask[:,input_] = torch.ones_like(weights0[:,input_])
+                        mask[:, input_] = torch.ones_like(weights0[:, input_])
                     mask = mask.bool()
                     self.model.lassonets[output].create_mask(mask)
-
-
 
     def lassonet_update(
         self,
@@ -226,8 +226,8 @@ class LassoModelTrainer(ModelTrainer):
         weight_decay: float = 1e-5,
         optim_eps: float = 1e-8,
         logger: Optional[Logger] = None,
-        lambda_start: float = 0.,
-        lambda_max: float =50.,
+        lambda_start: float = 0.0,
+        lambda_max: float = 50.0,
         lambda_step: float = 0.2,
         take_best_factors: Optional[int] = None,
         num_pretraining_epochs: int = 50,
@@ -242,11 +242,11 @@ class LassoModelTrainer(ModelTrainer):
 
         self.lassonets = self.model.model.lassonets  # TODO wrapper
         self._train_iteration = 0
-        self.lambda_start=lambda_start
-        self.lambda_max=lambda_max 
-        self.lambda_step=lambda_step
-        self.take_best_factors=take_best_factors
-        self.num_pretraining_epochs=num_pretraining_epochs
+        self.lambda_start = lambda_start
+        self.lambda_max = lambda_max
+        self.lambda_step = lambda_step
+        self.take_best_factors = take_best_factors
+        self.num_pretraining_epochs = num_pretraining_epochs
         self.theta_tol = theta_tol
         self.reinit = reinit
 
@@ -256,7 +256,10 @@ class LassoModelTrainer(ModelTrainer):
                 self._LOG_GROUP_NAME, MODEL_LOG_FORMAT, color="blue", dump_frequency=1
             )
             self.logger.register_group(
-                self._SPARSITY_LOG_GROUP_NAME, SPARSITY_LOG_FORMAT, color="blue", dump_frequency=1
+                self._SPARSITY_LOG_GROUP_NAME,
+                SPARSITY_LOG_FORMAT,
+                color="blue",
+                dump_frequency=1,
             )
 
         self.optimizer = []
@@ -285,7 +288,7 @@ class LassoModelTrainer(ModelTrainer):
 
     def _reinit(self):
 
-        #TODO: Write it better
+        # TODO: Write it better
         assert isinstance(self.model.model, FactoredSimple)
         self.sub_models = self.model.model.models
         self.lassonets = None
@@ -323,12 +326,12 @@ class LassoModelTrainer(ModelTrainer):
                 evaluate,
                 silent,
             )
-            factors = self._choose_factors(factors, best_thetas)
+            # factors = self._choose_factors(factors, best_thetas)
             all_factors.append(factors)
-            #TODO: if ever have a model that learn dynamics and sparsity simultaneously, might be useful to keep
-            #the best lambda for each submodel
+            # TODO: if ever have a model that learn dynamics and sparsity simultaneously, might be useful to keep
+            # the best lambda for each submodel
 
-        #TODO: make it cleaner
+        # TODO: make it cleaner
         print("all_factors", all_factors)
         callback_sparsity(None, None, None, all_factors)
 
@@ -344,11 +347,13 @@ class LassoModelTrainer(ModelTrainer):
         given, will choose how to factor the model
         """
 
-        #TODO: Function not robust or good at all
+        # TODO: Function not robust or good at all
         if self.take_best_factors is not None:
             return factors
         else:
-            theta_factors = [i for i, theta in enumerate(thetas) if theta>2*self.theta_tol]
+            theta_factors = [
+                i for i, theta in enumerate(thetas) if theta > 2 * self.theta_tol
+            ]
             return theta_factors
 
     def _train_and_find_sparsity_lassonet(
@@ -361,9 +366,9 @@ class LassoModelTrainer(ModelTrainer):
         evaluate: bool = True,
         silent: bool = False,
     ) -> Tuple:
-        
+
         current_lambda = self.lambda_start
-        lambda_iters = ceil((self.lambda_max - self.lambda_start)/self.lambda_step)
+        lambda_iters = ceil((self.lambda_max - self.lambda_start) / self.lambda_step)
 
         all_train_loss = []
         all_eval = []
@@ -380,7 +385,12 @@ class LassoModelTrainer(ModelTrainer):
             epoch_iter = range(num_epochs)
             epochs_since_update = 0
             best_val_score = (
-                self._evaluate_one_lassonet(lassonet, which_output=which_output, dataset=eval_dataset, lambda_=0.0)
+                self._evaluate_one_lassonet(
+                    lassonet,
+                    which_output=which_output,
+                    dataset=eval_dataset,
+                    lambda_=0.0,
+                )
                 if evaluate
                 else None
             )
@@ -406,7 +416,7 @@ class LassoModelTrainer(ModelTrainer):
                 total_avg_loss = np.mean(batch_losses).mean().item()
                 training_losses.append(total_avg_loss)
                 for j, weight in enumerate(lassonet.skip.weight.data.squeeze()):
-                    thetas[j,epoch] = abs(weight)
+                    thetas[j, epoch] = abs(weight)
 
                 eval_score = None
                 model_val_score = 0
@@ -442,7 +452,9 @@ class LassoModelTrainer(ModelTrainer):
                     )
 
                 elif lassonet.selected_count() == 0:
-                    warnings.warn("Features all disappeared, lambda might be already to high")
+                    warnings.warn(
+                        "Features all disappeared, lambda might be already to high"
+                    )
                     factors = []
                     break
             # #DEBUG
@@ -471,33 +483,39 @@ class LassoModelTrainer(ModelTrainer):
 
             if training_losses[-1] - training_losses[0] > 0:
                 print("Not training correctly anymore")
-                num_epochs = 2 #TODO: Hard coded for now
-                #Alternative solution: from this point just fix lambda
+                num_epochs = 2  # TODO: Hard coded for now
+                # Alternative solution: from this point just fix lambda
 
             best_epoch_train_loss = training_losses[-1]
             best_epoch_eval = val_scores[-1]
-            best_epoch_thetas = np.mean(thetas[:,-10:], axis=1)
+            best_epoch_thetas = np.mean(thetas[:, -10:], axis=1)
 
             all_train_loss.append(best_epoch_train_loss)
             all_eval.append(best_epoch_eval)
             for j, weight in enumerate(best_epoch_thetas):
-                all_thetas[j,lambda_count] = weight
+                all_thetas[j, lambda_count] = weight
             lambda_count += 1
 
-            factors = np.argwhere(np.array(best_epoch_thetas)>self.theta_tol).squeeze()
+            factors = np.argwhere(
+                np.array(best_epoch_thetas) > self.theta_tol
+            ).squeeze()
             if self.take_best_factors is not None:
                 if len(factors) <= self.take_best_factors:
                     print(f"Found the {self.take_best_factors} factors: {factors}")
                     break
             else:
-                if len(factors) <= lassonet.in_size:
+                if len(factors) < lassonet.in_size:
                     print(f"First sparsity appeared")
+                    factors = np.argwhere(
+                        np.array(best_epoch_thetas) > 10 * self.theta_tol
+                    ).squeeze()
+                    # TODO: SHould be more precise or hyperparameter
                     break
 
         def create_callback_plots():
-            plt.close('all')
+            plt.close("all")
             lambdas = np.arange(self.lambda_start, self.lambda_max, self.lambda_step)
-            #Plot eval/training losses
+            # Plot eval/training losses
             fig_loss, axs = plt.subplots(1, 2)
             axs[0].plot(lambdas[:lambda_count], all_train_loss)
             axs[0].set_xlabel("lambda")
@@ -506,29 +524,29 @@ class LassoModelTrainer(ModelTrainer):
             axs[1].set_xlabel("lambda")
             axs[1].set_ylabel("Eval loss")
 
-            #Theta (skip layer weights)
-            cols = lassonet.in_size//2
-            max_theta = np.max(all_thetas[:, :lambda_count])+0.1
+            # Theta (skip layer weights)
+            cols = lassonet.in_size // 2
+            max_theta = np.max(all_thetas[:, :lambda_count]) + 0.1
             fig_theta, axs = plt.subplots(2, cols)
             for theta_i, theta in enumerate(all_thetas):
-                i = theta_i//cols
-                j = theta_i%cols
-                axs[i,j].plot(lambdas[:lambda_count], abs(theta)[:lambda_count])
-                axs[i,j].set_xlabel("lambda")
-                axs[i,j].set_ylabel(f"Theta {theta_i}")
-                axs[i,j].set_ylim(0, max_theta)
+                i = theta_i // cols
+                j = theta_i % cols
+                axs[i, j].plot(lambdas[:lambda_count], abs(theta)[:lambda_count])
+                axs[i, j].set_xlabel("lambda")
+                axs[i, j].set_ylabel(f"Theta {theta_i}")
+                axs[i, j].set_ylim(0, max_theta)
 
             return fig_loss, fig_theta
-        
+
         if callback_sparsity:
             fig_loss, fig_theta = create_callback_plots()
             callback_sparsity(which_output, fig_loss, fig_theta)
 
-
-
-        #Return the sparsity infos associated to the best lambda
+        # Return the sparsity infos associated to the best lambda
         best_idx = np.argmin(all_train_loss)
-        best_lambda = self.lambda_start+best_idx*self.lambda_step #check if correct
+        best_lambda = (
+            self.lambda_start + best_idx * self.lambda_step
+        )  # check if correct
         best_train_loss = all_train_loss[best_idx]
         best_eval_loss = all_eval[best_idx]
         best_thetas = all_thetas[:, best_idx]
@@ -588,11 +606,7 @@ class LassoModelTrainer(ModelTrainer):
 
         if self._train_iteration == 0:
             self.find_sparse_model(
-                dataset_train,
-                dataset_val,
-                callback_sparsity,
-                evaluate,
-                silent,
+                dataset_train, dataset_val, callback_sparsity, evaluate, silent
             )
 
         return super().train(
@@ -638,6 +652,7 @@ class LassoSimple(Simple):
         self.num_layers = num_layers
         self.hid_size = hid_size
         self.activation_fn_cfg = activation_fn_cfg
+        self.factors = None
 
         self.lassonets = []
         for i in range(self.out_size):
@@ -648,6 +663,9 @@ class LassoSimple(Simple):
 
         self.apply(truncated_normal_init)
         self.to(self.device)
+
+    def set_factors(self, factors):
+        self.factors = factors
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
 
@@ -737,7 +755,7 @@ class LassoSimple(Simple):
         target: Optional[torch.Tensor] = None,
         lambda_: float = None,
     ) -> Tuple[float, Dict[str, Any]]:
-        
+
         if lambda_ is None:
             self.train()
             optimizer.zero_grad()
@@ -746,7 +764,9 @@ class LassoSimple(Simple):
             if meta is not None:
                 with torch.no_grad():
                     grad_norm = 0.0
-                    for p in list(filter(lambda p: p.grad is not None, self.parameters())):
+                    for p in list(
+                        filter(lambda p: p.grad is not None, self.parameters())
+                    ):
                         grad_norm += p.grad.data.norm(2).item() ** 2
                     meta["grad_norm"] = grad_norm
             optimizer.step()

@@ -1,6 +1,6 @@
 defaults:
   - algorithm: pets_adapted
-  - dynamics_model: lasso_simple
+  - dynamics_model: factored_simple
   - overrides: pets_hypergrid
   - action_optimizer: cem
   - experiment: wandb

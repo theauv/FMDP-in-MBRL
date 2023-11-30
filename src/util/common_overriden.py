@@ -14,7 +14,6 @@ from mbrl.planning import Agent
 from src.model.lasso_net import LassoModelTrainer
 
 
-
 def train_model_and_save_model_and_data_overriden(
     model: mbrl.models.Model,
     model_trainer: mbrl.models.ModelTrainer,
@@ -93,6 +92,38 @@ def step_env_and_add_to_buffer_overriden(
     return next_obs, reward, terminated, truncated, info
 
 
+def get_env_factors(cfg: omegaconf.DictConfig,):
+    """Utilitary function to initiliaze the correct factors in case
+    you use a general factored model
+    :return: correct factors
+    """
+    model_cfg = cfg.dynamics_model.model
+    if cfg.overrides.env == "maze":
+        factors = [[0, 2], [1, 3]]
+    if cfg.overrides.env == "hypergrid":
+        grid_dim = cfg.overrides.env_config.grid_dim
+        factors = [[output, output + grid_dim] for output in range(grid_dim)]
+    elif cfg.overrides.env == "dbn_hypergrid":
+        state_factors = cfg.overrides.env_config.state_dbn
+        action_factors = cfg.overrides.env_config.action_dbn
+        state_dim = len(state_factors)
+        factors = state_factors
+        action_factors = [
+            [factor + state_dim for factor in out_factors]
+            for out_factors in action_factors
+        ]
+        for output, factor in enumerate(factors):
+            for action_factor in action_factors[output]:
+                factor.append(action_factor)
+    else:
+        raise ValueError(
+            "No factors implementation for this env, either use a non-factored model \
+                         either implement a way to get the factor of this env in this function"
+        )
+
+    return factors
+
+
 def create_one_dim_tr_model_overriden(
     cfg: omegaconf.DictConfig,
     obs_shape: Tuple[int, ...],
@@ -111,6 +142,8 @@ def create_one_dim_tr_model_overriden(
         model_cfg.in_size = obs_shape[0] + (act_shape[0] if act_shape else 1)
     if model_cfg.get("out_size", None) is None:
         model_cfg.out_size = obs_shape[0] + int(cfg.algorithm.learned_rewards)
+    if "factors" in model_cfg.keys() and model_cfg.get("factors", None) is None:
+        model_cfg.factors = get_env_factors(cfg)
 
     # Now instantiate the model
     model = hydra.utils.instantiate(model_cfg)  # Changed from the original function

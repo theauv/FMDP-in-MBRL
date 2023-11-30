@@ -9,6 +9,7 @@ from mbrl.util.env import EnvHandler, Freeze, _handle_learned_rewards_and_seed
 
 from src.env.maze import ContinuousMaze
 from src.env.hypergrid import ContinuousHyperGrid
+from src.env.dbn_hypergrid import DBNHyperGrid
 
 # TODO: Take a look back to all of this implementation (partially and quickly implemented, needs review)
 # Good enough for now
@@ -89,6 +90,10 @@ class HandMadeEnvHandler(EnvHandler):
             reward_fn = env.reward_fn
         elif cfg.overrides.env == "hypergrid":
             env = ContinuousHyperGrid(cfg.overrides.env_config, render_mode)
+            term_fn = env.termination_fn  # term_fns.hypergrid
+            reward_fn = env.reward_fn  # rew_fns.hypergrid
+        elif cfg.overrides.env == "dbn_hypergrid":
+            env = DBNHyperGrid(cfg.overrides.env_config, render_mode)
             term_fn = env.termination_fn  # term_fns.hypergrid
             reward_fn = env.reward_fn  # rew_fns.hypergrid
         else:
