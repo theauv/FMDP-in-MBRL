@@ -1,9 +1,9 @@
 # @package _group_
-with_tracking: true #true
+with_tracking: false #true
 api_name: wandb
 run_configs:             
   project: hucrl_fmdp
   group:  null
-  name: test_obstacle
+  name: test_bikes
   settings: null
   tags: null

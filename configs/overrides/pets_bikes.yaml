@@ -1,0 +1,32 @@
+# @package _group_
+env: bikes
+env_config:
+  num_trucks: 10
+  action_per_day: 3
+  sample_method: sequential
+  initial_distribution: zeros
+  bikes_per_truck: 100
+  walk_distance_max: 1.
+  data_path: ${hydra:runtime.cwd}/../
+learned_rewards: false #Not supported yet
+trial_length: 400 #Max length episode
+num_steps: 500000 #Number of env steps before end of training
+num_episodes: 100 #Number of env episodes before end of training
+render_mode: human #null|rgb_array|human
+model_path: null #/mnt/c/Users/theau/OneDrive/Documents/theau_epfl/12.PDM/code/HUCRL_for_FMDP/exp/pets_adapted/wandb/hypergrid/2023.10.06/154944
+
+num_elites: 3 #5
+model_lr: 7.5e-4
+model_wd: 3e-5
+model_batch_size: 128 #256
+validation_ratio: 0
+freq_train_model: 50
+patience: 25
+num_epochs_train_model: 25 #25
+
+planning_horizon: 15
+cem_num_iters: 5
+cem_elite_ratio: 0.1
+cem_population_size: 350
+cem_alpha: 0.1
+cem_clipped_normal: false

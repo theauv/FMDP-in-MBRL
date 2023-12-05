@@ -1,15 +1,18 @@
 from typing import Union, Optional, Dict, Tuple
 import omegaconf
+from omegaconf import OmegaConf, open_dict
 import gymnasium as gym
 import numpy as np
 from warnings import warn
 
 import mbrl
 from mbrl.util.env import EnvHandler, Freeze, _handle_learned_rewards_and_seed
+from src.util.util import get_base_dir_path
 
 from src.env.maze import ContinuousMaze
 from src.env.hypergrid import ContinuousHyperGrid
 from src.env.dbn_hypergrid import DBNHyperGrid
+from src.env.bikes import Bikes
 
 # TODO: Take a look back to all of this implementation (partially and quickly implemented, needs review)
 # Good enough for now
@@ -90,12 +93,21 @@ class HandMadeEnvHandler(EnvHandler):
             reward_fn = env.reward_fn
         elif cfg.overrides.env == "hypergrid":
             env = ContinuousHyperGrid(cfg.overrides.env_config, render_mode)
-            term_fn = env.termination_fn  # term_fns.hypergrid
-            reward_fn = env.reward_fn  # rew_fns.hypergrid
+            term_fn = env.termination_fn
+            reward_fn = env.reward_fn  
         elif cfg.overrides.env == "dbn_hypergrid":
             env = DBNHyperGrid(cfg.overrides.env_config, render_mode)
-            term_fn = env.termination_fn  # term_fns.hypergrid
-            reward_fn = env.reward_fn  # rew_fns.hypergrid
+            term_fn = env.termination_fn
+            reward_fn = env.reward_fn
+        elif cfg.overrides.env == "bikes":
+            #TODO: Not best way to do it, but still more or less robust
+            env_config = cfg.overrides.env_config
+            OmegaConf.set_struct(env_config, True)
+            with open_dict(env_config):
+                env_config.base_dir = get_base_dir_path()
+            env = Bikes(cfg.overrides.env_config, render_mode)
+            term_fn = env.termination_fn
+            reward_fn = env.reward_fn
         else:
             warn(
                 "You are loading an environment outside of the scope of this local project \
