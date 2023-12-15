@@ -1,5 +1,6 @@
 from typing import List
 
+import matplotlib
 from matplotlib import pyplot as plt
 import networkx as nx
 import torch
@@ -20,6 +21,7 @@ class CallbackWandb:
         with_tracking: bool = True,
         max_traj_iterations: int = 0,
         model_out_size: int = None,
+        plot_local: bool = False,
     ) -> None:
         """
         Define the different metrics usseful to track and plot
@@ -31,6 +33,7 @@ class CallbackWandb:
         self.with_tracking = with_tracking
         self.env_step = 0
         self.model_out_size = model_out_size
+        self.plot_local = plot_local
 
         # Define new metrics for each tracked values
         if self.with_tracking:
@@ -52,8 +55,10 @@ class CallbackWandb:
     def env_callback(self, env):
 
         if not self.with_tracking:
-            plt.imshow(env.render("rgb_array"))
-            plt.show()
+            if self.plot_local and env.render_mode == "rgb_array":
+                matplotlib.use("Agg")
+                plt.imshow(env.render("rgb_array"))
+                plt.show()
             return
 
         image = wandb.Image(env.render("rgb_array"))
@@ -165,8 +170,9 @@ class CallbackWandb:
             return graph_fig
 
         if not self.with_tracking:
-            graph_fig = draw_dbn_graph(factors)
-            plt.show()
+            if self.plot_local:
+                graph_fig = draw_dbn_graph(factors)
+                plt.show()
             return
 
         graph_fig = draw_dbn_graph(factors)

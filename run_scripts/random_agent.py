@@ -50,6 +50,7 @@ def random_agent(env: gym.Env, num_steps: int):
     axs[1].set_ylabel("Total reward")
     plt.show()
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -68,13 +69,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.env_name == "hypergrid":
-        #TODO change this bad hard coding
+        # TODO change this bad hard coding
         env_config = {
             "step_penalty": -1,
             "grid_dim": 2,
-            "grid_size": 5.,
-            "size_end_box": 1.,
-            "step_size": 1.,
+            "grid_size": 5.0,
+            "size_end_box": 1.0,
+            "step_size": 1.0,
             "n_obstacles": 5,
             "size_obstacles": 1,
         }
@@ -88,12 +89,12 @@ if __name__ == "__main__":
             "sample_method": "sequential",
             "initial_distribution": "zeros",
             "bikes_per_truck": 100,
-            "walk_distance_max": 1.,
+            "walk_distance_max": 1.0,
         }
         env_config = DictConfig(env_config)
 
         env = Bikes(env_config=env_config, render_mode=args.render_mode)
     else:
         raise ValueError(f"No environment called {args.env_name} implemented")
-    
+
     random_agent(env, args.num_steps)

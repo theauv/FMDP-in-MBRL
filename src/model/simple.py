@@ -199,11 +199,6 @@ class FactoredSimple(Simple):
         self.apply(truncated_normal_init)
         self.to(self.device)
 
-        print("YEAAAAAAAAAAAAAAAH")
-        print(factors)
-        print(self.model_factors)
-        print(self.models)
-
     @staticmethod
     def get_model_factors(raw_factors):
         """_summary_

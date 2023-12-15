@@ -62,9 +62,7 @@ class ContinuousHyperGrid(gym.Env):
         # Obstacles
         self.n_obstacles = env_config.n_obstacles
         self.size_obstacles = env_config.size_obstacles
-        self.obstacles = None
-        if self.n_obstacles > 0 and self.grid_dim <= 3 and self.grid_dim > 1:
-            self.set_obstacles()
+        self.obstacles = self.get_obstacles()
 
     def get_initial_state(self) -> np.array:
         """
@@ -107,8 +105,12 @@ class ContinuousHyperGrid(gym.Env):
 
         return bool(win)
 
-    def set_obstacles(self):
-        self.obstacles = []
+    def get_obstacles(self):
+        obstacles = []
+        if self.n_obstacles is None:
+            return obstacles
+        if self.n_obstacles <= 0 or self.grid_dim > 3 or self.grid_dim <= 1:
+            return obstacles
         ending_point = [(self.grid_size / 2) - 0.5] * self.grid_dim
         for i in range(self.n_obstacles):
             obstacle_pos = self.observation_space.sample()
@@ -136,7 +138,9 @@ class ContinuousHyperGrid(gym.Env):
                 )
                 iter += 1
             if iter < max_iter:
-                self.obstacles.append(obstacle_pos)
+                obstacles.append(obstacle_pos)
+
+        return obstacles
 
     def is_colliding(self, old_state, new_state=None):
         """

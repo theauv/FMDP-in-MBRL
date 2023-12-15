@@ -16,7 +16,7 @@ from src.util.util import get_run_kwargs
 
 @hydra.main(config_path="../configs", config_name="main")
 def run(cfg: omegaconf.DictConfig):
-    
+
     # set-up run and api
     if cfg.experiment.with_tracking:
         cfg.overrides.render_mode = "rgb_array"

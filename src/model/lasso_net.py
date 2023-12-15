@@ -316,7 +316,6 @@ class LassoModelTrainer(ModelTrainer):
 
         all_factors = []
         for which_output, lassonet in enumerate(self.lassonets):
-            print("LASSONET", which_output)
             factors, best_lambda, best_train_loss, best_eval_loss, best_thetas = self._train_and_find_sparsity_lassonet(
                 dataset_train,
                 lassonet,

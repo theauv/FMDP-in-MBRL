@@ -2,17 +2,17 @@
 env: "hypergrid"
 env_config:
   step_penalty: -1
-  grid_dim: 2 #2
+  grid_dim: 5 #2
   grid_size: 5.
   size_end_box: 1. #1.0
   step_size: 1.
-  n_obstacles: 5
+  n_obstacles: null
   size_obstacles: 1
 learned_rewards: false #Not supported yet
 trial_length: 400 #Max length episode
 num_steps: 500000 #Number of env steps before end of training
 num_episodes: 100 #Number of env episodes before end of training
-render_mode: human #null|rgb_array|human
+render_mode: null #null|rgb_array|human
 model_path: null #/mnt/c/Users/theau/OneDrive/Documents/theau_epfl/12.PDM/code/HUCRL_for_FMDP/exp/pets_adapted/wandb/hypergrid/2023.10.06/154944
 
 num_elites: 3 #5

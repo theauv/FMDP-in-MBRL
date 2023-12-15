@@ -4,9 +4,10 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 import os
-from typing import Optional
+from typing import Optional, Dict
 
 import gymnasium as gym
+from gymnasium import spaces
 import hydra
 import numpy as np
 import omegaconf
@@ -26,7 +27,6 @@ from src.util.common_overriden import (
     step_env_and_add_to_buffer_overriden,
     train_model_and_save_model_and_data_overriden,
 )
-
 
 def train(
     env: gym.Env,
@@ -72,10 +72,6 @@ def train(
         logger.register_group(RESULTS_LOG_NAME, EVAL_LOG_FORMAT, color="green")
 
     # -------- Create and populate initial env dataset --------
-    model_path = cfg.overrides.get("model_path", None)
-    dynamics_model = create_one_dim_tr_model_overriden(
-        cfg, obs_shape, act_shape, model_path
-    )
     use_double_dtype = cfg.algorithm.get("normalize_double_precision", False)
     dtype = np.double if use_double_dtype else np.float32
     replay_buffer = mbrl.util.common.create_replay_buffer(
@@ -98,6 +94,11 @@ def train(
 
     # ---------------------------------------------------------
     # ---------- Create model environment and agent -----------
+    model_path = cfg.overrides.get("model_path", None)
+    
+    dynamics_model = create_one_dim_tr_model_overriden(
+        cfg, env, obs_shape, act_shape, model_path
+    )
     model_env = mbrl.models.ModelEnv(
         env, dynamics_model, termination_fn, reward_fn, generator=torch_generator
     )
@@ -119,6 +120,7 @@ def train(
         cfg.experiment.with_tracking,
         max_traj_iterations=cfg.overrides.cem_num_iters,
         model_out_size=dynamics_model.model.out_size,
+        plot_local=cfg.experiment.plot_local
     )
 
     callbacks.env_callback(env)
@@ -172,6 +174,7 @@ def train(
                 replay_buffer,
                 optimizer_callback=callbacks.trajectory_optimizer_callback,
             )
+            print("NOPE")
 
             obs = next_obs
             total_reward += reward
