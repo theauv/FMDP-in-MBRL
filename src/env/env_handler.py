@@ -94,13 +94,13 @@ class HandMadeEnvHandler(EnvHandler):
         elif cfg.overrides.env == "hypergrid":
             env = ContinuousHyperGrid(cfg.overrides.env_config, render_mode)
             term_fn = env.termination_fn
-            reward_fn = env.reward_fn  
+            reward_fn = env.reward_fn
         elif cfg.overrides.env == "dbn_hypergrid":
             env = DBNHyperGrid(cfg.overrides.env_config, render_mode)
             term_fn = env.termination_fn
             reward_fn = env.reward_fn
         elif cfg.overrides.env == "bikes":
-            #TODO: Not best way to do it, but still more or less robust
+            # TODO: Not best way to do it, but still more or less robust
             env_config = cfg.overrides.env_config
             OmegaConf.set_struct(env_config, True)
             with open_dict(env_config):

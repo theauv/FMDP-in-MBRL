@@ -1,20 +1,23 @@
 # @package _group_
 env: bikes
 env_config:
-  num_trucks: 3
-  action_per_day: 1
+  num_trucks: 1
+  action_per_day: 4
   sample_method: sequential
   initial_distribution: uniform
-  bikes_per_truck: 10
+  bikes_per_truck: 5
   walk_distance_max: 1.
-  centroids_idx: [93,83,80,98,6,84,87,99,56,97]
+  centroids_idx: [1,2,3,4,5] #[93,83,80,98,6,84,87,99,56,97]
 model_wrapper:
-  _target_: src.model.bikes_model_wrapper.OneDTransitionRewardModelBikes
+  _target_: src.model.bikes_model_wrapper.OneDTransitionRewardModelDictSpace
+  model_input_obs_key: ["bikes_dist_before_shift", "day", "month", "time_counter"]
+  model_input_act_key: []
+  model_output_key: ["bikes_dist_after_shift"]
 learned_rewards: true #Not supported yet
-trial_length: 1 #Max length episode
+trial_length: ${overrides.env_config.action_per_day} #Max length episode
 num_steps: 500000 #Number of env steps before end of training
-num_episodes: 100 #Number of env episodes before end of training
-render_mode: null #null|rgb_array|human
+num_episodes: 400 #Number of env episodes before end of training
+render_mode: human #null|rgb_array|human
 model_path: null #/mnt/c/Users/theau/OneDrive/Documents/theau_epfl/12.PDM/code/HUCRL_for_FMDP/exp/pets_adapted/wandb/hypergrid/2023.10.06/154944
 
 num_elites: 3 #5

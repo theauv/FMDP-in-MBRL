@@ -5,6 +5,7 @@ and the environments are much simpler.
 """
 
 from typing import Optional, Dict, Tuple, List
+from random import uniform
 
 import geopy.distance
 import gymnasium as gym
@@ -23,7 +24,7 @@ from scipy.spatial import distance
 import torch
 import warnings
 
-from src.util.util import my_draw_networkx_edge_labels
+from src.util.util import get_mapping_dict
 
 
 class Rentals_Simulator:
@@ -41,13 +42,14 @@ class Rentals_Simulator:
         self.walk_dist_max = walk_dist_max
         self.taken_bikes = []
 
+    def reset(self):
+        self.taken_bikes = []
+
     def simulate_rentals(self, trips, X):
         """ 
         Simulate daily rentals when X[i] bikes are positioned in each region i at the beginning of the day on daynum of month.
         Returns a list of the starting coordinates of the trips that were met and a list of the starting coordinates of the trips that were unmet.
         """
-        # query = 'Day == ' + str(daynum) + '& Month == ' + str(month)
-        # daily_trips = self.trips_data.query(query)
         new_x = np.array(X)
         # All trips
         tot_num_trips = len(trips)
@@ -66,18 +68,24 @@ class Rentals_Simulator:
         adjacency_matrix = np.zeros((self.R, self.R), dtype=int)
 
         # TODO: maybe not a fixed time for every trip ?
+        # TODO: Penser à si dans un meme timeshift velos finissent leur trip
+        # Does it make sense for the current reward ? Does it make sense for what we are doing ?
         TRIP_DURATION = (
             0.5
         )  # in hours: the time a bike is removed from the system for while a trip is happening
+        BIKE_SPEED = 20 #km/h
 
-        #taken_bikes = []
+        # taken_bikes = []
         total_walking_distance = 0
 
+        added_bikes = np.zeros(self.R, dtype=int)
+
         for i in range(tot_num_trips):
+            trip = trips.iloc[i]
             start_loc = np.array(
-                [trips.iloc[i].StartLatitude, trips.iloc[i].StartLongitude]
+                [trip.StartLatitude, trip.StartLongitude]
             )
-            start_time = trips.iloc[i].StartTime
+            start_time = trip.StartTime
 
             trips_starting_coords.append(start_loc)
             met_trips_starting_coords.append(None)
@@ -89,6 +97,7 @@ class Rentals_Simulator:
             for bike in self.taken_bikes:
                 if bike[0] <= start_time:
                     new_x[bike[1]] += 1
+                    added_bikes[bike[1]] += 1
                     self.taken_bikes.remove(bike)
 
             distances = distance.cdist(
@@ -96,7 +105,7 @@ class Rentals_Simulator:
             )
             idx_argsort = np.argsort(distances)[0]
             # We go through the centroids in order of closest to farthest and see if there is an available bike at one of the centroids to make the trip
-            for i, idx_start_centroid in enumerate(idx_argsort):
+            for j, idx_start_centroid in enumerate(idx_argsort):
                 if (
                     geopy.distance.distance(
                         start_loc, self.centroids[idx_start_centroid, :]
@@ -111,7 +120,7 @@ class Rentals_Simulator:
                     # If the trip can be met, we update all of the relevent lists tracking trips and where bikes are
                     new_x[idx_start_centroid] -= 1
                     end_loc = np.array(
-                        [trips.iloc[i].EndLatitude, trips.iloc[i].EndLongitude]
+                        [trip.EndLatitude, trip.EndLongitude]
                     )
                     distances = distance.cdist(
                         end_loc.reshape(-1, 2), self.centroids, metric="euclidean"
@@ -120,8 +129,19 @@ class Rentals_Simulator:
                     total_walking_distance += geopy.distance.distance(
                         start_loc, self.centroids[idx_start_centroid, :]
                     ).km
-                    self.taken_bikes.append((start_time + TRIP_DURATION, idx_end_centroid))
 
+                    distance_trip = geopy.distance.distance(
+                        self.centroids[idx_start_centroid, :], 
+                        self.centroids[idx_end_centroid, :]
+                    ).km
+                    if distance_trip == 0.:
+                        delta_t = uniform(0.2, 1)
+                    else:
+                        delta_t = distance_trip/BIKE_SPEED + uniform(0.1, 0.2)
+                    self.taken_bikes.append(
+                        (start_time+delta_t, idx_end_centroid)
+                    )
+                    print("YEAAAAAAAH", start_time+delta_t)
                     adjacency_matrix[idx_start_centroid, idx_end_centroid] += 1
 
                     # All trips
@@ -137,6 +157,9 @@ class Rentals_Simulator:
                 else:
                     tot_demand_per_centroid[idx_start_centroid] += 1
 
+        print("Deleted bikes", met_trips_per_centroid)
+        print("Added bikes", added_bikes)
+
         return (
             new_x,
             tot_num_trips,
@@ -148,6 +171,7 @@ class Rentals_Simulator:
             tot_demand_per_centroid,
             met_trips_per_centroid,
             adjacency_matrix,
+            added_bikes,
         )
 
 
@@ -175,15 +199,20 @@ class Bikes(gym.Env):
         self.initial_distribution = env_config.initial_distribution
 
         # TODO: rewrite this in a modulable way
-        base_dir = env_config.get("base_dir", "") 
+        self.base_dir = env_config.get("base_dir", "")
         self.centroid_trips_matrix = pd.read_pickle(
-            open(base_dir+"src/env/bikes_data/centroid_trips_matrix5_40.pckl", "rb")
+            open(
+                self.base_dir + "src/env/bikes_data/centroid_trips_matrix5_40.pckl",
+                "rb",
+            )
         )
-        _, _, _, _, _, _, centroid_coords = pickle.load(
-            open(base_dir+"src/env/bikes_data/training_data_5_40.pckl", "rb")
-        )
+        # _, _, _, _, _, _, centroid_coords = pickle.load(
+        #     open(self.base_dir + "src/env/bikes_data/training_data_5_40.pckl", "rb")
+        # )
+        centroid_coords = np.load(self.base_dir + "src/env/bikes_data/LouVelo_centroids_coords.npy")
+
         self.centroid_coords = centroid_coords
-        centroids_idx = env_config.centroids_idx
+        centroids_idx = env_config.get("centroids_idx", None)
         if centroids_idx is not None:
             if hasattr(centroids_idx, "__len__"):
                 self.centroid_coords = self.centroid_coords[centroids_idx]
@@ -193,39 +222,11 @@ class Bikes(gym.Env):
         R = len(self.centroid_coords)
         self.num_centroids = R
 
-        self.bikes_per_truck = (
-            env_config.bikes_per_truck
-        )
+        self.bikes_per_truck = env_config.bikes_per_truck
         self.n_bikes = self.num_trucks * self.bikes_per_truck
 
-        # TODO: normalize and how do we do with discrete values ???
-        # self.dict_observation_space = spaces.Dict(
-        #     {   
-        #         "bikes_dist_before_shift": spaces.MultiDiscrete(
-        #             np.ones(self.num_centroids) * self.n_bikes,
-        #         ),
-        #         "bikes_dist_after_shift": spaces.MultiDiscrete(
-        #             np.ones(self.num_centroids) * self.n_bikes,
-        #         ),
-        #         "day": spaces.Discrete(31, start=1),
-        #         "month": spaces.Discrete(12, start=1),
-        #         "time_counter": spaces.Discrete(self.action_per_day+1),
-        #     }
-        # )
-
-        # self.dict_action_space = spaces.Dict(
-        #     {
-        #         "truck_num_bikes": spaces.MultiDiscrete(
-        #             np.ones(self.num_trucks) * self.bikes_per_truck
-        #         ),
-        #         "truck_centroid": spaces.MultiDiscrete(
-        #             np.ones(self.num_trucks) * self.num_centroids
-        #         ),
-        #     }
-        # )
-
         self.dict_observation_space = spaces.Dict(
-            {   
+            {
                 "bikes_dist_before_shift": spaces.Box(
                     low=0,
                     high=self.n_bikes,
@@ -238,23 +239,10 @@ class Bikes(gym.Env):
                     shape=(self.num_centroids,),
                     dtype=np.float32,
                 ),
-                "day": spaces.Box(
-                    low=1,
-                    high=31,
-                    shape=(1,),
-                    dtype=np.float32,
-                ),
-                "month": spaces.Box(
-                    low=1,
-                    high=12,
-                    shape=(1,),
-                    dtype=np.float32,
-                ),
+                "day": spaces.Box(low=1, high=31, shape=(1,), dtype=np.float32),
+                "month": spaces.Box(low=1, high=12, shape=(1,), dtype=np.float32),
                 "time_counter": spaces.Box(
-                    low=0,
-                    high=self.action_per_day+1,
-                    shape=(1,),
-                    dtype=np.float32,
+                    low=0, high=self.action_per_day + 1, shape=(1,), dtype=np.float32
                 ),
             }
         )
@@ -271,37 +259,15 @@ class Bikes(gym.Env):
                 ),
                 "truck_centroid": spaces.Box(
                     low=0,
-                    high=self.num_centroids-1,
+                    high=self.num_centroids - 1,
                     shape=(self.num_trucks,),
                     dtype=np.float32,
                 ),
             }
         )
 
-        #Important functions/attributes to link with the mbrl framework
-        #TODO: Find a better way than this work around
-        #self.sample_unflatten_action = self.dict_action_space.sample
-        #self.dict_observation_space.sample = self.sample_obs
-
-        # class FlatSpace:
-        #     def __init__(self, shape, seed, sample) -> None:
-        #         self.shape = shape
-        #         self.seed = seed
-        #         self.sample = sample
-        #         self.low = 0
-        #         self.high = 1
-        
-        # obs_space_sample = self.sample_obs
-        # obs_space_shape = self.sample_obs().shape
-        # obs_space_seed = self.dict_observation_space.seed
-        # self.observation_space = FlatSpace(obs_space_shape, obs_space_seed, obs_space_sample)
-        # act_space_sample = self.sample_action
-        # act_space_shape = self.sample_action().shape
-        # act_space_seed = self.dict_action_space.seed
-        # self.action_space = FlatSpace(act_space_shape, act_space_seed, act_space_sample)
-
-        self.observation_space = self.transform_obs(self.dict_observation_space)
-        self.action_space = self.transform_obs(self.dict_action_space)
+        self.observation_space = spaces.flatten_space(self.dict_observation_space)
+        self.action_space = spaces.flatten_space(self.dict_action_space)
 
         self.observation_space.sample = self.sample_obs
         self.action_space.sample = self.sample_action
@@ -310,11 +276,11 @@ class Bikes(gym.Env):
         # in reward the more we have unused bikes the worst it is
 
         self.all_trips_data = pd.read_csv(
-            base_dir+"src/env/bikes_data/dockless-vehicles-3_full.csv",
-            usecols=lambda x: x not in ["TripID", "StartDate", "EndDate", "EndTime"],
+            self.base_dir + "src/env/bikes_data/all_trips_LouVelo_recent.csv",
+            #usecols=lambda x: x not in ["TripID", "StartDate", "EndDate", "EndTime"],
         )
         self.all_weather_data = pd.read_csv(
-            base_dir+"src/env/bikes_data/weather_data.csv",
+            self.base_dir + "src/env/bikes_data/weather_data.csv",
             usecols=[
                 "Year",
                 "Month",
@@ -326,24 +292,29 @@ class Bikes(gym.Env):
             ],
         )
 
-        self.hour_max = 24
+        hour_max = 24
+        self.latitudes = [38.2, 38.28] 
+        self.longitudes = [-85.8, -85.7] 
 
-        self.period = (
-            "Month > 0 & Month < 13 & Year == 19 & DayOfWeek >=0 and DayOfWeek <=8"
+        # self.period = (
+        #     "Month > 0 & Month < 13 & Year == 19 & DayOfWeek >=0 and DayOfWeek <=8"
+        # )
+        period = (
+            "Month > 0 & Month < 13 & Year == 2019 & DayOfWeek >0 and DayOfWeek <8"
         )
-        self.area = (
-            "StartLatitude < 38.35 & StartLatitude > 38.15 & StartLongitude < -85.55 & StartLongitude > -85.9 "
-            "& EndLatitude < 38.35 & EndLatitude > 38.15 & EndLongitude < -85.55 & EndLongitude > -85.9 "
+        area = (
+            f"StartLatitude < {self.latitudes[1]} & StartLatitude > {self.latitudes[0]} & StartLongitude < {self.longitudes[1]} & StartLongitude > {self.longitudes[0]} "
+            f"& EndLatitude < {self.latitudes[1]} & EndLatitude > {self.latitudes[0]} & EndLongitude < {self.longitudes[1]} & EndLongitude > {self.longitudes[0]} "
         )
         query = (
             "TripDuration < 60 & TripDuration > 0 & HourNum <= "
-            + str(self.hour_max)
+            + str(hour_max)
             + ""
-            "&" + self.area + " & " + self.period
+            "&" + area + " & " + period
         )
         self.all_trips_data = self.all_trips_data.query(query)
         self.all_weather_data = self.all_weather_data.query(
-            self.period + "& Holiday == 0"
+            period + "& Holiday == 0"
         )
 
         # TODO: weather and demand do somehting with it later on !!!!!
@@ -380,74 +351,33 @@ class Bikes(gym.Env):
         self.isopen = True
 
         self.steps_beyond_terminated = None
+        self.map_obs = get_mapping_dict(self.dict_observation_space)
+        self.map_act = get_mapping_dict(self.dict_action_space)
 
-    def transform_obs(self, obs, exclude_keys: List[str] = []):
-        if isinstance(obs, torch.Tensor):
-            obs = obs.numpy()
-        if isinstance(obs, np.ndarray):
-            # obs_dict = {}
-            # start = 0
-            # for key, value in obs_space.items():
-            #     if key not in exclude_keys:
-            #         sub_obs_shape = value.shape[0]
-            #         obs_dict[key] = obs[start:start+sub_obs_shape]
-            #         start = sub_obs_shape
-            return spaces.unflatten(self.dict_observation_space, obs)
-        elif isinstance(obs, dict):
-            # obs_list = []
-            # for key, value in obs.items():
-            #     if key not in exclude_keys:
-            #         offset = obs_space[key].low
-            #         scaling_factor = obs_space[key].high - offset
-            #         value = (value - offset)/scaling_factor
-            #         if hasattr(value, "__len__"):
-            #             for val in value:
-            #                 obs_list.append(val)
-            #         else:
-            #             obs_list.append(value)
-            # obs_list = np.array(obs_list)
-            return spaces.flatten(self.dict_observation_space, obs)
-        elif isinstance(obs, spaces.Dict):
-            return spaces.flatten_space(obs)
-        else:
-            raise ValueError(f"The observation should never be an instance of {type(obs)}")
-
-    def transform_act(self, act, exclude_keys: List[str] = []):
-        if isinstance(act, torch.Tensor):
-            act = act.numpy()
-        if isinstance(act, np.ndarray):
-            # act_dict = {}
-            # start = 0
-            # for key, value in self.dict_action_space.items():
-            #     if key not in exclude_keys:
-            #         sub_act_shape = value.shape[0]
-            #         act_dict[key] = act[start:start+sub_act_shape]
-            #         start = sub_act_shape
-            return spaces.unflatten(self.dict_action_space, act)
-        elif isinstance(act, Dict):
-            # act_list = []
-            # for key, value in act.items():
-            #     if key not in exclude_keys:
-            #         if hasattr(value, "__len__"):
-            #             for val in value:
-            #                 act_list.append(val)
-            #         else:
-            #             act_list.append(value)
-            # act_list = np.array(act_list)
-            return spaces.flatten(self.dict_action_space, act)
-        elif isinstance(act, spaces.Dict):
-            return spaces.flatten_space(act)
-        else:
-            raise ValueError(f"The observation should never be an instance of {type(act)}")
+    def rescale_obs(self, flat_obs):
+        for key, value in self.map_obs.items():
+            if key != "length":
+                low = self.dict_observation_space[key].low
+                high = self.dict_observation_space[key].high
+                flat_obs[:,value] = (flat_obs[:,value]-low)/(high-low)
+        return flat_obs
+    
+    def rescale_act(self, flat_act):
+        for key, value in self.map_act.items():
+            if key != "length":
+                low = self.dict_action_space[key].low
+                high = self.dict_action_space[key].high
+                flat_act[:,value] = (flat_act[:,value]-low)/(high-low)
+        return flat_act
 
     def sample_action(self):
         action = self.dict_action_space.sample()
-        action = self.transform_act(action)
+        action = spaces.flatten(self.dict_action_space, action)
         return np.round(action)
-    
+
     def sample_obs(self):
         obs = self.dict_observation_space.sample()
-        obs = self.transform_obs(obs)
+        obs = spaces.flatten(self.dict_observation_space, obs)
         return np.round(obs)
 
     def get_flat_shapes(self):
@@ -455,14 +385,14 @@ class Bikes(gym.Env):
         previous_length = 0
         for value in self.dict_observation_space.values():
             length = value.shape[0]
-            obs_shapes.append((previous_length, previous_length+length))
+            obs_shapes.append((previous_length, previous_length + length))
             previous_length += length
-                              
+
         act_shapes = []
         previous_length = 0
         for value in self.dict_action_space.values():
             length = value.shape[0]
-            act_shapes.append((previous_length, previous_length+length))
+            act_shapes.append((previous_length, previous_length + length))
             previous_length += length
 
         return obs_shapes, act_shapes
@@ -471,9 +401,9 @@ class Bikes(gym.Env):
         if state is None:
             state = self.state
         counter = int(state["time_counter"])
-        if counter < len(self.action_timeshifts)-1:
-            return self.action_timeshifts[counter:counter+2]
-        elif counter >= len(self.action_timeshifts)-1:
+        if counter < len(self.action_timeshifts) - 1:
+            return self.action_timeshifts[counter : counter + 2]
+        elif counter >= len(self.action_timeshifts) - 1:
             return None
 
     def trips_steps(self, x=None):
@@ -511,11 +441,12 @@ class Bikes(gym.Env):
             self.tot_demand_per_centroid,
             self.met_trips_per_centroid,
             self.adjacency,
+            added_bikes,
         ) = self.sim.simulate_rentals(current_trips, x["bikes_dist_before_shift"])
 
         reward = self.compute_reward()
 
-        return new_bikes_dist_after_shift, reward        
+        return new_bikes_dist_after_shift, reward, added_bikes, self.met_trips_per_centroid
 
     def compute_reward(self) -> float:
         # TODO: Ideas
@@ -527,54 +458,108 @@ class Bikes(gym.Env):
 
         # Remark, adding the possibility to get add or remove bikes is somewhat equivalent to rebalancing
 
-        if self.too_far_from_centroid_trips>0:
+        if self.too_far_from_centroid_trips > 0:
             warnings.warn(
                 f"We have {self.too_far_from_centroid_trips} trips that could not met because there was no centroid close enough"
             )
 
-        relevant_trips = max(1, self.tot_num_trips - self.too_far_from_centroid_trips)
-        centroid_ratio = np.where(self.tot_demand_per_centroid != 0, self.met_trips_per_centroid / self.tot_demand_per_centroid, np.nan)
-        centroid_ratio = np.nanmean(centroid_ratio)
+        # relevant_trips = max(1, self.tot_num_trips - self.too_far_from_centroid_trips)
+        # centroid_ratio = np.where(
+        #     self.tot_demand_per_centroid != 0,
+        #     self.met_trips_per_centroid / self.tot_demand_per_centroid,
+        #     np.nan,
+        # )
+        # centroid_ratio = 0
+        # if not np.all(self.tot_demand_per_centroid==0.):
+        #     centroid_ratio = np.divide(self.met_trips_per_centroid, self.tot_demand_per_centroid, out=np.zeros(self.num_centroids), where=self.tot_demand_per_centroid!=0)
+        #     centroid_ratio = np.nanmean(centroid_ratio)
 
-        return self.num_met_trips / relevant_trips + centroid_ratio
+        #TODO:param in init
+        alpha = 0.7
+        beta = 0.7
+        min_bikes = 0.
+
+        delta = self.tot_demand_per_centroid - self.state["bikes_dist_before_shift"] + min_bikes
+        pos_delta_idx = np.where(delta>0, True, False)
+
+        reward_1 = 0
+        if np.any(pos_delta_idx):
+            reward_1 = 2*alpha*np.minimum(self.delta_bikes[pos_delta_idx], delta[pos_delta_idx]) - 2*(1 - alpha)*np.maximum(0, self.delta_bikes[pos_delta_idx]-delta[pos_delta_idx])
+        reward_2 = 0
+        if not np.all(pos_delta_idx):
+            reward_2 = -self.delta_bikes[~pos_delta_idx]
+        reward = beta*np.mean(reward_1)+(1-beta)*np.mean(reward_2)
+        reward = beta*np.mean(reward_1)+(1-beta)*np.mean(reward_2)
+
+        print("REWARD")
+        print(reward_1)
+        print(reward_2)
+        print(reward)
+
+        #return self.num_met_trips / relevant_trips + centroid_ratio
+        return reward
+
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, Dict]:
-
-        print("COUNTER: ", self.state["time_counter"])
-
-        if type(action)==np.ndarray:
-            action = np.round(action)
-            action = self.transform_act(action)
-
-        # TODO: model could be a GNN
-
-        # Update state: state = f(old_state, action)
-        old_state = self.state
-        self.delta_bikes = np.zeros(self.num_centroids, dtype=int)
-        truck_centroid = action["truck_centroid"]
-        truck_num_bikes = action["truck_num_bikes"]
-        for truck in range(self.num_trucks):
-            self.delta_bikes[int(truck_centroid[int(truck)])] += truck_num_bikes[int(truck)]
-
-        #TODO: If only add bikes, we can exceed the upper bound of the obs space
+        # TODO: If only add bikes, we can exceed the upper bound of the obs space
         # But if we deal with it, we also need to be careful when simulating the rents,
         # Indeed, we should also chck if the receiving centroid is able to store one more bike
         # But this is complicated if we care about the time duration ???
-        self.state["bikes_dist_before_shift"] = self.state["bikes_dist_after_shift"] + self.delta_bikes
+
+        self.state["bikes_dist_before_shift"] = self.state["bikes_dist_after_shift"]
+
+        print("BEFORE")
+        print("bikes_dist_before_shift", self.state["bikes_dist_before_shift"])
+        print("bikes_dist_after_shift", self.state["bikes_dist_after_shift"])
+
+        if type(action) == np.ndarray:
+            act = np.round(action)
+            act = spaces.unflatten(self.dict_action_space, action)
+
+        print("action: ", "truck_centroid", act["truck_centroid"], "truck_num_bikes", act["truck_num_bikes"])
+
+        # Add the new bikes to the centroids
+        old_state = self.state
+        self.delta_bikes = np.zeros(self.num_centroids, dtype=int)
+        truck_centroid = act["truck_centroid"]
+        truck_num_bikes = act["truck_num_bikes"]
+        for truck in range(self.num_trucks):
+            self.delta_bikes[int(truck_centroid[int(truck)])] += truck_num_bikes[
+                int(truck)
+            ]
+        print("delta_bikes", self.delta_bikes)
+
+        # Update obs
+        self.state["bikes_dist_before_shift"] = (
+            self.state["bikes_dist_after_shift"] + self.delta_bikes
+        )
+        self.state["bikes_dist_after_shift"] = self.state["bikes_dist_before_shift"]
+
+        print("AFTER ACTION")
+        print("bikes_dist_before_shift", self.state["bikes_dist_before_shift"])
+        print("bikes_dist_after_shift", self.state["bikes_dist_after_shift"])
 
         # Let all the vehicules being used during the day
-        new_bikes_dist_after_shift, reward = self.trips_steps()
+        new_bikes_dist_after_shift, reward, added_bikes, removed_bikes = self.trips_steps()
         self.state["bikes_dist_after_shift"] = new_bikes_dist_after_shift
 
+        print("AFTER DYNAMICS")
+        print("bikes_dist_before_shift", self.state["bikes_dist_before_shift"])
+        print("bikes_dist_after_shift", self.state["bikes_dist_after_shift"])
+        print("reward", reward)
+
+        assert np.all(self.state["bikes_dist_after_shift"] == self.state["bikes_dist_before_shift"] + added_bikes - removed_bikes)
         # Render the environment
         if self.render_mode == "human":
             self.render()
 
-        #Step the time counter
+        # Step the time counter
         self.state["time_counter"] += 1
 
-        #Check if terminated
-        terminated = (self.get_timeshift() is None)
+        # Check if terminated
+        terminated = self.get_timeshift() is None
+
+        print(terminated)
 
         # Sanity check if we did not carry on after a finishing step
         if terminated:
@@ -591,7 +576,7 @@ class Bikes(gym.Env):
                 self.steps_beyond_terminated += 1
 
         return (
-            self.transform_obs(self.state),
+            spaces.flatten(self.dict_observation_space, self.state),
             reward,
             terminated,
             False,
@@ -604,7 +589,7 @@ class Bikes(gym.Env):
             # x = np.ones(self.num_centroids, dtype=int) * bikes_per_region
             x = np.zeros(self.num_centroids, dtype=int)
             for i, bike in enumerate(range(self.n_bikes)):
-                x[i%self.num_centroids] += 1
+                x[i % self.num_centroids] += 1
         elif self.initial_distribution == "zeros":
             x = np.zeros(self.num_centroids, dtype=int)
         else:
@@ -625,7 +610,7 @@ class Bikes(gym.Env):
                 self.all_trips_data["Month"] == self.state["month"]
             )
             next_index = np.where(mask)[0][-1]
-            next_trip = self.all_trips_data.iloc[next_index+1]
+            next_trip = self.all_trips_data.iloc[next_index + 1]
             day = next_trip["Day"]
             month = next_trip["Month"]
         else:
@@ -634,7 +619,6 @@ class Bikes(gym.Env):
         return day, month
 
     def reset(self, seed: Optional[int] = None) -> Tuple[np.ndarray, Dict]:
-        print("YESS RESET")
         super().reset(seed=seed)
         if self.state is None:
             first_day = self.all_trips_data.iloc[0]
@@ -657,12 +641,17 @@ class Bikes(gym.Env):
         self.met_trips_per_centroid = None
         self.adjacency = None
         self.delta_bikes = None
+        self.sim.reset()
 
         self.steps_beyond_terminated = None
         self.steps_beyond_terminated = None
         if self.render_mode == "human":
             self.render()
-        return self.transform_obs(self.state), {}
+
+        print("DATE")
+        print("day", self.state["day"], "month", self.state["month"])
+
+        return spaces.flatten(self.dict_observation_space, self.state), {}
 
     def render(self, mode: str = None):
 
@@ -698,63 +687,125 @@ class Bikes(gym.Env):
             self.clock = pygame.time.Clock()
 
         self.surf = pygame.Surface((self.screen_dim, self.screen_dim))
-        #self.surf.fill(BLACK)
+        # self.surf.fill(BLACK)
 
-        #Plots
+        # Plots
         matplotlib.use("Agg")
         fig, axs = pylab.subplots(
             1,
             2,
             figsize=[7, 3.5],  # Inches
             dpi=200,  # 100 dots per inch, so the resulting buffer is 400x400 pixels
+            layout="constrained",
         )
+        city_map = plt.imread(self.base_dir + "src/env/bikes_data/louisville_map.png")
+        for ax in axs:
+            ax.imshow(
+                city_map, zorder=0, extent=[-85.9, -85.55, 38.15, 38.35], aspect="equal"
+            )
+            ax.set_xlim(self.longitudes)
+            ax.set_ylim(self.latitudes)
+            ax.axis("off")
+
         # ax = fig.gca()
         if self.delta_bikes is not None:
             G_1 = nx.DiGraph()
 
             for i in range(self.num_centroids):
                 # node_label = f"{self.state['bikes_dist_after_shift'][i]} \n (+{self.delta_bikes[i]})"
-                node_label = f"+{self.delta_bikes[i]}" if self.delta_bikes[i]>0 else ""
-                node_label += f"\n ({self.met_trips_per_centroid[i]}/{self.tot_demand_per_centroid[i]})" if self.tot_demand_per_centroid[i]>0 else ""
-                G_1.add_node(i, pos=self.centroid_coords[i], color="green", weight=self.state['bikes_dist_after_shift'][i], label=node_label)
+                node_label = (
+                    f"+{self.delta_bikes[i]}" if self.delta_bikes[i] > 0 else ""
+                )
+                node_label += (
+                    f"\n ({self.met_trips_per_centroid[i]}/{self.tot_demand_per_centroid[i]})"
+                    if self.tot_demand_per_centroid[i] > 0
+                    else ""
+                )
+                G_1.add_node(
+                    i,
+                    pos=self.centroid_coords[i][::-1],
+                    color="green",
+                    weight=self.state["bikes_dist_after_shift"][i],
+                    label=node_label,
+                )
 
             pos = nx.get_node_attributes(G_1, "pos")
             node_colors = nx.get_node_attributes(G_1, "color")
             node_weights = nx.get_node_attributes(G_1, "weight")
             node_labels = nx.get_node_attributes(G_1, "label")
-            nx.draw_networkx(G_1, with_labels=True, pos=pos, node_color=node_colors.values(), node_size=[v/2 + 1 for v in node_weights.values()], font_size=3, ax=axs[0], labels=node_labels)
+            nx.draw_networkx(
+                G_1,
+                with_labels=True,
+                pos=pos,
+                node_color=node_colors.values(),
+                node_size=[v / 2 + 1 for v in node_weights.values()],
+                font_size=3,
+                ax=axs[0],
+                labels=node_labels,
+            )
 
             G_2 = nx.DiGraph()
 
             for i in range(self.num_centroids):
-                #node_label = f"{self.state['bikes_dist_after_shift'][i]} \n ({self.met_trips_per_centroid[i]}/{self.tot_demand_per_centroid[i]})"
+                # node_label = f"{self.state['bikes_dist_after_shift'][i]} \n ({self.met_trips_per_centroid[i]}/{self.tot_demand_per_centroid[i]})"
                 node_label = f"{self.met_trips_per_centroid[i]}/{self.tot_demand_per_centroid[i]}"
-                G_2.add_node(i, pos=self.centroid_coords[i], color="green", weight=self.state['bikes_dist_after_shift'][i], label=node_label)
+                G_2.add_node(
+                    i,
+                    pos=self.centroid_coords[i][::-1],
+                    color="green",
+                    weight=self.state["bikes_dist_after_shift"][i],
+                    label=node_label,
+                )
 
             for i, centroid_i in enumerate(self.adjacency):
                 for j, centroid_j in enumerate(centroid_i):
                     if centroid_j > 0:
                         G_2.add_edge(i, j, weight=centroid_j)
 
-            #Set up
+            # Set up
             pos = nx.get_node_attributes(G_2, "pos")
             node_colors = nx.get_node_attributes(G_2, "color")
             node_weights = nx.get_node_attributes(G_2, "weight")
             node_labels = nx.get_node_attributes(G_2, "label")
 
-            #Nodes
-            node_size = (self.n_bikes // self.num_centroids)/4 + 1
-            nx.draw_networkx_nodes(G_2, pos, node_color=node_colors.values(), node_size=node_size, ax=axs[1]) #node_size=[v for v in node_weights.values()], ax=axs[1])
-            #nx.draw_networkx_labels(G_2, pos, labels=node_labels, font_size=10, ax=axs[1])
+            # Nodes
+            node_size = (self.n_bikes // self.num_centroids) / 4 + 1
+            nx.draw_networkx_nodes(
+                G_2,
+                pos,
+                node_color=node_colors.values(),
+                node_size=node_size,
+                ax=axs[1],
+            )  # node_size=[v for v in node_weights.values()], ax=axs[1])
+            # nx.draw_networkx_labels(G_2, pos, labels=node_labels, font_size=10, ax=axs[1])
 
-            #Edges (curved/straight)
-            curved_edges = [edge for edge in G_2.edges() if reversed(edge) in G_2.edges()]
+            # Edges (curved/straight)
+            curved_edges = [
+                edge for edge in G_2.edges() if reversed(edge) in G_2.edges()
+            ]
             straight_edges = list(set(G_2.edges()) - set(curved_edges))
-            nx.draw_networkx_edges(G_2, pos, edgelist=straight_edges, arrowsize=1, width=0.5, node_size=node_size, ax=axs[1])
+            nx.draw_networkx_edges(
+                G_2,
+                pos,
+                edgelist=straight_edges,
+                arrowsize=1,
+                width=0.5,
+                node_size=node_size,
+                ax=axs[1],
+            )
             arc_rad = 0.1
-            nx.draw_networkx_edges(G_2, pos, edgelist=curved_edges, connectionstyle=f'arc3, rad = {arc_rad}',  arrowsize=1, width=0.5, node_size=node_size, ax=axs[1])
+            nx.draw_networkx_edges(
+                G_2,
+                pos,
+                edgelist=curved_edges,
+                connectionstyle=f"arc3, rad = {arc_rad}",
+                arrowsize=1,
+                width=0.5,
+                node_size=node_size,
+                ax=axs[1],
+            )
 
-            #Label edges
+            # Label edges
             # edge_weights = nx.get_edge_attributes(G_2,'weight')
             # curved_edge_labels = {edge: edge_weights[edge] for edge in curved_edges}
             # straight_edge_labels = {edge: edge_weights[edge] for edge in straight_edges}
@@ -766,25 +817,47 @@ class Bikes(gym.Env):
 
             for i in range(self.num_centroids):
                 node_label = f"{self.state['bikes_dist_before_shift'][i]}"
-                G_1.add_node(i, pos=self.centroid_coords[i], color="green", weight=self.state['bikes_dist_before_shift'][i], label=node_label)
+                G_1.add_node(
+                    i,
+                    pos=self.centroid_coords[i][::-1],
+                    color="green",
+                    weight=self.state["bikes_dist_before_shift"][i],
+                    label=node_label,
+                )
 
             pos = nx.get_node_attributes(G_1, "pos")
             node_colors = nx.get_node_attributes(G_1, "color")
             node_weights = nx.get_node_attributes(G_1, "weight")
             node_labels = nx.get_node_attributes(G_1, "label")
-            nx.draw_networkx(G_1, with_labels=True, pos=pos, node_color=node_colors.values(), node_size=[v/2 + 1 for v in node_weights.values()], labels=node_labels, font_size=3, ax=axs[0])
-            #nx.draw_networkx(G_1, with_labels=False, pos=pos, node_color=node_colors.values(), node_size=[v/2 for v in node_weights.values()], font_size=3, ax=axs[1])
+            nx.draw_networkx(
+                G_1,
+                with_labels=True,
+                pos=pos,
+                node_color=node_colors.values(),
+                node_size=[v / 2 + 1 for v in node_weights.values()],
+                labels=node_labels,
+                font_size=3,
+                ax=axs[0],
+            )
+            # nx.draw_networkx(G_1, with_labels=False, pos=pos, node_color=node_colors.values(), node_size=[v/2 for v in node_weights.values()], font_size=3, ax=axs[1])
 
         title_1 = f'Month: {self.state["month"]} Day: {self.state["day"]} Timeshift: {self.get_timeshift()}'
-        if self.num_met_trips is not None:
-            relevant_trips = max(1, self.tot_num_trips - self.too_far_from_centroid_trips)
-            ratio_met_trips = round(self.num_met_trips/relevant_trips, 2)
-            centroid_ratio = np.where(self.tot_demand_per_centroid != 0, self.met_trips_per_centroid / self.tot_demand_per_centroid, np.nan)
-            centroid_ratio = round(np.nanmean(centroid_ratio), 2)
-            title_2 = f'Ratio met trips: {ratio_met_trips} Ratio met demands: {centroid_ratio} Non-relevant trips: {self.too_far_from_centroid_trips}'
-            title = title_1+'\n'+title_2
-        else:
-            title = title_1
+        # if self.num_met_trips is not None:
+        #     relevant_trips = max(
+        #         1, self.tot_num_trips - self.too_far_from_centroid_trips
+        #     )
+        #     ratio_met_trips = round(self.num_met_trips / relevant_trips, 2)
+        #     centroid_ratio = np.where(
+        #         self.tot_demand_per_centroid != 0,
+        #         self.met_trips_per_centroid / self.tot_demand_per_centroid,
+        #         np.nan,
+        #     )
+        #     centroid_ratio = round(np.nanmean(centroid_ratio), 2)
+        #     title_2 = f"Ratio met trips: {ratio_met_trips} Ratio met demands: {centroid_ratio} Non-relevant trips: {self.too_far_from_centroid_trips}"
+        #     title = title_1 + "\n" + title_2
+        # else:
+        #     title = title_1
+        title = title_1
 
         fig.suptitle(title, fontsize=10)
         fig.canvas.manager.full_screen_toggle()
@@ -821,47 +894,58 @@ class Bikes(gym.Env):
     def termination_fn(
         self, action: torch.Tensor, next_obs: torch.Tensor
     ) -> torch.Tensor:
-        """
-        Termination function associated to the hypergrid env
+        done = next_obs[:, self.map_obs["time_counter"]] >= self.action_per_day
+        return done
 
-        :param action: batch of actions
-        :param next_obs: batch of next_obs
-        :return: batch of bool tensors whether the associated (action, next_obs) 
-                is a final state
-        """
-        #new_all_obs = []
-        done = []
-        for obs in next_obs:
-            obs = obs.numpy()
-            if type(obs) == np.ndarray:
-                obs = self.transform_obs(obs)
-            done.append(self.get_timeshift(obs) is None)
-
-        return torch.tensor(done).unsqueeze(-1)
-
-    #TODO: Unused, but is it actually useful ????
+    # TODO: Unused, but is it actually useful ????
     def reward_fn(self, actions: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+    def obs_preprocess_fn(self, batch_obs, batch_action):
         """
-        Reward function associated to the hypergrid env
+        We only want the model to learn the bikes rentals dynamics.
+        So we preprocess the observation to manually compute the new
+        bike distribution after taken the given action
 
-        :param action: batch of actions
-        :param next_obs: batch of next_obs
-        :return: batch of rewards associated to each (action, next_obs)
+        :return: preprocessed observation
         """
-        unflatten_next_obs = []
-        for obs in next_obs:
-            obs = obs.numpy()
-            if type(obs) == np.ndarray:
-                obs = self.transform_obs(obs)
-            unflatten_next_obs.append(obs)
 
-            #Modify the observation to recompute the reward
-            obs["time_counter"] -= 1
-            obs["bikes_dist_after_shift"] = obs["bikes_dist_before_shift"]
+        if len(batch_obs.shape) == 1:
+            batch_obs = np.expand_dims(batch_obs, axis=0)
 
-        rewards = []
-        for obs in unflatten_next_obs:
-            _, reward = self.trips_steps(obs)
-            rewards.append(reward)
+        batch_size = batch_obs.shape[0]
+        distr_size = len(batch_obs[0, self.map_obs["bikes_dist_after_shift"]])
 
-        return rewards
+        # Compute delta_bikes
+        delta_bikes = np.zeros((batch_size, distr_size), dtype=int)
+        truck_centroids = batch_action[:, self.map_act["truck_centroid"]]
+        truck_bikes = batch_action[:, self.map_act["truck_num_bikes"]]
+        n = distr_size
+        truck_centroids_offset = (
+            truck_centroids + (np.arange(truck_centroids.shape[0])[:, None]) * n
+        )
+        unq, inv = np.unique(truck_centroids_offset.ravel(), return_inverse=True)
+        unq = unq.astype(int)
+        sol = np.bincount(inv, truck_bikes.ravel())
+        delta_bikes[unq // n, unq % n] = sol
+
+        # Update obs
+        batch_obs[:, self.map_obs["bikes_dist_before_shift"]] = (
+            batch_obs[:, self.map_obs["bikes_dist_after_shift"]] + delta_bikes
+        )
+        batch_obs[:, self.map_obs["bikes_dist_after_shift"]] = batch_obs[
+            :, self.map_obs["bikes_dist_before_shift"]
+        ]
+
+        return batch_obs
+
+    def obs_postprocess_fn(self, batch_new_obs):
+        """
+        As we only want to learn the rentals dynamics, the learnable model
+        will only return the new bike distribution but we need to return the whole
+        new state. So we manually process the rest of the obs -> new_obs.
+        In our case, we only need to increment the time_counter
+        :return: postprocessed new_observation
+        """
+        batch_new_obs[:, self.map_obs["time_counter"]] += 1
+        return batch_new_obs

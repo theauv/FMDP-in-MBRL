@@ -28,6 +28,7 @@ from src.util.common_overriden import (
     train_model_and_save_model_and_data_overriden,
 )
 
+
 def train(
     env: gym.Env,
     termination_fn: mbrl.types.TermFnType,
@@ -95,7 +96,7 @@ def train(
     # ---------------------------------------------------------
     # ---------- Create model environment and agent -----------
     model_path = cfg.overrides.get("model_path", None)
-    
+
     dynamics_model = create_one_dim_tr_model_overriden(
         cfg, env, obs_shape, act_shape, model_path
     )
@@ -120,7 +121,7 @@ def train(
         cfg.experiment.with_tracking,
         max_traj_iterations=cfg.overrides.cem_num_iters,
         model_out_size=dynamics_model.model.out_size,
-        plot_local=cfg.experiment.plot_local
+        plot_local=cfg.experiment.plot_local,
     )
 
     callbacks.env_callback(env)
@@ -174,7 +175,6 @@ def train(
                 replay_buffer,
                 optimizer_callback=callbacks.trajectory_optimizer_callback,
             )
-            print("NOPE")
 
             obs = next_obs
             total_reward += reward

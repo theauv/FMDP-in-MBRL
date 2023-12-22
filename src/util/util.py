@@ -15,6 +15,17 @@ from mbrl.models.gaussian_mlp import GaussianMLP
 from lassonet.model import LassoNet
 
 
+def get_mapping_dict(dict_space):
+    mapping = {}
+    length = 0
+    for key, value in dict_space.items():
+        new_length = value.shape[0]
+        mapping[key] = slice(length, length + new_length)
+        length += new_length
+    mapping["length"] = length
+    return mapping
+
+
 def get_base_dir_path():
     cwd = os.getcwd()
     path = os.path.normpath(cwd)
@@ -22,10 +33,11 @@ def get_base_dir_path():
     base_dir = ""
     for chunk in chunks:
         base_dir = base_dir + os.sep + chunk
-        if chunk == 'HUCRL_for_FMDP': #TODO: HARD-CODED
+        if chunk == "HUCRL_for_FMDP":  # TODO: HARD-CODED
             break
     base_dir += os.sep
     return base_dir
+
 
 def get_run_kwargs(configs: omegaconf.DictConfig,) -> Dict:
     """
@@ -237,7 +249,7 @@ def my_draw_networkx_edge_labels(
     ax=None,
     rotate=True,
     clip_on=True,
-    rad=0
+    rad=0,
 ):
     """Draw edge labels.
 
@@ -331,13 +343,13 @@ def my_draw_networkx_edge_labels(
         )
         pos_1 = ax.transData.transform(np.array(pos[n1]))
         pos_2 = ax.transData.transform(np.array(pos[n2]))
-        linear_mid = 0.5*pos_1 + 0.5*pos_2
+        linear_mid = 0.5 * pos_1 + 0.5 * pos_2
         d_pos = pos_2 - pos_1
-        rotation_matrix = np.array([(0,1), (-1,0)])
-        ctrl_1 = linear_mid + rad*rotation_matrix@d_pos
-        ctrl_mid_1 = 0.5*pos_1 + 0.5*ctrl_1
-        ctrl_mid_2 = 0.5*pos_2 + 0.5*ctrl_1
-        bezier_mid = 0.5*ctrl_mid_1 + 0.5*ctrl_mid_2
+        rotation_matrix = np.array([(0, 1), (-1, 0)])
+        ctrl_1 = linear_mid + rad * rotation_matrix @ d_pos
+        ctrl_mid_1 = 0.5 * pos_1 + 0.5 * ctrl_1
+        ctrl_mid_2 = 0.5 * pos_2 + 0.5 * ctrl_1
+        bezier_mid = 0.5 * ctrl_mid_1 + 0.5 * ctrl_mid_2
         (x, y) = ax.transData.inverted().transform(bezier_mid)
 
         if rotate:

@@ -85,11 +85,8 @@ def step_env_and_add_to_buffer_overriden(
         agent_obs = getattr(env, "get_last_low_dim_obs")()
     else:
         agent_obs = obs
-    print("OKKK")
     action = agent.act(agent_obs, optimizer_callback, **agent_kwargs)
-    print(action)
     next_obs, reward, terminated, truncated, info = env.step(action)
-    print(next_obs)
     replay_buffer.add(obs, action, next_obs, reward, terminated, truncated)
     if callback:
         callback((obs, action, next_obs, reward, terminated, truncated))
@@ -143,7 +140,7 @@ def create_one_dim_tr_model_overriden(
     # This first part takes care of the case where model is BasicEnsemble and in/out sizes
     # are handled by member_cfg
 
-    #TODO: Modularize this, for the moment not sure how not to have a specific condition
+    # TODO: Modularize this, for the moment not sure how not to have a specific condition
     env_is_bikes = False
     base_env = env
     while hasattr(base_env, "env"):
@@ -156,12 +153,20 @@ def create_one_dim_tr_model_overriden(
         model_cfg = model_cfg.member_cfg
     if model_cfg.get("in_size", None) is None:
         if env_is_bikes:
-            model_cfg.in_size = sum([value.shape[0] for key, value in base_env.dict_observation_space.items() if key != "bikes_dist_after_shift"])
+            model_cfg.in_size = sum(
+                [
+                    value.shape[0]
+                    for key, value in base_env.dict_observation_space.items()
+                    if key != "bikes_dist_after_shift"
+                ]
+            )
         else:
             model_cfg.in_size = obs_shape[0] + (act_shape[0] if act_shape else 1)
     if model_cfg.get("out_size", None) is None:
         if env_is_bikes:
-            model_cfg.out_size = base_env.dict_observation_space["bikes_dist_after_shift"].shape[0] + int(cfg.algorithm.learned_rewards)
+            model_cfg.out_size = base_env.dict_observation_space[
+                "bikes_dist_after_shift"
+            ].shape[0] + int(cfg.algorithm.learned_rewards)
         else:
             model_cfg.out_size = obs_shape[0] + int(cfg.algorithm.learned_rewards)
     if "factors" in model_cfg.keys() and model_cfg.get("factors", None) is None:
@@ -179,15 +184,18 @@ def create_one_dim_tr_model_overriden(
         dynamics_model = hydra.utils.instantiate(
             cfg.overrides.model_wrapper,
             model,
-            transform_obs=base_env.transform_obs,
-            transform_act=base_env.transform_act,
+            map_obs=base_env.map_obs,
+            map_act=base_env.map_act,
+            rescale_obs=base_env.rescale_obs,
+            rescale_act=base_env.rescale_act,
+            obs_preprocess_fn=base_env.obs_preprocess_fn,
+            obs_postprocess_fn=base_env.obs_postprocess_fn,
             target_is_delta=cfg.algorithm.target_is_delta,
             normalize=cfg.algorithm.normalize,
             normalize_double_precision=cfg.algorithm.get(
                 "normalize_double_precision", False
             ),
             learned_rewards=cfg.algorithm.learned_rewards,
-            obs_process_fn=obs_process_fn,
             no_delta_list=cfg.overrides.get("no_delta_list", None),
             num_elites=cfg.overrides.get("num_elites", None),
         )
