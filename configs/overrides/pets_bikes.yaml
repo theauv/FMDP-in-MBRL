@@ -1,13 +1,16 @@
 # @package _group_
 env: bikes
 env_config:
-  num_trucks: 1
-  action_per_day: 4
+  num_trucks: 5
+  action_per_day: 8
   sample_method: sequential
   initial_distribution: uniform
   bikes_per_truck: 5
   walk_distance_max: 1.
-  centroids_idx: [1,2,3,4,5] #[93,83,80,98,6,84,87,99,56,97]
+  past_trip_data: src/env/bikes_data/all_trips_LouVelo_merged.csv
+  weather_data: src/env/bikes_data/weather_data.csv
+  centroids_coord: src/env/bikes_data/LouVelo_centroids_coords.npy
+  #centroids_idx: #[93,83,80,98,6,84,87,99,56,97]
 model_wrapper:
   _target_: src.model.bikes_model_wrapper.OneDTransitionRewardModelDictSpace
   model_input_obs_key: ["bikes_dist_before_shift", "day", "month", "time_counter"]

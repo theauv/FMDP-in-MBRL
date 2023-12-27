@@ -10,6 +10,7 @@ import mbrl.util.math
 
 from mbrl.models import Model, OneDTransitionRewardModel
 
+
 class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
     """Wrapper class for 1-D dynamics models specific for the environments with
         dictionaries for observation and action spaces.
@@ -86,18 +87,22 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         self.model_output_mask = np.zeros(self.obs_length)
         model_output_length = 0
         for key in model_output_key:
-            model_output_length += (self.map_obs[key].stop - self.map_obs[key].start)
+            model_output_length += self.map_obs[key].stop - self.map_obs[key].start
             self.model_output_mask[self.map_obs[key]] = 1
         self.model_output_mask = np.ma.make_mask(self.model_output_mask)
 
-        # Reinitialize the input_normalizer with the output_size
+        # Reinitialize the output with the output_size
         if self.learned_rewards:
             model_output_length += 1
+
+        # TODO: remove this line
+        normalize = False
+        self.output_normalizer = None
         if normalize:
             self.output_normalizer = mbrl.util.math.Normalizer(
                 model_output_length,
                 self.model.device,
-                dtype= torch.double if normalize_double_precision else torch.float,
+                dtype=torch.double if normalize_double_precision else torch.float,
             )
 
     def _get_next_obs(self, batch_next_obs):
@@ -115,11 +120,14 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         obs = model_util.to_tensor(obs).to(self.device)
         action = model_util.to_tensor(action).to(self.device)
 
-        #Rescale the input
-        if self.output_normalizer:
-            obs = self.rescale_obs(obs)
-            action = self.rescale_act(action)
+        # Rescale the input
+        # print("INPUT")
+        # print("obs", obs[0])
+        # print("action", action[0])
+        obs = self.rescale_obs(obs)
+        action = self.rescale_act(action)
         model_in = torch.cat([obs, action], dim=obs.ndim - 1)
+        # print(model_in[0])
 
         model_in = model_in.float().to(self.device)
         masked_model_in = model_in[:, self.model_input_mask]
@@ -154,8 +162,8 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         """Calls forward method of base model with the given input and args."""
 
         warnings.warn("Not used so far, make sure it works")
-        print("FORWARD")
-        print(x)
+        # print("FORWARD")
+        # print(x)
 
         if len(x.shape) == 1:
             x = np.expand_dims(x, axis=0)
@@ -171,7 +179,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         output[self.model_output_mask] = sub_output
         output = self.obs_postprocess_fn(output)
 
-        #Denormalize output
+        # Denormalize output
 
         return output
 
@@ -221,7 +229,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
             (tuple(tensor), tensor): the model outputs and the target for this batch.
         """
         warnings.warn("Not used so far, make sure it works")
-        print("GET OUTPUT AND TARGETS")
+        # print("GET OUTPUT AND TARGETS")
         with torch.no_grad():
             model_in, target = self._process_batch(batch)
             sub_output = self.model.forward(model_in)
@@ -265,14 +273,14 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
             raise RuntimeError(
                 "OneDTransitionRewardModel requires wrapped model to define method sample_1d"
             )
-
         preds, next_model_state = self.model.sample_1d(
             model_in, model_state, rng=rng, deterministic=deterministic
         )
-        print("OKKKKKKKK")
-        print(preds.shape, preds.dtype)
-        preds = self.output_normalizer.denormalize(preds).float()
-        print(preds.shape, preds.dtype)
+        # print("PREDS")
+        # print(preds[0])
+        if self.output_normalizer is not None:
+            preds = self.output_normalizer.denormalize(preds).float()
+        # print(preds[0])
         next_observs = preds[:, :-1] if self.learned_rewards else preds
 
         next_obs = preprocessed_obs

@@ -10,21 +10,18 @@ from random import uniform
 import geopy.distance
 import gymnasium as gym
 from gymnasium import logger, spaces
-from gymnasium.error import DependencyNotInstalled
-import matplotlib
-import matplotlib.backends.backend_agg as agg
-from matplotlib import pyplot as plt
-import networkx as nx
 import numpy as np
 import omegaconf
 import pandas as pd
-import pickle
+import pygame
+import pygame.gfxdraw as gfxdraw
 import pylab
 from scipy.spatial import distance
 import torch
 import warnings
 
 from src.util.util import get_mapping_dict
+from src.env.constants import *
 
 
 class Rentals_Simulator:
@@ -73,7 +70,7 @@ class Rentals_Simulator:
         TRIP_DURATION = (
             0.5
         )  # in hours: the time a bike is removed from the system for while a trip is happening
-        BIKE_SPEED = 20 #km/h
+        BIKE_SPEED = 20  # km/h
 
         # taken_bikes = []
         total_walking_distance = 0
@@ -82,9 +79,7 @@ class Rentals_Simulator:
 
         for i in range(tot_num_trips):
             trip = trips.iloc[i]
-            start_loc = np.array(
-                [trip.StartLatitude, trip.StartLongitude]
-            )
+            start_loc = np.array([trip.StartLatitude, trip.StartLongitude])
             start_time = trip.StartTime
 
             trips_starting_coords.append(start_loc)
@@ -119,9 +114,7 @@ class Rentals_Simulator:
                 if new_x[idx_start_centroid] > 0:
                     # If the trip can be met, we update all of the relevent lists tracking trips and where bikes are
                     new_x[idx_start_centroid] -= 1
-                    end_loc = np.array(
-                        [trip.EndLatitude, trip.EndLongitude]
-                    )
+                    end_loc = np.array([trip.EndLatitude, trip.EndLongitude])
                     distances = distance.cdist(
                         end_loc.reshape(-1, 2), self.centroids, metric="euclidean"
                     )
@@ -131,17 +124,14 @@ class Rentals_Simulator:
                     ).km
 
                     distance_trip = geopy.distance.distance(
-                        self.centroids[idx_start_centroid, :], 
-                        self.centroids[idx_end_centroid, :]
+                        self.centroids[idx_start_centroid, :],
+                        self.centroids[idx_end_centroid, :],
                     ).km
-                    if distance_trip == 0.:
+                    if distance_trip == 0.0:
                         delta_t = uniform(0.2, 1)
                     else:
-                        delta_t = distance_trip/BIKE_SPEED + uniform(0.1, 0.2)
-                    self.taken_bikes.append(
-                        (start_time+delta_t, idx_end_centroid)
-                    )
-                    print("YEAAAAAAAH", start_time+delta_t)
+                        delta_t = distance_trip / BIKE_SPEED + uniform(0.1, 0.2)
+                    self.taken_bikes.append((start_time + delta_t, idx_end_centroid))
                     adjacency_matrix[idx_start_centroid, idx_end_centroid] += 1
 
                     # All trips
@@ -157,8 +147,8 @@ class Rentals_Simulator:
                 else:
                     tot_demand_per_centroid[idx_start_centroid] += 1
 
-        print("Deleted bikes", met_trips_per_centroid)
-        print("Added bikes", added_bikes)
+        # print("Deleted bikes", met_trips_per_centroid)
+        # print("Added bikes", added_bikes)
 
         return (
             new_x,
@@ -198,18 +188,28 @@ class Bikes(gym.Env):
         self.sample_method = env_config.sample_method
         self.initial_distribution = env_config.initial_distribution
 
+        hour_max = 24
+        self.latitudes = [38.2, 38.28]
+        self.longitudes = [-85.8, -85.7]
+
         # TODO: rewrite this in a modulable way
         self.base_dir = env_config.get("base_dir", "")
-        self.centroid_trips_matrix = pd.read_pickle(
-            open(
-                self.base_dir + "src/env/bikes_data/centroid_trips_matrix5_40.pckl",
-                "rb",
-            )
-        )
         # _, _, _, _, _, _, centroid_coords = pickle.load(
         #     open(self.base_dir + "src/env/bikes_data/training_data_5_40.pckl", "rb")
         # )
-        centroid_coords = np.load(self.base_dir + "src/env/bikes_data/LouVelo_centroids_coords.npy")
+        if env_config.centroids_coord is None:
+            centroid_latitudes = [38.21, 38.27]
+            centroid_longitudes = [-85.79, -85.71]
+            centroid_coords = np.random.random((1000, 2)) * np.array(
+                [
+                    centroid_latitudes[1] - centroid_latitudes[0],
+                    centroid_longitudes[1] - centroid_longitudes[0],
+                ]
+            ) + np.array([centroid_latitudes[0], centroid_longitudes[0]])
+        else:
+            centroid_coords = np.load(
+                self.base_dir + env_config.centroids_coord
+            )
 
         self.centroid_coords = centroid_coords
         centroids_idx = env_config.get("centroids_idx", None)
@@ -274,13 +274,12 @@ class Bikes(gym.Env):
 
         # TODO: could have a negative number of bikes meaning that we remove some bikes
         # in reward the more we have unused bikes the worst it is
-
         self.all_trips_data = pd.read_csv(
-            self.base_dir + "src/env/bikes_data/all_trips_LouVelo_recent.csv",
-            #usecols=lambda x: x not in ["TripID", "StartDate", "EndDate", "EndTime"],
+            self.base_dir + env_config.past_trip_data,
+            usecols=lambda x: x not in ["TripID", "StartDate", "EndDate", "EndTime"],
         )
         self.all_weather_data = pd.read_csv(
-            self.base_dir + "src/env/bikes_data/weather_data.csv",
+            self.base_dir + env_config.weather_data,
             usecols=[
                 "Year",
                 "Month",
@@ -292,30 +291,20 @@ class Bikes(gym.Env):
             ],
         )
 
-        hour_max = 24
-        self.latitudes = [38.2, 38.28] 
-        self.longitudes = [-85.8, -85.7] 
-
         # self.period = (
         #     "Month > 0 & Month < 13 & Year == 19 & DayOfWeek >=0 and DayOfWeek <=8"
         # )
-        period = (
-            "Month > 0 & Month < 13 & Year == 2019 & DayOfWeek >0 and DayOfWeek <8"
-        )
+        period = "Month > 0 & Month < 13 & Year == 2019 & DayOfWeek >0 and DayOfWeek <8"
         area = (
             f"StartLatitude < {self.latitudes[1]} & StartLatitude > {self.latitudes[0]} & StartLongitude < {self.longitudes[1]} & StartLongitude > {self.longitudes[0]} "
             f"& EndLatitude < {self.latitudes[1]} & EndLatitude > {self.latitudes[0]} & EndLongitude < {self.longitudes[1]} & EndLongitude > {self.longitudes[0]} "
         )
         query = (
-            "TripDuration < 60 & TripDuration > 0 & HourNum <= "
-            + str(hour_max)
-            + ""
+            "TripDuration < 60 & TripDuration > 0 & HourNum <= " + str(hour_max) + ""
             "&" + area + " & " + period
         )
         self.all_trips_data = self.all_trips_data.query(query)
-        self.all_weather_data = self.all_weather_data.query(
-            period + "& Holiday == 0"
-        )
+        self.all_weather_data = self.all_weather_data.query(period + "& Holiday == 0")
 
         # TODO: weather and demand do somehting with it later on !!!!!
         # take out all weather data that corresponds to a weekend. 1.0 is a sunday and 7.0 is a saturday in the dataset
@@ -342,10 +331,25 @@ class Bikes(gym.Env):
 
         self.render_mode = render_mode
         self.viewer = None
-        self.screen_dim = 500
-        self.bound = 13
-        self.scale = self.screen_dim / (self.bound * 2)
-        self.offset = self.screen_dim // 2
+        screen_ydim = 650
+        screen_xdim = int(
+            screen_ydim
+            * abs(
+                (self.longitudes[1] - self.longitudes[0])
+                / (self.latitudes[0] - self.latitudes[1])
+            )
+        )
+        self.screen_dim = (screen_xdim, screen_ydim)
+        self.scale = np.abs(
+            self.screen_dim
+            / np.array(
+                [
+                    self.longitudes[1] - self.longitudes[0],
+                    self.latitudes[0] - self.latitudes[1],
+                ]
+            )
+        )
+        self.offset = np.array([self.longitudes[0], self.latitudes[0]])
         self.screen = None
         self.clock = None
         self.isopen = True
@@ -359,15 +363,15 @@ class Bikes(gym.Env):
             if key != "length":
                 low = self.dict_observation_space[key].low
                 high = self.dict_observation_space[key].high
-                flat_obs[:,value] = (flat_obs[:,value]-low)/(high-low)
+                flat_obs[:, value] = (flat_obs[:, value] - low) / (high - low)
         return flat_obs
-    
+
     def rescale_act(self, flat_act):
         for key, value in self.map_act.items():
             if key != "length":
                 low = self.dict_action_space[key].low
                 high = self.dict_action_space[key].high
-                flat_act[:,value] = (flat_act[:,value]-low)/(high-low)
+                flat_act[:, value] = (flat_act[:, value] - low) / (high - low)
         return flat_act
 
     def sample_action(self):
@@ -446,7 +450,12 @@ class Bikes(gym.Env):
 
         reward = self.compute_reward()
 
-        return new_bikes_dist_after_shift, reward, added_bikes, self.met_trips_per_centroid
+        return (
+            new_bikes_dist_after_shift,
+            reward,
+            added_bikes,
+            self.met_trips_per_centroid,
+        )
 
     def compute_reward(self) -> float:
         # TODO: Ideas
@@ -474,31 +483,38 @@ class Bikes(gym.Env):
         #     centroid_ratio = np.divide(self.met_trips_per_centroid, self.tot_demand_per_centroid, out=np.zeros(self.num_centroids), where=self.tot_demand_per_centroid!=0)
         #     centroid_ratio = np.nanmean(centroid_ratio)
 
-        #TODO:param in init
+        # TODO:param in init
         alpha = 0.7
         beta = 0.7
-        min_bikes = 0.
+        min_bikes = 0.0
 
-        delta = self.tot_demand_per_centroid - self.state["bikes_dist_before_shift"] + min_bikes
-        pos_delta_idx = np.where(delta>0, True, False)
+        delta = (
+            self.tot_demand_per_centroid
+            - self.state["bikes_dist_before_shift"]
+            + min_bikes
+        )
+        pos_delta_idx = np.where(delta > 0, True, False)
 
         reward_1 = 0
         if np.any(pos_delta_idx):
-            reward_1 = 2*alpha*np.minimum(self.delta_bikes[pos_delta_idx], delta[pos_delta_idx]) - 2*(1 - alpha)*np.maximum(0, self.delta_bikes[pos_delta_idx]-delta[pos_delta_idx])
+            reward_1 = 2 * alpha * np.minimum(
+                self.delta_bikes[pos_delta_idx], delta[pos_delta_idx]
+            ) - 2 * (1 - alpha) * np.maximum(
+                0, self.delta_bikes[pos_delta_idx] - delta[pos_delta_idx]
+            )
         reward_2 = 0
         if not np.all(pos_delta_idx):
             reward_2 = -self.delta_bikes[~pos_delta_idx]
-        reward = beta*np.mean(reward_1)+(1-beta)*np.mean(reward_2)
-        reward = beta*np.mean(reward_1)+(1-beta)*np.mean(reward_2)
+        reward = beta * np.mean(reward_1) + (1 - beta) * np.mean(reward_2)
+        reward = beta * np.mean(reward_1) + (1 - beta) * np.mean(reward_2)
 
-        print("REWARD")
-        print(reward_1)
-        print(reward_2)
-        print(reward)
+        # print("REWARD")
+        # print(reward_1)
+        # print(reward_2)
+        # print(reward)
 
-        #return self.num_met_trips / relevant_trips + centroid_ratio
+        # return self.num_met_trips / relevant_trips + centroid_ratio
         return reward
-
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, Dict]:
         # TODO: If only add bikes, we can exceed the upper bound of the obs space
@@ -508,15 +524,21 @@ class Bikes(gym.Env):
 
         self.state["bikes_dist_before_shift"] = self.state["bikes_dist_after_shift"]
 
-        print("BEFORE")
-        print("bikes_dist_before_shift", self.state["bikes_dist_before_shift"])
-        print("bikes_dist_after_shift", self.state["bikes_dist_after_shift"])
+        # print("BEFORE")
+        # print("bikes_dist_before_shift", self.state["bikes_dist_before_shift"])
+        # print("bikes_dist_after_shift", self.state["bikes_dist_after_shift"])
 
         if type(action) == np.ndarray:
             act = np.round(action)
             act = spaces.unflatten(self.dict_action_space, action)
 
-        print("action: ", "truck_centroid", act["truck_centroid"], "truck_num_bikes", act["truck_num_bikes"])
+        print(
+            "action: ",
+            "truck_centroid",
+            act["truck_centroid"],
+            "truck_num_bikes",
+            act["truck_num_bikes"],
+        )
 
         # Add the new bikes to the centroids
         old_state = self.state
@@ -527,7 +549,7 @@ class Bikes(gym.Env):
             self.delta_bikes[int(truck_centroid[int(truck)])] += truck_num_bikes[
                 int(truck)
             ]
-        print("delta_bikes", self.delta_bikes)
+        # print("delta_bikes", self.delta_bikes)
 
         # Update obs
         self.state["bikes_dist_before_shift"] = (
@@ -535,20 +557,25 @@ class Bikes(gym.Env):
         )
         self.state["bikes_dist_after_shift"] = self.state["bikes_dist_before_shift"]
 
-        print("AFTER ACTION")
-        print("bikes_dist_before_shift", self.state["bikes_dist_before_shift"])
-        print("bikes_dist_after_shift", self.state["bikes_dist_after_shift"])
+        # print("AFTER ACTION")
+        # print("bikes_dist_before_shift", self.state["bikes_dist_before_shift"])
+        # print("bikes_dist_after_shift", self.state["bikes_dist_after_shift"])
 
         # Let all the vehicules being used during the day
-        new_bikes_dist_after_shift, reward, added_bikes, removed_bikes = self.trips_steps()
+        new_bikes_dist_after_shift, reward, added_bikes, removed_bikes = (
+            self.trips_steps()
+        )
         self.state["bikes_dist_after_shift"] = new_bikes_dist_after_shift
 
-        print("AFTER DYNAMICS")
-        print("bikes_dist_before_shift", self.state["bikes_dist_before_shift"])
-        print("bikes_dist_after_shift", self.state["bikes_dist_after_shift"])
-        print("reward", reward)
+        # print("AFTER DYNAMICS")
+        # print("bikes_dist_before_shift", self.state["bikes_dist_before_shift"])
+        # print("bikes_dist_after_shift", self.state["bikes_dist_after_shift"])
+        # print("reward", reward)
 
-        assert np.all(self.state["bikes_dist_after_shift"] == self.state["bikes_dist_before_shift"] + added_bikes - removed_bikes)
+        assert np.all(
+            self.state["bikes_dist_after_shift"]
+            == self.state["bikes_dist_before_shift"] + added_bikes - removed_bikes
+        )
         # Render the environment
         if self.render_mode == "human":
             self.render()
@@ -559,7 +586,7 @@ class Bikes(gym.Env):
         # Check if terminated
         terminated = self.get_timeshift() is None
 
-        print(terminated)
+        # print("Done", terminated)
 
         # Sanity check if we did not carry on after a finishing step
         if terminated:
@@ -610,6 +637,8 @@ class Bikes(gym.Env):
                 self.all_trips_data["Month"] == self.state["month"]
             )
             next_index = np.where(mask)[0][-1]
+            if next_index + 1 >= self.all_trips_data.shape[0]:
+                next_index = 0
             next_trip = self.all_trips_data.iloc[next_index + 1]
             day = next_trip["Day"]
             month = next_trip["Month"]
@@ -648,8 +677,8 @@ class Bikes(gym.Env):
         if self.render_mode == "human":
             self.render()
 
-        print("DATE")
-        print("day", self.state["day"], "month", self.state["month"])
+        # print("DATE")
+        # print("day", self.state["day"], "month", self.state["month"])
 
         return spaces.flatten(self.dict_observation_space, self.state), {}
 
@@ -666,215 +695,191 @@ class Bikes(gym.Env):
             )
             return
 
-        try:
-            import pygame  # type: ignore
-            from pygame import gfxdraw  # type: ignore
-        except ImportError:
-            raise DependencyNotInstalled(
-                "pygame is not installed, run `pip install gymnasium[classic_control]`"
-            )
-
         if self.screen is None:
             pygame.init()
             if mode == "human":
                 pygame.display.init()
-                self.screen = pygame.display.set_mode(
-                    (self.screen_dim, self.screen_dim)
-                )
+                self.screen = pygame.display.set_mode(self.screen_dim)
             else:  # mode == "rgb_array"
-                self.screen = pygame.Surface((self.screen_dim, self.screen_dim))
+                self.screen = pygame.Surface(self.screen_dim)
         if self.clock is None:
             self.clock = pygame.time.Clock()
 
-        self.surf = pygame.Surface((self.screen_dim, self.screen_dim))
-        # self.surf.fill(BLACK)
+        self.surf = pygame.Surface(self.screen_dim)
+        self.surf.fill(BLACK)
 
-        # Plots
-        matplotlib.use("Agg")
-        fig, axs = pylab.subplots(
-            1,
-            2,
-            figsize=[7, 3.5],  # Inches
-            dpi=200,  # 100 dots per inch, so the resulting buffer is 400x400 pixels
-            layout="constrained",
+        city_map = pygame.image.load(
+            self.base_dir + "src/env/bikes_data/louisville_map.png"
         )
-        city_map = plt.imread(self.base_dir + "src/env/bikes_data/louisville_map.png")
-        for ax in axs:
-            ax.imshow(
-                city_map, zorder=0, extent=[-85.9, -85.55, 38.15, 38.35], aspect="equal"
+        city_size = city_map.get_size()
+        city_real_dim = [-85.9, -85.55, 38.15, 38.35]
+        city_scale = np.abs(
+            city_size
+            / np.array(
+                [
+                    city_real_dim[1] - city_real_dim[0],
+                    city_real_dim[3] - city_real_dim[2],
+                ]
             )
-            ax.set_xlim(self.longitudes)
-            ax.set_ylim(self.latitudes)
-            ax.axis("off")
+        )
+        city_offset = np.array([city_real_dim[0], city_real_dim[2]])
+        x = (self.longitudes - city_offset[0]) * city_scale[0]
+        # Warning: pygame has a reversed y axis
+        y = city_size[1] - (self.latitudes - city_offset[1]) * city_scale[1]
+        cropped_region = (x[0], y[1], x[1] - x[0], y[0] - y[1])
+        city_map = city_map.subsurface(cropped_region)
+        city_map = pygame.transform.scale(city_map, self.screen_dim)
+        self.surf.blit(city_map, (0, 0))
 
-        # ax = fig.gca()
+        # Added bikes from depot:
+        font_size = 10
+        font = pygame.font.SysFont("Arial", font_size)
+        depot_coord = (self.screen_dim[0] - 50, self.screen_dim[1] - 50)
         if self.delta_bikes is not None:
-            G_1 = nx.DiGraph()
+            for i, added_bikes in enumerate(self.delta_bikes):
+                if added_bikes > 0:
+                    coord = self.centroid_coords[i]
+                    coord = (coord[1], coord[0])
+                    new_coord = (coord - self.offset) * self.scale
+                    new_coord[1] = self.screen_dim[1] - new_coord[1]
+                    width = 1  # added_bikes
+                    self._draw_arrow(
+                        self.surf,
+                        pygame.Vector2(depot_coord[0], depot_coord[1]),
+                        pygame.Vector2(new_coord[0], new_coord[1]),
+                        PRETTY_RED,
+                        width,
+                        2 + min(5 * width, 10 + width),
+                    )
+                    txtsurf = font.render(str(added_bikes), True, DARK_RED)
+                    alpha = uniform(0.25, 0.5)
+                    text_coord = depot_coord + alpha * (new_coord - depot_coord)
+                    self.surf.blit(
+                        txtsurf,
+                        (
+                            text_coord[0] - font_size / 3.5,
+                            text_coord[1] - font_size / 1.5,
+                        ),
+                    )
+        pygame.draw.circle(self.surf, PRETTY_RED, depot_coord, 10)
+        txtsurf = font.render("DEPOT", True, BLACK)
+        self.surf.blit(
+            txtsurf,
+            (depot_coord[0] - font_size / 1.5, depot_coord[1] - font_size / 1.5),
+        )
 
-            for i in range(self.num_centroids):
-                # node_label = f"{self.state['bikes_dist_after_shift'][i]} \n (+{self.delta_bikes[i]})"
-                node_label = (
-                    f"+{self.delta_bikes[i]}" if self.delta_bikes[i] > 0 else ""
-                )
-                node_label += (
-                    f"\n ({self.met_trips_per_centroid[i]}/{self.tot_demand_per_centroid[i]})"
-                    if self.tot_demand_per_centroid[i] > 0
-                    else ""
-                )
-                G_1.add_node(
-                    i,
-                    pos=self.centroid_coords[i][::-1],
-                    color="green",
-                    weight=self.state["bikes_dist_after_shift"][i],
-                    label=node_label,
-                )
+        # Centroids
+        # TODO: make changes to also see where bikes were added
+        scale_bikes_render = 1  # 10
+        offset_bikes_render = 5
+        new_centroid_coords = []
+        for coord, bikes in zip(
+            self.centroid_coords, self.state["bikes_dist_after_shift"]
+        ):
+            coord = (coord[1], coord[0])
+            new_coord = (coord - self.offset) * self.scale
+            new_coord[1] = self.screen_dim[1] - new_coord[1]
+            radius = (
+                offset_bikes_render + bikes / scale_bikes_render
+            )  # Change with demand
+            pygame.draw.circle(self.surf, PRETTY_GREEN, new_coord, radius)
+            new_centroid_coords.append(new_coord)
 
-            pos = nx.get_node_attributes(G_1, "pos")
-            node_colors = nx.get_node_attributes(G_1, "color")
-            node_weights = nx.get_node_attributes(G_1, "weight")
-            node_labels = nx.get_node_attributes(G_1, "label")
-            nx.draw_networkx(
-                G_1,
-                with_labels=True,
-                pos=pos,
-                node_color=node_colors.values(),
-                node_size=[v / 2 + 1 for v in node_weights.values()],
-                font_size=3,
-                ax=axs[0],
-                labels=node_labels,
-            )
-
-            G_2 = nx.DiGraph()
-
-            for i in range(self.num_centroids):
-                # node_label = f"{self.state['bikes_dist_after_shift'][i]} \n ({self.met_trips_per_centroid[i]}/{self.tot_demand_per_centroid[i]})"
-                node_label = f"{self.met_trips_per_centroid[i]}/{self.tot_demand_per_centroid[i]}"
-                G_2.add_node(
-                    i,
-                    pos=self.centroid_coords[i][::-1],
-                    color="green",
-                    weight=self.state["bikes_dist_after_shift"][i],
-                    label=node_label,
-                )
-
+        # Edges
+        if self.adjacency is not None:
             for i, centroid_i in enumerate(self.adjacency):
                 for j, centroid_j in enumerate(centroid_i):
                     if centroid_j > 0:
-                        G_2.add_edge(i, j, weight=centroid_j)
+                        width = centroid_j
+                        start_pos = (
+                            self.centroid_coords[i][1],
+                            self.centroid_coords[i][0],
+                        )
+                        start_pos = (start_pos - self.offset) * self.scale
+                        start_pos[1] = self.screen_dim[1] - start_pos[1]
+                        end_pos = (
+                            self.centroid_coords[j][1],
+                            self.centroid_coords[j][0],
+                        )
+                        end_pos = (end_pos - self.offset) * self.scale
+                        end_pos[1] = self.screen_dim[1] - end_pos[1]
+                        self._draw_arrow(
+                            self.surf,
+                            pygame.Vector2(start_pos[0], start_pos[1]),
+                            pygame.Vector2(end_pos[0], end_pos[1]),
+                            PRETTY_BLUE,
+                            width,
+                            2 + min(5 * width, 10 + width),
+                        )
 
-            # Set up
-            pos = nx.get_node_attributes(G_2, "pos")
-            node_colors = nx.get_node_attributes(G_2, "color")
-            node_weights = nx.get_node_attributes(G_2, "weight")
-            node_labels = nx.get_node_attributes(G_2, "label")
-
-            # Nodes
-            node_size = (self.n_bikes // self.num_centroids) / 4 + 1
-            nx.draw_networkx_nodes(
-                G_2,
-                pos,
-                node_color=node_colors.values(),
-                node_size=node_size,
-                ax=axs[1],
-            )  # node_size=[v for v in node_weights.values()], ax=axs[1])
-            # nx.draw_networkx_labels(G_2, pos, labels=node_labels, font_size=10, ax=axs[1])
-
-            # Edges (curved/straight)
-            curved_edges = [
-                edge for edge in G_2.edges() if reversed(edge) in G_2.edges()
-            ]
-            straight_edges = list(set(G_2.edges()) - set(curved_edges))
-            nx.draw_networkx_edges(
-                G_2,
-                pos,
-                edgelist=straight_edges,
-                arrowsize=1,
-                width=0.5,
-                node_size=node_size,
-                ax=axs[1],
-            )
-            arc_rad = 0.1
-            nx.draw_networkx_edges(
-                G_2,
-                pos,
-                edgelist=curved_edges,
-                connectionstyle=f"arc3, rad = {arc_rad}",
-                arrowsize=1,
-                width=0.5,
-                node_size=node_size,
-                ax=axs[1],
-            )
-
-            # Label edges
-            # edge_weights = nx.get_edge_attributes(G_2,'weight')
-            # curved_edge_labels = {edge: edge_weights[edge] for edge in curved_edges}
-            # straight_edge_labels = {edge: edge_weights[edge] for edge in straight_edges}
-            # my_draw_networkx_edge_labels(G_2, pos, edge_labels=curved_edge_labels, rotate=False, rad = arc_rad, font_size=1, ax=axs[1])
-            # nx.draw_networkx_edge_labels(G_2, pos, edge_labels=straight_edge_labels,rotate=False, font_size=1, ax=axs[1])
-
-        else:
-            G_1 = nx.DiGraph()
-
-            for i in range(self.num_centroids):
-                node_label = f"{self.state['bikes_dist_before_shift'][i]}"
-                G_1.add_node(
-                    i,
-                    pos=self.centroid_coords[i][::-1],
-                    color="green",
-                    weight=self.state["bikes_dist_before_shift"][i],
-                    label=node_label,
+        # Demand bikes
+        font_size = 10
+        font = pygame.font.SysFont("Arial", font_size)
+        if self.tot_demand_per_centroid is not None:
+            for coord, demand in zip(new_centroid_coords, self.tot_demand_per_centroid):
+                txtsurf = font.render(str(demand), True, BLACK)
+                self.surf.blit(
+                    txtsurf, (coord[0] - font_size / 3.5, coord[1] - font_size / 1.5)
                 )
 
-            pos = nx.get_node_attributes(G_1, "pos")
-            node_colors = nx.get_node_attributes(G_1, "color")
-            node_weights = nx.get_node_attributes(G_1, "weight")
-            node_labels = nx.get_node_attributes(G_1, "label")
-            nx.draw_networkx(
-                G_1,
-                with_labels=True,
-                pos=pos,
-                node_color=node_colors.values(),
-                node_size=[v / 2 + 1 for v in node_weights.values()],
-                labels=node_labels,
-                font_size=3,
-                ax=axs[0],
-            )
-            # nx.draw_networkx(G_1, with_labels=False, pos=pos, node_color=node_colors.values(), node_size=[v/2 for v in node_weights.values()], font_size=3, ax=axs[1])
-
-        title_1 = f'Month: {self.state["month"]} Day: {self.state["day"]} Timeshift: {self.get_timeshift()}'
-        # if self.num_met_trips is not None:
-        #     relevant_trips = max(
-        #         1, self.tot_num_trips - self.too_far_from_centroid_trips
-        #     )
-        #     ratio_met_trips = round(self.num_met_trips / relevant_trips, 2)
-        #     centroid_ratio = np.where(
-        #         self.tot_demand_per_centroid != 0,
-        #         self.met_trips_per_centroid / self.tot_demand_per_centroid,
-        #         np.nan,
-        #     )
-        #     centroid_ratio = round(np.nanmean(centroid_ratio), 2)
-        #     title_2 = f"Ratio met trips: {ratio_met_trips} Ratio met demands: {centroid_ratio} Non-relevant trips: {self.too_far_from_centroid_trips}"
-        #     title = title_1 + "\n" + title_2
-        # else:
-        #     title = title_1
-        title = title_1
-
-        fig.suptitle(title, fontsize=10)
-        fig.canvas.manager.full_screen_toggle()
-        canvas = agg.FigureCanvasAgg(fig)
-        canvas.draw()
-        renderer = canvas.get_renderer()
-        raw_data = renderer.tostring_rgb()
-
-        size = canvas.get_width_height()
-
-        self.surf = pygame.image.fromstring(raw_data, size, "RGB")
+        # Legend:
+        font_size = 10
+        font = pygame.font.SysFont("Arial", font_size)
+        shift = self.get_timeshift()
+        title = font.render(
+            f"Shift {shift} Day {self.state['day']} Month {self.state['month']}",
+            True,
+            BLACK,
+        )
+        self.surf.blit(title, (self.screen_dim[0] // 2, 0))
+        pygame.draw.circle(
+            self.surf,  # draw need buffer
+            PRETTY_GREEN,  # color of circle
+            (30, 20),
+            offset_bikes_render,
+        )  # default is filled circle
+        demand = font.render("5", True, BLACK)
+        self.surf.blit(demand, (30 - font_size / 3.5, 20 - font_size / 1.5))
+        txtsurf = font.render(f"0 bikes, 5 demands", True, BLACK)
+        self.surf.blit(txtsurf, (50, 20 - font_size // 2))
+        n_bikes = 10 * scale_bikes_render
+        pygame.draw.circle(
+            self.surf,  # draw need buffer
+            PRETTY_GREEN,  # color of circle
+            (30, 50),
+            offset_bikes_render + n_bikes / scale_bikes_render,
+        )  # default is filled circle
+        demand = font.render("3", True, BLACK)
+        self.surf.blit(demand, (30 - font_size / 3.5, 50 - font_size / 1.5))
+        txtsurf = font.render(f"{n_bikes} bikes, 3 demands", True, BLACK)
+        self.surf.blit(txtsurf, (50, 50 - font_size // 2))
+        self._draw_arrow(
+            self.surf,
+            pygame.Vector2(25, 80),
+            pygame.Vector2(35, 80),
+            PRETTY_BLUE,
+            1,
+            2 + min(5 * 1, 10),
+        )
+        txtsurf = font.render("1 bike", True, BLACK)
+        self.surf.blit(txtsurf, (50, 80 - font_size // 2))
+        self._draw_arrow(
+            self.surf,
+            pygame.Vector2(25, 110),
+            pygame.Vector2(35, 110),
+            PRETTY_BLUE,
+            10,
+            2 + min(5 * 10, 10 + 10),
+        )
+        txtsurf = font.render("10 bikes", True, BLACK)
+        self.surf.blit(txtsurf, (50, 110 - font_size // 2))
 
         self.screen.blit(self.surf, (0, 0))
         if mode == "human":
             pygame.event.pump()
             # self.clock.tick(self.metadata["render_fps"])
             pygame.display.flip()
+            # pygame.display.update()
 
         elif mode == "rgb_array":
             return np.transpose(
@@ -883,10 +888,101 @@ class Bikes(gym.Env):
         else:
             return self.isopen
 
+    def _draw_arrow(
+        self,
+        surface: pygame.Surface,
+        start: pygame.Vector2,
+        end: pygame.Vector2,
+        color: pygame.Color,
+        body_width: int = 2,
+        head_width: int = 10,
+        head_height: int = 5,
+    ):
+        """Draw an arrow between start and end with the arrow head at the end.
+
+        Args:
+            surface (pygame.Surface): The surface to draw on
+            start (pygame.Vector2): Start position
+            end (pygame.Vector2): End position
+            color (pygame.Color): Color of the arrow
+            body_width (int, optional): Defaults to 2.
+            head_width (int, optional): Defaults to 4.
+            head_height (float, optional): Defaults to 2.
+        """
+        arrow = start - end
+        angle = arrow.angle_to(pygame.Vector2(0, -1))
+        body_length = arrow.length() - head_height
+
+        if arrow.length() == 0:
+            start.y -= 10
+            radius = 10
+            body_width = min(body_width, radius)
+            # gfxdraw.aacircle(surface, int(start.x), int(start.y), radius, color)
+            print(radius, body_width, color, start.x, start.y)
+            gfxdraw.aacircle(surface, int(start.x), int(start.y), radius, color)
+            gfxdraw.aacircle(
+                surface, int(start.x), int(start.y), radius - body_width, color
+            )
+            pygame.draw.circle(
+                surface, color, (int(start.x), int(start.y)), radius, body_width
+            )
+            # Create the triangle head around the origin
+            head_verts = [
+                pygame.Vector2(0, int(head_height / 2)),  # Center
+                pygame.Vector2(
+                    int(head_width / 2), -int(head_height / 2)
+                ),  # Bottomright
+                pygame.Vector2(
+                    -int(head_width / 2), -int(head_height / 2)
+                ),  # Bottomleft
+            ]
+            # Rotate and translate the head into place
+            start.y -= radius
+            translation = pygame.Vector2(0, arrow.length() - (head_height / 2)).rotate(
+                -angle
+            )
+            for i in range(len(head_verts)):
+                head_verts[i].rotate_ip(-angle)
+                head_verts[i] += translation
+                head_verts[i] += start
+            pygame.draw.polygon(surface, color, head_verts)
+        else:
+            # Create the triangle head around the origin
+            head_verts = [
+                pygame.Vector2(0, head_height / 2),  # Center
+                pygame.Vector2(head_width / 2, -head_height / 2),  # Bottomright
+                pygame.Vector2(-head_width / 2, -head_height / 2),  # Bottomleft
+            ]
+            # Rotate and translate the head into place
+            translation = pygame.Vector2(0, arrow.length() - (head_height / 2)).rotate(
+                -angle
+            )
+            for i in range(len(head_verts)):
+                head_verts[i].rotate_ip(-angle)
+                head_verts[i] += translation
+                head_verts[i] += start
+            pygame.draw.polygon(surface, color, head_verts)
+
+            # Stop weird shapes when the arrow is shorter than arrow head
+            if arrow.length() >= head_height:
+                head_height = arrow.length() // 2
+            # Calculate the body rect, rotate and translate into place
+            body_verts = [
+                pygame.Vector2(-body_width / 2, body_length / 2),  # Topleft
+                pygame.Vector2(body_width / 2, body_length / 2),  # Topright
+                pygame.Vector2(body_width / 2, -body_length / 2),  # Bottomright
+                pygame.Vector2(-body_width / 2, -body_length / 2),  # Bottomleft
+            ]
+            translation = pygame.Vector2(0, int(body_length / 2)).rotate(-angle)
+            for i in range(len(body_verts)):
+                body_verts[i].rotate_ip(-angle)
+                body_verts[i] += translation
+                body_verts[i] += start
+
+            pygame.draw.polygon(surface, color, body_verts)
+
     def close(self):
         if self.screen is not None:
-            import pygame  # type: ignore
-
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
