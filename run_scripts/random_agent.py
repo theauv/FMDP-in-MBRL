@@ -84,15 +84,15 @@ if __name__ == "__main__":
         env = ContinuousHyperGrid(env_config=env_config, render_mode=args.render_mode)
     elif args.env_name == "bikes":
         env_config = {
-            "num_trucks": 3,
+            "num_trucks": 5,
             "action_per_day": 8,
             "sample_method": "sequential",
             "initial_distribution": "zeros",
-            "bikes_per_truck": 5,
+            "bikes_per_truck": 15,
             "walk_distance_max": 1.0,
             "past_trip_data": "src/env/bikes_data/all_trips_LouVelo_merged.csv",
             "weather_data": "src/env/bikes_data/weather_data.csv",
-            "centroids_coord": None #"src/env/bikes_data/LouVelo_centroids_coords.npy",
+            "centroids_coord": "src/env/bikes_data/LouVelo_centroids_coords.npy",
         }
         env_config = DictConfig(env_config)
 

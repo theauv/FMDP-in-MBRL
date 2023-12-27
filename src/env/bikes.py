@@ -532,13 +532,13 @@ class Bikes(gym.Env):
             act = np.round(action)
             act = spaces.unflatten(self.dict_action_space, action)
 
-        print(
-            "action: ",
-            "truck_centroid",
-            act["truck_centroid"],
-            "truck_num_bikes",
-            act["truck_num_bikes"],
-        )
+        # print(
+        #     "action: ",
+        #     "truck_centroid",
+        #     act["truck_centroid"],
+        #     "truck_num_bikes",
+        #     act["truck_num_bikes"],
+        # )
 
         # Add the new bikes to the centroids
         old_state = self.state
@@ -770,7 +770,7 @@ class Bikes(gym.Env):
 
         # Centroids
         # TODO: make changes to also see where bikes were added
-        scale_bikes_render = 1  # 10
+        scale_bikes_render = 1*(self.num_centroids/self.n_bikes)
         offset_bikes_render = 5
         new_centroid_coords = []
         for coord, bikes in zip(
@@ -780,9 +780,15 @@ class Bikes(gym.Env):
             new_coord = (coord - self.offset) * self.scale
             new_coord[1] = self.screen_dim[1] - new_coord[1]
             radius = (
-                offset_bikes_render + bikes / scale_bikes_render
-            )  # Change with demand
-            pygame.draw.circle(self.surf, PRETTY_GREEN, new_coord, radius)
+                offset_bikes_render + scale_bikes_render*bikes
+            )
+            color = PRETTY_GREEN
+            if radius>=30:
+                radius -= 30
+                color = DARK_GREEN.copy()
+                color[1] -= 15*min(6, radius//30)
+                radius = 30
+            pygame.draw.circle(self.surf, color, new_coord, radius)
             new_centroid_coords.append(new_coord)
 
         # Edges
@@ -823,7 +829,7 @@ class Bikes(gym.Env):
                 )
 
         # Legend:
-        font_size = 10
+        font_size = 15
         font = pygame.font.SysFont("Arial", font_size)
         shift = self.get_timeshift()
         title = font.render(
@@ -838,16 +844,18 @@ class Bikes(gym.Env):
             (30, 20),
             offset_bikes_render,
         )  # default is filled circle
+        font_size = 10
+        font = pygame.font.SysFont("Arial", font_size)
         demand = font.render("5", True, BLACK)
         self.surf.blit(demand, (30 - font_size / 3.5, 20 - font_size / 1.5))
         txtsurf = font.render(f"0 bikes, 5 demands", True, BLACK)
         self.surf.blit(txtsurf, (50, 20 - font_size // 2))
-        n_bikes = 10 * scale_bikes_render
+        n_bikes = int(15/scale_bikes_render)
         pygame.draw.circle(
             self.surf,  # draw need buffer
             PRETTY_GREEN,  # color of circle
             (30, 50),
-            offset_bikes_render + n_bikes / scale_bikes_render,
+            offset_bikes_render + scale_bikes_render*n_bikes 
         )  # default is filled circle
         demand = font.render("3", True, BLACK)
         self.surf.blit(demand, (30 - font_size / 3.5, 50 - font_size / 1.5))
@@ -868,10 +876,10 @@ class Bikes(gym.Env):
             pygame.Vector2(25, 110),
             pygame.Vector2(35, 110),
             PRETTY_BLUE,
-            10,
-            2 + min(5 * 10, 10 + 10),
+            5,
+            2 + min(5 * 5, 5 + 10),
         )
-        txtsurf = font.render("10 bikes", True, BLACK)
+        txtsurf = font.render("5 bikes", True, BLACK)
         self.surf.blit(txtsurf, (50, 110 - font_size // 2))
 
         self.screen.blit(self.surf, (0, 0))
@@ -912,6 +920,14 @@ class Bikes(gym.Env):
         arrow = start - end
         angle = arrow.angle_to(pygame.Vector2(0, -1))
         body_length = arrow.length() - head_height
+
+        if body_width>5:
+            body_width -= 5
+            color = DARK_BLUE.copy()
+            print("AAAAAAH", body_width//5)
+            color[1] -= 20*min(5, body_width//5)
+            color[2] -= 30*min(5, body_width//5)
+            body_width = 5
 
         if arrow.length() == 0:
             start.y -= 10
