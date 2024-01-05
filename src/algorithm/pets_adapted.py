@@ -20,6 +20,7 @@ import mbrl.util
 import mbrl.util.common
 import mbrl.util.math
 
+from src.env.bikes import Bikes
 from src.callbacks.wandb_callbacks import CallbackWandb
 from src.callbacks.constants import RESULTS_LOG_NAME, EVAL_LOG_FORMAT
 from src.util.common_overriden import (
@@ -84,14 +85,27 @@ def train(
         action_type=dtype,
         reward_type=dtype,
     )
+    # TODO: rewrite that better
+    env_is_bikes = False
+    base_env = env
+    while hasattr(base_env, "env"):
+        base_env = base_env.env
+    if isinstance(base_env, Bikes):
+        env_is_bikes = True
+        base_env.set_next_day_method("random")
+        initial_exploration_steps = cfg.overrides.initial_exploration_steps
+    else:
+        initial_exploration_steps = cfg.algorithm.initial_exploration_steps
     mbrl.util.common.rollout_agent_trajectories(
         env,
-        cfg.algorithm.initial_exploration_steps,
+        initial_exploration_steps,
         mbrl.planning.RandomAgent(env),
         {},
         replay_buffer=replay_buffer,
     )
     replay_buffer.save(work_dir)
+    if env_is_bikes:
+        base_env.set_next_day_method(cfg.overrides.env_config.next_day_method)
 
     # ---------------------------------------------------------
     # ---------- Create model environment and agent -----------

@@ -172,8 +172,9 @@ class FactoredSimple(Simple):
         self,
         in_size: int,
         out_size: int,
-        factors: List,
         device: Union[str, torch.device],
+        factors: List,
+        reward_factors: Optional[List] = None,
         num_layers: int = 4,
         hid_size: int = 200,
         activation_fn_cfg: Optional[Union[Dict, omegaconf.DictConfig]] = None,
@@ -189,11 +190,29 @@ class FactoredSimple(Simple):
         self.out_size = out_size
 
         self.factors = factors
+        self.reward_factors = reward_factors
+
+        # In case we are also learning the reward
+        self.learn_reward = True if self.out_size == len(self.factors) + 1 else False
+        if self.learn_reward:
+            if self.reward_factors is None:
+                self.factors.append([i for i in range(self.in_size)])
+            else:  # TODO: DOES NOT WORK FOR NOW
+                raise ValueError("Factored reward not supported yet")
+                self.reward_model_factors = self.get_model_factors(reward_factors)
+                self.reward_models = self.get_factored_models(
+                    hid_size=hid_size,
+                    num_layers=num_layers,
+                    activation_fn_cfg=activation_fn_cfg,
+                    model_factors=self.reward_model_factors,
+                )
+
         self.model_factors = self.get_model_factors(factors)
         self.models = self.get_factored_models(
             hid_size=hid_size,
             num_layers=num_layers,
             activation_fn_cfg=activation_fn_cfg,
+            model_factors=self.model_factors,
         )
 
         self.apply(truncated_normal_init)
@@ -208,7 +227,6 @@ class FactoredSimple(Simple):
         :return: The Linked list of the factored models: [(in_1, out_1), ..., (in_n, out_n)]. in_i is the inputs
         playing in a role in the model i, out_i the outputs of the model i.
         """
-
         factors = []
         for output, inputs in enumerate(raw_factors):
             inputs = list(inputs)
@@ -221,14 +239,14 @@ class FactoredSimple(Simple):
                     raw_factors.pop(j)
                 j += 1
             factors.append((inputs, out))
-
         return factors
 
-    def get_factored_models(self, hid_size, num_layers, activation_fn_cfg):
-
+    def get_factored_models(
+        self, hid_size, num_layers, activation_fn_cfg, model_factors
+    ):
         models = []
         total_out_size = 0
-        for model_factor in self.model_factors:
+        for model_factor in model_factors:
             assert len(model_factor) == 2
             in_size = len(model_factor[0])
             out_size = len(model_factor[1])
@@ -256,13 +274,22 @@ class FactoredSimple(Simple):
 
         assert len(x.shape) == 2
 
-        preds = torch.empty(x.shape[0], self.out_size)
+        batch_size = x.shape[0]
+        preds = torch.empty(batch_size, self.out_size)
         for i, model_i in enumerate(self.models):
             input_idx, output_idx = self.model_factors[i]
             sub_x = x.index_select(-1, index=torch.tensor(input_idx))
             pred = model_i.forward(sub_x)
             for j, k in enumerate(output_idx):
                 preds[:, k] = pred[:, j]
+
+        # In case we are learning the factors but the factors are not the same
+        if self.learn_reward and self.reward_factors is not None:
+            for i, model_i in enumerate(self.reward_models):
+                input_idx, output_idx = self.reward_model_factors[i]
+                sub_x = x.index_select(-1, index=torch.tensor(input_idx))
+                pred = model_i.forward(sub_x)
+                preds[:, -1] += pred
 
         return preds
 
@@ -272,7 +299,8 @@ class FactoredSimple(Simple):
 
         assert model_in.ndim == 2 and target.ndim == 2
 
-        eval_scores = []
+        batch_size = model_in.shape[0]
+        eval_scores = torch.zeros((1, batch_size, self.out_size))
         metas = []
         # Compute the loss for each single output and its associated lassonet model
         for i, model in enumerate(self.models):
@@ -281,10 +309,28 @@ class FactoredSimple(Simple):
             )
             sub_target = target.index_select(-1, torch.tensor(self.model_factors[i][1]))
             eval_score, meta = model.eval_score(sub_model_in, sub_target)
-            eval_scores.append(eval_score)
+            eval_scores[0, :, i] = eval_score
             metas.append(meta)
 
-        return torch.cat(eval_scores, dim=-1), {}
+        if self.learn_reward and self.reward_factors is not None:
+            pred_reward = 0
+            reward_target = target[:, -1]
+            for i, model in enumerate(self.reward_models):
+                sub_model_in = model_in.index_select(
+                    -1, torch.tensor(self.reward_model_factors[i][0])
+                )
+                assert sub_model_in.ndim == 2 and sub_target.ndim == 2
+                with torch.no_grad():
+                    pred_reward += model.forward(sub_model_in)
+
+            eval_score, meta = (
+                F.mse_loss(pred_reward, reward_target, reduction="none").unsqueeze(0),
+                {},
+            )
+            eval_scores[0, :, -1] = eval_score
+            metas.append(meta)
+
+        return eval_scores, {}
 
     def update(
         self,
@@ -312,6 +358,21 @@ class FactoredSimple(Simple):
             )
             all_loss.append(loss)
             all_meta.append(meta)
+
+        if self.learn_reward and self.reward_factors is not None:
+            # TODO: Does not work either here
+            raise ValueError("Factored reward not supported yet")
+            for i, model in enumerate(self.reward_models):
+                pred_reward = 0
+                reward_target = target[:, -1]
+                sub_model_in = model_in.index_select(
+                    -1, torch.tensor(self.reward_model_factors[i][0])
+                )
+                loss, meta = model.update(
+                    sub_model_in, optimizer=optimizers[i], target=reward_target
+                )
+                all_loss.append(loss)
+                all_meta.append(meta)
 
         if mode == "sum":
             return sum(all_loss), {}

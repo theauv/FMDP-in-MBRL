@@ -9,6 +9,6 @@ model:
   num_layers: 2 #4
   in_size: ???
   out_size: ???
-  hid_size: 50 #200
+  hid_size: 100 #200
   activation_fn_cfg: #null
     _target_: torch.nn.SiLU

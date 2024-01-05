@@ -1,10 +1,10 @@
 # @package _group_
-with_tracking: true #true
+with_tracking: false #true
 plot_local: false #overriden to false when with_tracking is true 
 api_name: wandb
 run_configs:             
   project: hucrl_fmdp
   group:  null
-  name: test_bikes_train
+  name: test_bikes_factors
   settings: null
   tags: null

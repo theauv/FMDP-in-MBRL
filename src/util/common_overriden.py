@@ -13,6 +13,7 @@ from mbrl.planning import Agent
 
 from src.model.lasso_net import LassoModelTrainer
 from src.env.bikes import Bikes
+from src.util.util import get_base_dir_path
 
 
 def train_model_and_save_model_and_data_overriden(
@@ -116,6 +117,24 @@ def get_env_factors(cfg: omegaconf.DictConfig,):
         for output, factor in enumerate(factors):
             for action_factor in action_factors[output]:
                 factor.append(action_factor)
+    elif cfg.overrides.env == "bikes":
+        station_dependencies = cfg.overrides.env_config.get(
+            "station_dependencies", None
+        )
+        if station_dependencies is None:
+            raise ValueError(
+                "You are using a factored model without specifying any factors in the environment"
+            )
+
+        base_dir = get_base_dir_path()
+        adjacency = np.load(base_dir + station_dependencies)
+        factors = [
+            [i for i, e in enumerate(station) if e != 0] for station in adjacency
+        ]
+        additional_scopes = [
+            i + adjacency.shape[0] for i in range(3)
+        ]  # TODO: Needs to be changed if we change the observation
+        factors = [factor + additional_scopes for factor in factors]
     else:
         raise ValueError(
             "No factors implementation for this env, either use a non-factored model \

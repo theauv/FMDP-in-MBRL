@@ -86,7 +86,7 @@ if __name__ == "__main__":
         env_config = {
             "num_trucks": 5,
             "action_per_day": 8,
-            "sample_method": "sequential",
+            "next_day_method": "sequential",
             "initial_distribution": "zeros",
             "bikes_per_truck": 15,
             "walk_distance_max": 1.0,
