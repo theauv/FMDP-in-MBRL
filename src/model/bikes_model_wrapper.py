@@ -119,15 +119,9 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
             obs = self.obs_process_fn(obs, action)
         obs = model_util.to_tensor(obs).to(self.device)
         action = model_util.to_tensor(action).to(self.device)
-
-        # Rescale the input
-        # print("INPUT")
-        # print("obs", obs[0])
-        # print("action", action[0])
         obs = self.rescale_obs(obs)
         action = self.rescale_act(action)
         model_in = torch.cat([obs, action], dim=obs.ndim - 1)
-        # print(model_in[0])
 
         model_in = model_in.float().to(self.device)
         masked_model_in = model_in[:, self.model_input_mask]
@@ -162,24 +156,19 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         """Calls forward method of base model with the given input and args."""
 
         warnings.warn("Not used so far, make sure it works")
-        # print("FORWARD")
-        # print(x)
 
         if len(x.shape) == 1:
             x = np.expand_dims(x, axis=0)
 
         obs = x[: self.obs_length]
         action = x[self.obs_length : self.obs_length + self.act_length]
-
         model_input = self._get_model_input(obs, action)
-
         output = obs
         sub_output = self.model.forward(model_input, *args, **kwargs).numpy()
-
         output[self.model_output_mask] = sub_output
         output = self.obs_postprocess_fn(output)
 
-        # Denormalize output
+        # TODO: Denormalize output ???
 
         return output
 
@@ -229,7 +218,6 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
             (tuple(tensor), tensor): the model outputs and the target for this batch.
         """
         warnings.warn("Not used so far, make sure it works")
-        # print("GET OUTPUT AND TARGETS")
         with torch.no_grad():
             model_in, target = self._process_batch(batch)
             sub_output = self.model.forward(model_in)
@@ -276,11 +264,8 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         preds, next_model_state = self.model.sample_1d(
             model_in, model_state, rng=rng, deterministic=deterministic
         )
-        # print("PREDS")
-        # print(preds[0])
         if self.output_normalizer is not None:
             preds = self.output_normalizer.denormalize(preds).float()
-        # print(preds[0])
         next_observs = preds[:, :-1] if self.learned_rewards else preds
 
         next_obs = preprocessed_obs

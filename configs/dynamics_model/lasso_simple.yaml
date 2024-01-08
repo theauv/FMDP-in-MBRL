@@ -8,8 +8,6 @@ model_trainer:
   take_best_factors: 2 #int|null
   theta_tol: 0.01
   reinit: false
-wrapper:
-  _target_: src.model.lasso_net.LassoOneDTransitionRewardModel
 model:
   _target_: src.model.lasso_net.LassoSimple
   device: ${device}

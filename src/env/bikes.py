@@ -1,7 +1,5 @@
 """
 Environments for the bikes experiments.
-I would first recommend looking at functions.py since the class structure is similar 
-and the environments are much simpler. 
 """
 
 from typing import Optional, Dict, Tuple, List
@@ -20,8 +18,8 @@ from scipy.spatial import distance
 import torch
 import warnings
 
-from src.util.util import get_mapping_dict
 from src.env.constants import *
+from src.env.dict_spaces_env import DictSpacesEnv
 
 
 class Rentals_Simulator:
@@ -34,14 +32,9 @@ class Rentals_Simulator:
         walk_dist_max=1,
         station_dependencies: np.array = None,
     ):
-        self.trips_data = trips_data  # history of trips data (used to simulate rentals)
-        self.centroids = (
-            centroids
-        )  # centroids for regions in the city where bikes/scooters are positioned
-        self.R = len(
-            centroids
-        )  # number of regions in the city TODO: don't like the multiple definitions of R
-        # self.chunks = depth +1 #number of time chunks to break the day into. You add 1 to the depth
+        self.trips_data = trips_data
+        self.centroids = centroids
+        self.R = len(centroids)
         self.walk_dist_max = walk_dist_max
         self.taken_bikes = []
         self.station_dependencies = station_dependencies
@@ -49,130 +42,6 @@ class Rentals_Simulator:
 
     def reset(self):
         self.taken_bikes = []
-
-    # def simulate_rentals(self, trips, X):
-    #     """
-    #     Simulate daily rentals when X[i] bikes are positioned in each region i at
-    #     the beginning of the day on daynum of month.
-    #     Returns a list of the starting coordinates of the trips that were met and
-    #     a list of the starting coordinates of the trips that were unmet.
-    #     """
-    #     new_x = np.array(X)
-    #     # All trips
-    #     tot_num_trips = len(trips)
-    #     num_met_trips = 0
-    #     too_far_from_centroid_trips = 0
-
-    #     # All trips coords
-    #     trips_starting_coords = []
-    #     met_trips_starting_coords = []
-    #     too_far_from_centroid_trips_coords = []
-
-    #     # trips per centroid
-    #     tot_demand_per_centroid = np.zeros(self.R, dtype=int)
-    #     met_trips_per_centroid = np.zeros(self.R, dtype=int)
-
-    #     adjacency_matrix = np.zeros((self.R, self.R), dtype=int)
-
-    #     # TODO: maybe not a fixed time for every trip ?
-    #     # TODO: Penser à si dans un meme timeshift velos finissent leur trip
-    #     # Does it make sense for the current reward ? Does it make sense for what we are doing ?
-    #     TRIP_DURATION = (
-    #         0.5
-    #     )  # in hours: the time a bike is removed from the system for while a trip is happening
-    #     BIKE_SPEED = 20  # km/h
-
-    #     # taken_bikes = []
-    #     total_walking_distance = 0
-
-    #     added_bikes = np.zeros(self.R, dtype=int)
-
-    #     for i in range(tot_num_trips):
-    #         trip = trips.iloc[i]
-    #         start_loc = np.array([trip.StartLatitude, trip.StartLongitude])
-    #         start_time = trip.StartTime
-
-    #         trips_starting_coords.append(start_loc)
-    #         met_trips_starting_coords.append(None)
-
-    #         # this is a str in 24 hour format. convert to a float in hours
-    #         start_time = float(start_time[0:2]) + float(start_time[3:5]) / 60
-
-    #         # check if any bikes that were in transit have completed there trip, and add them back to the system
-    #         for bike in self.taken_bikes:
-    #             if bike[0] <= start_time:
-    #                 new_x[bike[1]] += 1
-    #                 added_bikes[bike[1]] += 1
-    #                 self.taken_bikes.remove(bike)
-
-    #         distances = distance.cdist(
-    #             start_loc.reshape(-1, 2), self.centroids, metric="euclidean"
-    #         )
-    #         idx_argsort = np.argsort(distances)[0]
-    #         # We go through the centroids in order of closest to farthest and see if there is an available bike at one of the centroids to make the trip
-    #         for j, idx_start_centroid in enumerate(idx_argsort):
-    #             if (
-    #                 geopy.distance.distance(
-    #                     start_loc, self.centroids[idx_start_centroid, :]
-    #                 ).km
-    #                 > self.walk_dist_max
-    #             ):
-    #                 if i == 0:
-    #                     too_far_from_centroid_trips += 1
-    #                     too_far_from_centroid_trips_coords.append(start_loc)
-    #                 break
-    #             if new_x[idx_start_centroid] > 0:
-    #                 # If the trip can be met, we update all of the relevent lists tracking trips and where bikes are
-    #                 new_x[idx_start_centroid] -= 1
-    #                 end_loc = np.array([trip.EndLatitude, trip.EndLongitude])
-    #                 distances = distance.cdist(
-    #                     end_loc.reshape(-1, 2), self.centroids, metric="euclidean"
-    #                 )
-    #                 idx_end_centroid = np.argmin(distances)
-    #                 total_walking_distance += geopy.distance.distance(
-    #                     start_loc, self.centroids[idx_start_centroid, :]
-    #                 ).km
-
-    #                 distance_trip = geopy.distance.distance(
-    #                     self.centroids[idx_start_centroid, :],
-    #                     self.centroids[idx_end_centroid, :],
-    #                 ).km
-    #                 if distance_trip == 0.0:
-    #                     delta_t = uniform(0.2, 1)
-    #                 else:
-    #                     delta_t = distance_trip / BIKE_SPEED + uniform(0.1, 0.2)
-    #                 self.taken_bikes.append((start_time + delta_t, idx_end_centroid))
-    #                 adjacency_matrix[idx_start_centroid, idx_end_centroid] += 1
-
-    #                 # All trips
-    #                 num_met_trips += 1
-
-    #                 # All trips coords
-    #                 met_trips_starting_coords[-1] = self.centroids[idx_start_centroid]
-
-    #                 # trips per centroid
-    #                 met_trips_per_centroid[idx_start_centroid] += 1
-    #                 tot_demand_per_centroid[idx_start_centroid] += 1
-    #                 break
-    #             else:
-    #                 tot_demand_per_centroid[idx_start_centroid] += 1
-
-    #     # print("Deleted bikes", met_trips_per_centroid)
-    #     # print("Added bikes", added_bikes)
-
-    #     return (
-    #         new_x,
-    #         tot_num_trips,
-    #         num_met_trips,
-    #         too_far_from_centroid_trips,
-    #         trips_starting_coords,
-    #         met_trips_starting_coords,
-    #         too_far_from_centroid_trips_coords,
-    #         tot_demand_per_centroid,
-    #         met_trips_per_centroid,
-    #         adjacency_matrix,
-    #         added_bikes,
-    #     )
 
     def station_dependencies_linked_list(self):
         if self.station_dependencies is None:
@@ -243,13 +112,11 @@ class Rentals_Simulator:
                     break
                 # Find the potential ending
                 if self.station_dependencies_ll is not None:
-                    print("YEAAAAH")
                     if not self.station_dependencies_ll[idx_start_centroid]:
                         break
                     potential_ending_centroids = self.centroids[
                         self.station_dependencies_ll[idx_start_centroid]
                     ]
-                    print(self.station_dependencies_ll[idx_start_centroid])
                 else:
                     potential_ending_centroids = self.centroids
                 ending_distances = distance.cdist(
@@ -304,7 +171,7 @@ class Rentals_Simulator:
         )
 
 
-class Bikes(gym.Env):
+class Bikes(DictSpacesEnv):
     # WHAT IS METADATA ???
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": [50]}
 
@@ -317,6 +184,7 @@ class Bikes(gym.Env):
         # TODO: self.split_reward_by_centroid = env_config.split_reward_by_centroid # if true, we model the number of trips from each centroid individual, instead of the total number of trips
         # TODO: not especially optimal, could also decide for fix number of actions WHEN to take them during the day ??
         # TODO: "self strips" ?? Should we consider them or not (only influence is the trip_duration)
+        super().__init__()
         self.num_trucks = env_config.num_trucks
         self.action_per_day = env_config.action_per_day
         self.day_start = 0.0
@@ -403,12 +271,6 @@ class Bikes(gym.Env):
             }
         )
 
-        self.observation_space = spaces.flatten_space(self.dict_observation_space)
-        self.action_space = spaces.flatten_space(self.dict_action_space)
-
-        self.observation_space.sample = self.sample_obs
-        self.action_space.sample = self.sample_action
-
         # TODO: could have a negative number of bikes meaning that we remove some bikes
         # in reward the more we have unused bikes the worst it is
         self.all_trips_data = pd.read_csv(
@@ -459,7 +321,7 @@ class Bikes(gym.Env):
 
         station_dependencies_file = env_config.get("station_dependencies", None)
         station_dependencies = (
-            np.load(self.base_dir+station_dependencies_file)
+            np.load(self.base_dir + station_dependencies_file)
             if station_dependencies_file is not None
             else None
         )
@@ -497,34 +359,12 @@ class Bikes(gym.Env):
         self.isopen = True
 
         self.steps_beyond_terminated = None
-        self.map_obs = get_mapping_dict(self.dict_observation_space)
-        self.map_act = get_mapping_dict(self.dict_action_space)
 
-    def rescale_obs(self, flat_obs):
-        for key, value in self.map_obs.items():
-            if key != "length":
-                low = self.dict_observation_space[key].low
-                high = self.dict_observation_space[key].high
-                flat_obs[:, value] = (flat_obs[:, value] - low) / (high - low)
-        return flat_obs
+    def flatten_obs(self, obs=None):
+        return super().flatten_obs(obs)
 
-    def rescale_act(self, flat_act):
-        for key, value in self.map_act.items():
-            if key != "length":
-                low = self.dict_action_space[key].low
-                high = self.dict_action_space[key].high
-                flat_act[:, value] = (flat_act[:, value] - low) / (high - low)
-        return flat_act
-
-    def sample_action(self):
-        action = self.dict_action_space.sample()
-        action = spaces.flatten(self.dict_action_space, action)
-        return np.round(action)
-
-    def sample_obs(self):
-        obs = self.dict_observation_space.sample()
-        obs = spaces.flatten(self.dict_observation_space, obs)
-        return np.round(obs)
+    def flatten_action(self, action=None):
+        return super().flatten_action(action)
 
     def get_timeshift(self, state=None):
         if state is None:
@@ -580,7 +420,6 @@ class Bikes(gym.Env):
         # add the number of added bikes as a penalty
         # add the gasoil comsuption for each bike refill
         # warning if too_far_from_centroid > 0
-
         # Remark, adding the possibility to get add or remove bikes is somewhat equivalent to rebalancing
 
         if self.tot_num_trips - self.feasible_trips > 0:
@@ -588,11 +427,10 @@ class Bikes(gym.Env):
                 f"We have {self.tot_num_trips - self.feasible_trips} trips that could not met because there was no centroid close enough"
             )
 
+        # SIMPLIEST REWARD
+        reward = self.num_met_trips / max(1, self.feasible_trips)
 
-        #SIMPLIEST REWARD
-        reward = self.num_met_trips/max(1, self.feasible_trips)
-
-        #PENALIZE ALSO PER CENTROID RATIO
+        # PENALIZE ALSO PER CENTROID RATIO
         # relevant_trips = max(1,self.feasible_trips)
         # centroid_ratio = np.where(
         #     self.tot_demand_per_centroid != 0,
@@ -606,7 +444,7 @@ class Bikes(gym.Env):
         # reward = self.num_met_trips / relevant_trips + centroid_ratio
 
         # # TODO:param in init
-        #DO NOT DELETE THIS !! (Might be a better reward proxy)
+        # DO NOT DELETE THIS !! (Might be a better reward proxy)
         # alpha = 0.7
         # beta = 0.7
         # min_bikes = 0.0
@@ -636,26 +474,14 @@ class Bikes(gym.Env):
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, Dict]:
         # TODO: If only add bikes, we can exceed the upper bound of the obs space
         # But if we deal with it, we also need to be careful when simulating the rents,
-        # Indeed, we should also chck if the receiving centroid is able to store one more bike
+        # Indeed, we should also check if the receiving centroid is able to store one more bike
         # But this is complicated if we care about the time duration ???
 
         self.state["bikes_dist_before_shift"] = self.state["bikes_dist_after_shift"]
 
-        # print("BEFORE")
-        # print("bikes_dist_before_shift", self.state["bikes_dist_before_shift"])
-        # print("bikes_dist_after_shift", self.state["bikes_dist_after_shift"])
-
         if type(action) == np.ndarray:
             act = np.round(action)
             act = spaces.unflatten(self.dict_action_space, action)
-
-        # print(
-        #     "action: ",
-        #     "truck_centroid",
-        #     act["truck_centroid"],
-        #     "truck_num_bikes",
-        #     act["truck_num_bikes"],
-        # )
 
         # Add the new bikes to the centroids
         old_state = self.state
@@ -666,17 +492,12 @@ class Bikes(gym.Env):
             self.delta_bikes[int(truck_centroid[int(truck)])] += truck_num_bikes[
                 int(truck)
             ]
-        # print("delta_bikes", self.delta_bikes)
 
         # Update obs
         self.state["bikes_dist_before_shift"] = (
             self.state["bikes_dist_after_shift"] + self.delta_bikes
         )
         self.state["bikes_dist_after_shift"] = self.state["bikes_dist_before_shift"]
-
-        # print("AFTER ACTION")
-        # print("bikes_dist_before_shift", self.state["bikes_dist_before_shift"])
-        # print("bikes_dist_after_shift", self.state["bikes_dist_after_shift"])
 
         # Let all the vehicules being used during the day
         new_bikes_dist_after_shift, reward = self.trips_steps()
@@ -691,8 +512,6 @@ class Bikes(gym.Env):
 
         # Check if terminated
         terminated = self.get_timeshift() is None
-
-        # print("Done", terminated)
 
         # Sanity check if we did not carry on after a finishing step
         if terminated:
@@ -718,8 +537,6 @@ class Bikes(gym.Env):
 
     def get_initial_bikes_distribution(self) -> np.array:
         if self.initial_distribution == "uniform":
-            # bikes_per_region = self.n_bikes // self.num_centroids
-            # x = np.ones(self.num_centroids, dtype=int) * bikes_per_region
             x = np.zeros(self.num_centroids, dtype=int)
             for i, bike in enumerate(range(self.n_bikes)):
                 x[i % self.num_centroids] += 1
@@ -793,9 +610,6 @@ class Bikes(gym.Env):
         self.steps_beyond_terminated = None
         if self.render_mode == "human":
             self.render()
-
-        # print("DATE")
-        # print("day", self.state["day"], "month", self.state["month"])
 
         return spaces.flatten(self.dict_observation_space, self.state), {}
 
@@ -886,7 +700,6 @@ class Bikes(gym.Env):
         )
 
         # Centroids
-        # TODO: make changes to also see where bikes were added
         scale_bikes_render = 1 * (self.num_centroids / self.n_bikes)
         offset_bikes_render = 5
         new_centroid_coords = []
@@ -953,12 +766,7 @@ class Bikes(gym.Env):
             BLACK,
         )
         self.surf.blit(title, (self.screen_dim[0] // 2, 0))
-        pygame.draw.circle(
-            self.surf,  # draw need buffer
-            PRETTY_GREEN,  # color of circle
-            (30, 20),
-            offset_bikes_render,
-        )  # default is filled circle
+        pygame.draw.circle(self.surf, PRETTY_GREEN, (30, 20), offset_bikes_render)
         font_size = 10
         font = pygame.font.SysFont("Arial", font_size)
         demand = font.render("5", True, BLACK)
@@ -967,11 +775,11 @@ class Bikes(gym.Env):
         self.surf.blit(txtsurf, (50, 20 - font_size // 2))
         n_bikes = int(15 / scale_bikes_render)
         pygame.draw.circle(
-            self.surf,  # draw need buffer
-            PRETTY_GREEN,  # color of circle
+            self.surf,
+            PRETTY_GREEN,
             (30, 50),
             offset_bikes_render + scale_bikes_render * n_bikes,
-        )  # default is filled circle
+        )
         demand = font.render("3", True, BLACK)
         self.surf.blit(demand, (30 - font_size / 3.5, 50 - font_size / 1.5))
         txtsurf = font.render(f"{n_bikes} bikes, 3 demands", True, BLACK)
@@ -1000,10 +808,7 @@ class Bikes(gym.Env):
         self.screen.blit(self.surf, (0, 0))
         if mode == "human":
             pygame.event.pump()
-            # self.clock.tick(self.metadata["render_fps"])
             pygame.display.flip()
-            # pygame.display.update()
-
         elif mode == "rgb_array":
             return np.transpose(
                 np.array(pygame.surfarray.pixels3d(self.surf)), axes=(1, 0, 2)
@@ -1047,7 +852,6 @@ class Bikes(gym.Env):
             start.y -= 10
             radius = 10
             body_width = min(body_width, radius)
-            # gfxdraw.aacircle(surface, int(start.x), int(start.y), radius, color)
             gfxdraw.aacircle(surface, int(start.x), int(start.y), radius, color)
             gfxdraw.aacircle(
                 surface, int(start.x), int(start.y), radius - body_width, color

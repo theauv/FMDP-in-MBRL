@@ -1,8 +1,6 @@
 # @package _group_
 model_trainer:
   _target_: mbrl.models.ModelTrainer
-wrapper:
-  _target_: mbrl.models.OneDTransitionRewardModel
 model:
   _target_: mbrl.models.GaussianMLP
   device: ${device}

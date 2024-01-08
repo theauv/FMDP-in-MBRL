@@ -12,7 +12,7 @@ from mbrl.util.replay_buffer import ReplayBuffer
 from mbrl.planning import Agent
 
 from src.model.lasso_net import LassoModelTrainer
-from src.env.bikes import Bikes
+from src.env.dict_spaces_env import DictSpacesEnv
 from src.util.util import get_base_dir_path
 
 
@@ -132,15 +132,14 @@ def get_env_factors(cfg: omegaconf.DictConfig,):
             [i for i, e in enumerate(station) if e != 0] for station in adjacency
         ]
         additional_scopes = [
-            i + adjacency.shape[0] for i in range(3)
-        ]  # TODO: Needs to be changed if we change the observation
+            i + adjacency.shape[0] for i in range(model_cfg.in_size - len(factors))
+        ]
         factors = [factor + additional_scopes for factor in factors]
     else:
         raise ValueError(
             "No factors implementation for this env, either use a non-factored model \
                          either implement a way to get the factor of this env in this function"
         )
-
     return factors
 
 
@@ -153,53 +152,80 @@ def create_one_dim_tr_model_overriden(
 ):
     """
     Overwrite of function create_one_dim_tr_model in mbrl.util.common
-    TODO: Very specific conditions to instanciate the model dynamics in case of 
-    the bikes environment. Try to modularize that.
+    Handles DictSpacesEnv and factored environments
     """
-    # This first part takes care of the case where model is BasicEnsemble and in/out sizes
-    # are handled by member_cfg
-
-    # TODO: Modularize this, for the moment not sure how not to have a specific condition
-    env_is_bikes = False
+    env_has_dict_spaces = False
     base_env = env
     while hasattr(base_env, "env"):
         base_env = base_env.env
-    if isinstance(base_env, Bikes):
-        env_is_bikes = True
+    if isinstance(base_env, DictSpacesEnv):
+        env_has_dict_spaces = True
 
     model_cfg = cfg.dynamics_model.model  # Changed from the original function
     if model_cfg._target_ == "mbrl.models.BasicEnsemble":
         model_cfg = model_cfg.member_cfg
     if model_cfg.get("in_size", None) is None:
-        if env_is_bikes:
-            model_cfg.in_size = sum(
+        if env_has_dict_spaces:
+            for input_obs_key in cfg.overrides.model_wrapper.model_input_obs_key:
+                obs_keys = list(base_env.dict_observation_space.keys())
+                if input_obs_key not in obs_keys:
+                    raise ValueError(
+                        f"Please give existing input obs keys in the configs:"
+                        f" {obs_keys}. "
+                        f"Given key '{input_obs_key}' does not exist in {type(base_env)}"
+                    )
+            for input_act_key in cfg.overrides.model_wrapper.model_input_act_key:
+                act_keys = list(base_env.dict_action_space.keys())
+                if input_act_key not in act_keys:
+                    raise ValueError(
+                        f"Please give existing input act keys in the configs:"
+                        f" {act_keys}. "
+                        f"Given key '{input_act_key}' does not exist in {type(base_env)}"
+                    )
+            obs_in_size = sum(
                 [
-                    value.shape[0]
-                    for key, value in base_env.dict_observation_space.items()
-                    if key != "bikes_dist_after_shift"
+                    base_env.dict_observation_space[key].shape[0]
+                    for key in cfg.overrides.model_wrapper.model_input_obs_key
                 ]
             )
+            act_in_size = sum(
+                [
+                    base_env.dict_action_space[key].shape[0]
+                    for key in cfg.overrides.model_wrapper.model_input_act_key
+                ]
+            )
+            model_cfg.in_size = obs_in_size + act_in_size
         else:
             model_cfg.in_size = obs_shape[0] + (act_shape[0] if act_shape else 1)
     if model_cfg.get("out_size", None) is None:
-        if env_is_bikes:
-            model_cfg.out_size = base_env.dict_observation_space[
-                "bikes_dist_after_shift"
-            ].shape[0] + int(cfg.algorithm.learned_rewards)
+        if env_has_dict_spaces:
+            for output_key in cfg.overrides.model_wrapper.model_output_key:
+                if output_key not in obs_keys:
+                    raise ValueError(
+                        f"Please give existing output keys in the configs:"
+                        f" {obs_keys}. "
+                        f"Given key '{output_key}' does not exist in {type(base_env)}"
+                    )
+            model_cfg.out_size = sum(
+                [
+                    base_env.dict_observation_space[key].shape[0]
+                    for key in cfg.overrides.model_wrapper.model_output_key
+                ]
+            ) + int(cfg.algorithm.learned_rewards)
         else:
             model_cfg.out_size = obs_shape[0] + int(cfg.algorithm.learned_rewards)
     if "factors" in model_cfg.keys() and model_cfg.get("factors", None) is None:
         model_cfg.factors = get_env_factors(cfg)
 
     # Now instantiate the model
-    model = hydra.utils.instantiate(model_cfg)  # Changed from the original function
+    model = hydra.utils.instantiate(model_cfg)
 
     name_obs_process_fn = cfg.overrides.get("obs_process_fn", None)
     if name_obs_process_fn:
         obs_process_fn = hydra.utils.get_method(cfg.overrides.obs_process_fn)
     else:
         obs_process_fn = None
-    if env_is_bikes:
+    if env_has_dict_spaces:
         dynamics_model = hydra.utils.instantiate(
             cfg.overrides.model_wrapper,
             model,
@@ -220,7 +246,7 @@ def create_one_dim_tr_model_overriden(
         )
     else:
         dynamics_model = hydra.utils.instantiate(
-            cfg.dynamics_model.wrapper,
+            cfg.overrides.model_wrapper,
             model,
             target_is_delta=cfg.algorithm.target_is_delta,
             normalize=cfg.algorithm.normalize,

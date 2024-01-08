@@ -37,7 +37,6 @@ def map_plot(
     fig, ax = plt.subplots()
 
     if unmet is not None:
-        # Goes in a try loop incase list is empty
         try:
             unmet = torch.tensor(unmet, requires_grad=False)
             ax.scatter(
@@ -89,7 +88,6 @@ def map_plot(
     plt.ylim(lats)
     ax.xaxis.set_ticks([])
     ax.yaxis.set_ticks([])
-    # title
     if title is not None:
         plt.title(title)
 
@@ -160,9 +158,7 @@ def plot_bike_locations(X, centroids, algo_str, t=0, met=None, unmet=None):
     """
     Takes a list of bike locations for each time chunk then plots on the graph where bikes are at each timechunk.
     """
-    # make X a torch tensor
     X = torch.tensor(X, requires_grad=False)
-    # normalize X
     X = X / X.sum(dim=1, keepdim=True)
     for i in range(len(X)):
         lats, longs, s = weights_to_plot_data(X[i], centroids)
@@ -186,14 +182,12 @@ def full_trial_map_plotter(X, centroids, algo_str, t=0, met=None, unmet=None):
         "scripts/bikes_data/dockless-vehicles-3_full.csv",
         usecols=lambda x: x not in ["TripID", "StartDate", "EndDate", "EndTime"],
     )
-    # get just the start and end stations
     trips_data = trips_data[
         ["StartLatitude", "StartLongitude", "EndLatitude", "EndLongitude"]
     ]
     met = trips_data[["StartLatitude", "StartLongitude"]].values
 
     X = torch.tensor(X, requires_grad=False)
-    # normalize X
     X = X / X.sum(dim=1, keepdim=True)
     for i in range(len(X)):
         lats, longs, s = weights_to_plot_data(X[i], centroids)
@@ -218,26 +212,21 @@ def centroid_cluster(centroids, clusters):
     from sklearn.cluster import KMeans
 
     fig, ax = plt.subplots()
-    # any numbers from 0 to len(centroids)
     loose_centroids = []
     for i in range(len(centroids)):
         if i not in [item for sublist in clusters for item in sublist]:
             loose_centroids.append(i)
 
-    # remove singleton clusters and add to singleton cluster list
     for i in range(len(clusters)):
         if len(clusters[i]) == 1:
             loose_centroids.append(clusters[i][0])
             clusters[i] = []
 
-    # remove empty clusters
     clusters = [x for x in clusters if x != []]
-    # add singleton clusters onto the cluster with the closest point
     for i in range(len(loose_centroids)):
         closest = 0
         closest_dist = 1000000
         for j in range(len(clusters)):
-            # get the closest point in the cluster, not just the first one
             dist = torch.norm(
                 centroids[clusters[j]] - centroids[loose_centroids[i]], dim=1
             ).min()
@@ -257,15 +246,12 @@ def centroid_cluster(centroids, clusters):
                 break
     labels = np.array(labels)
 
-    # centers are the average of the points in the cluster
     centers = []
     for i in range(len(clusters)):
         centers.append(centroids[clusters[i]].mean(dim=0))
     centers = torch.stack(centers)
 
     save_path = "/centroids_clustered_paper.png"
-
-    # plot the cluster centers, with the colour depending on their cluster number
 
     for i in range(centroids.shape[0]):
         ax.scatter(
@@ -291,7 +277,6 @@ def centroid_cluster(centroids, clusters):
     fig.tight_layout()
     fig.savefig("scripts/map_plots" + save_path, bbox_inches="tight")
 
-    # save the labels and centers to pickle with name that reflects number of centroids and clusters
     labels = np.array(labels)
     centers = np.array(centers)
     pickle.dump(
@@ -311,7 +296,6 @@ if __name__ == "__main__":
     _, _, _, _, _, _, centroid_coords = pickle.load(
         open("scripts/bikes_data/training_data_" + "5" + "_" + "40" + ".pckl", "rb")
     )
-    # The clusters used in the BikesSparse environment in the paper.
     clusters = [
         [29],
         [34],

@@ -1,16 +1,16 @@
 # @package _group_
 env: bikes
 env_config:
-  num_trucks: 5
+  num_trucks: 5 #10
   action_per_day: 8
-  next_day_method: random #sequential
+  next_day_method: sequential #sequential
   initial_distribution: uniform
   bikes_per_truck: 5
   walk_distance_max: 1.
   past_trip_data: src/env/bikes_data/all_trips_LouVelo_merged.csv
   weather_data: src/env/bikes_data/weather_data.csv
   centroids_coord: src/env/bikes_data/LouVelo_centroids_coords.npy
-  #centroids_idx: #[93,83,80,98,6,84,87,99,56,97]
+  #centroids_idx: #[93,83,80,98,6,84,87,99,56,97] #Number of centroids or list of indices
   station_dependencies: src/env/bikes_data/random_factors.npy
 model_wrapper:
   _target_: src.model.bikes_model_wrapper.OneDTransitionRewardModelDictSpace
@@ -19,9 +19,9 @@ model_wrapper:
   model_output_key: ["bikes_dist_after_shift"]
 learned_rewards: true #Not supported yet
 trial_length: ${overrides.env_config.action_per_day} #Max length episode
-initial_exploration_steps: 1 #400
-num_steps: 500000 #Number of env steps before end of training
-num_episodes: 400 #Number of env episodes before end of training
+initial_exploration_steps: 1 #500
+num_steps: 100000000 #Number of env steps before end of training
+num_episodes: 10000 #Number of env episodes before end of training
 render_mode: human #null|rgb_array|human
 model_path: null #/mnt/c/Users/theau/OneDrive/Documents/theau_epfl/12.PDM/code/HUCRL_for_FMDP/exp/pets_adapted/wandb/hypergrid/2023.10.06/154944
 
@@ -33,6 +33,7 @@ validation_ratio: 0
 freq_train_model: 50
 patience: 25
 num_epochs_train_model: 25
+dataset_size: 1000000
 
 planning_horizon: ${overrides.env_config.action_per_day}
 cem_num_iters: 5

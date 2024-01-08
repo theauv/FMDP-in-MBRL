@@ -2,7 +2,7 @@ from typing import List
 
 import matplotlib
 from matplotlib import pyplot as plt
-import networkx as nx
+from pyvis.network import Network
 import torch
 import wandb
 
@@ -147,33 +147,48 @@ class CallbackWandb:
             )
 
     def model_dbn(self, factors: List):
-        def draw_dbn_graph(factors):
-            outputs = range(len(factors))
-            inputs = range(max(map(max, factors)) + 1)
+        def dbn_graph_pyvis(factors):
+            n_outputs = len(factors)
+            n_inputs = max(map(max, factors)) + 1
+            size = 600
+            input_scale = size / n_inputs
+            output_scale = size / n_outputs
+            input_node_size = size / (4 * n_inputs)
+            output_node_size = size / (4 * n_outputs)
+            font_size = min(300 / n_inputs, 10)
+            net = Network(f"{size}px", select_menu=True)
+            net.toggle_physics(False)
 
-            G = nx.DiGraph()
-
-            for x in inputs:
-                G.add_node(f"in_{x}", pos=(0, x), color="blue")
-
-            for x in outputs:
-                G.add_node(f"out_{x}", pos=(2, x), color="red")
-
+            for x in range(n_inputs):
+                net.add_node(
+                    f"i{x}",
+                    x=-size / 2,
+                    y=x * input_scale,
+                    color="blue",
+                    size=input_node_size,
+                )
+            for x in range(n_outputs):
+                net.add_node(
+                    f"o{x}",
+                    x=size / 2,
+                    y=x * output_scale,
+                    color="red",
+                    size=output_node_size,
+                )
             for output, factor in enumerate(factors):
                 for input_ in factor:
-                    G.add_edge(f"in_{input_}", f"out_{output}")
+                    net.add_edge(f"i{input_}", f"o{output}", width=0.1)
+            return net
 
-            pos = nx.get_node_attributes(G, "pos")
-            color = nx.get_node_attributes(G, "color")
-            graph_fig = plt.figure()
-            nx.draw_networkx(G, with_labels=True, pos=pos, node_color=color.values())
-            return graph_fig
-
+        html_file = "dbn_graph.html"
         if not self.with_tracking:
             if self.plot_local:
-                graph_fig = draw_dbn_graph(factors)
-                plt.show()
+                net = dbn_graph_pyvis(factors)
+                net.show(html_file, notebook=False)
             return
-
-        graph_fig = draw_dbn_graph(factors)
-        wandb.log({f"Learned DBN graph": wandb.Image(graph_fig)})
+        net = dbn_graph_pyvis(factors)
+        if self.plot_local:
+            net.show(html_file, notebook=False)
+        else:
+            net.write_html(html_file, open_browser=False)
+        wandb.log({f"DBN graph": wandb.Html(open("dbn_graph.html"), inject=False)})

@@ -16,5 +16,6 @@ target_is_delta: true
 initial_exploration_steps: ${overrides.trial_length}
 freq_train_model: ${overrides.freq_train_model}
 learned_rewards: ${overrides.learned_rewards}
+dataset_size: ${overrides.dataset_size}
 
 num_particles: 20

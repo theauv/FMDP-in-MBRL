@@ -6,7 +6,8 @@ import torch
 from mbrl.models.gaussian_mlp import GaussianMLP
 
 
-# TODO: In a very general set-up, the "factored" sub-models should ne be the same
+# TODO: In a very general set-up, the "factored" sub-models should not be the same
+# -> see factored_simple
 
 
 class FactoredGaussianMLP(GaussianMLP):

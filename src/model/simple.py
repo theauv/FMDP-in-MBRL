@@ -64,7 +64,7 @@ class Simple(Model):
         return self.hidden_layers(x)
 
     def loss(self, model_in: torch.Tensor, target: torch.Tensor = None) -> torch.Tensor:
-        assert model_in.ndim == 2 and target.ndim == 2  # Not sure
+        assert model_in.ndim == 2 and target.ndim == 2
         pred_out = self.forward(model_in)
         return F.mse_loss(pred_out, target, reduction="none").sum(-1).sum(), {}
 
@@ -192,7 +192,7 @@ class FactoredSimple(Simple):
         self.factors = factors
         self.reward_factors = reward_factors
 
-        # In case we are also learning the reward
+        # In case we are learning the reward too
         self.learn_reward = True if self.out_size == len(self.factors) + 1 else False
         if self.learn_reward:
             if self.reward_factors is None:
@@ -252,7 +252,7 @@ class FactoredSimple(Simple):
             out_size = len(model_factor[1])
             total_out_size += out_size
 
-            # TODO: Check this operation
+            # TODO: Check this operation makes sense
             if hid_size > in_size + out_size:
                 reduction = max(in_size / self.in_size, out_size / self.out_size)
                 new_hid_size = ceil(hid_size * reduction)
@@ -283,7 +283,7 @@ class FactoredSimple(Simple):
             for j, k in enumerate(output_idx):
                 preds[:, k] = pred[:, j]
 
-        # In case we are learning the factors but the factors are not the same
+        # In case we are learning the factors too
         if self.learn_reward and self.reward_factors is not None:
             for i, model_i in enumerate(self.reward_models):
                 input_idx, output_idx = self.reward_model_factors[i]
