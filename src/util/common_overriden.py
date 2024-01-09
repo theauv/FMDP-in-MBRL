@@ -13,7 +13,7 @@ from mbrl.planning import Agent
 
 from src.model.lasso_net import LassoModelTrainer
 from src.env.dict_spaces_env import DictSpacesEnv
-from src.util.util import get_base_dir_path
+from src.util.util import get_env_factors
 
 
 def train_model_and_save_model_and_data_overriden(
@@ -94,55 +94,6 @@ def step_env_and_add_to_buffer_overriden(
     return next_obs, reward, terminated, truncated, info
 
 
-def get_env_factors(cfg: omegaconf.DictConfig,):
-    """Utilitary function to initiliaze the correct factors in case
-    you use a general factored model
-    :return: correct factors
-    """
-    model_cfg = cfg.dynamics_model.model
-    if cfg.overrides.env == "maze":
-        factors = [[0, 2], [1, 3]]
-    if cfg.overrides.env == "hypergrid":
-        grid_dim = cfg.overrides.env_config.grid_dim
-        factors = [[output, output + grid_dim] for output in range(grid_dim)]
-    elif cfg.overrides.env == "dbn_hypergrid":
-        state_factors = cfg.overrides.env_config.state_dbn
-        action_factors = cfg.overrides.env_config.action_dbn
-        state_dim = len(state_factors)
-        factors = state_factors
-        action_factors = [
-            [factor + state_dim for factor in out_factors]
-            for out_factors in action_factors
-        ]
-        for output, factor in enumerate(factors):
-            for action_factor in action_factors[output]:
-                factor.append(action_factor)
-    elif cfg.overrides.env == "bikes":
-        station_dependencies = cfg.overrides.env_config.get(
-            "station_dependencies", None
-        )
-        if station_dependencies is None:
-            raise ValueError(
-                "You are using a factored model without specifying any factors in the environment"
-            )
-
-        base_dir = get_base_dir_path()
-        adjacency = np.load(base_dir + station_dependencies)
-        factors = [
-            [i for i, e in enumerate(station) if e != 0] for station in adjacency
-        ]
-        additional_scopes = [
-            i + adjacency.shape[0] for i in range(model_cfg.in_size - len(factors))
-        ]
-        factors = [factor + additional_scopes for factor in factors]
-    else:
-        raise ValueError(
-            "No factors implementation for this env, either use a non-factored model \
-                         either implement a way to get the factor of this env in this function"
-        )
-    return factors
-
-
 def create_one_dim_tr_model_overriden(
     cfg: omegaconf.DictConfig,
     env: gym.Env,
@@ -215,7 +166,7 @@ def create_one_dim_tr_model_overriden(
         else:
             model_cfg.out_size = obs_shape[0] + int(cfg.algorithm.learned_rewards)
     if "factors" in model_cfg.keys() and model_cfg.get("factors", None) is None:
-        model_cfg.factors = get_env_factors(cfg)
+        model_cfg.factors = get_env_factors(cfg, env=env)
 
     # Now instantiate the model
     model = hydra.utils.instantiate(model_cfg)

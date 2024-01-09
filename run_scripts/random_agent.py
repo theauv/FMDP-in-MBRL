@@ -88,11 +88,13 @@ if __name__ == "__main__":
             "action_per_day": 8,
             "next_day_method": "sequential",
             "initial_distribution": "zeros",
-            "bikes_per_truck": 15,
+            "bikes_per_truck": 1,
             "walk_distance_max": 1.0,
             "past_trip_data": "src/env/bikes_data/all_trips_LouVelo_merged.csv",
             "weather_data": "src/env/bikes_data/weather_data.csv",
             "centroids_coord": "src/env/bikes_data/LouVelo_centroids_coords.npy",
+            #centroids_idx: 10
+            #station_dependencies: src/env/bikes_data/random_factors.npy
         }
         env_config = DictConfig(env_config)
 

@@ -5,7 +5,7 @@ env_config:
   action_per_day: 8
   next_day_method: sequential #sequential
   initial_distribution: uniform
-  bikes_per_truck: 5
+  bikes_per_truck: 2
   walk_distance_max: 1.
   past_trip_data: src/env/bikes_data/all_trips_LouVelo_merged.csv
   weather_data: src/env/bikes_data/weather_data.csv
@@ -13,7 +13,7 @@ env_config:
   #centroids_idx: #[93,83,80,98,6,84,87,99,56,97] #Number of centroids or list of indices
   station_dependencies: src/env/bikes_data/random_factors.npy
 model_wrapper:
-  _target_: src.model.bikes_model_wrapper.OneDTransitionRewardModelDictSpace
+  _target_: src.model.dict_model_wrapper.OneDTransitionRewardModelDictSpace
   model_input_obs_key: ["bikes_dist_before_shift", "day", "month", "time_counter"]
   model_input_act_key: []
   model_output_key: ["bikes_dist_after_shift"]
@@ -22,7 +22,7 @@ trial_length: ${overrides.env_config.action_per_day} #Max length episode
 initial_exploration_steps: 1 #500
 num_steps: 100000000 #Number of env steps before end of training
 num_episodes: 10000 #Number of env episodes before end of training
-render_mode: human #null|rgb_array|human
+render_mode: null #null|rgb_array|human
 model_path: null #/mnt/c/Users/theau/OneDrive/Documents/theau_epfl/12.PDM/code/HUCRL_for_FMDP/exp/pets_adapted/wandb/hypergrid/2023.10.06/154944
 
 num_elites: 3 #5

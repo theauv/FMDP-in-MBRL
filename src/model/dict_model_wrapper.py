@@ -12,10 +12,13 @@ from mbrl.models import Model, OneDTransitionRewardModel
 
 
 class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
-    """Wrapper class for 1-D dynamics models specific for the environments with
-        dictionaries for observation and action spaces.
-        TODO: Have this wrapper as a wrapper between the model and OneDTransitionRewardModel 
-        instead of an override of the class
+    """
+    Wrapper class for 1-D dynamics models when dealing with a DictSpacesEnv.
+    In this case part of the whole dynamics are known and thus only part of the 
+    observation and action are required to learn the unknown dynamics.
+    e.g. In the Bikes environment, we know the dynamics of adding bikes at different locations
+    but we want to learn how the trips will occur during a given period after adding the bikes. 
+    Then the dynamics of stepping day, month and timeshift is also known.
     """
 
     def __init__(
@@ -167,9 +170,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         sub_output = self.model.forward(model_input, *args, **kwargs).numpy()
         output[self.model_output_mask] = sub_output
         output = self.obs_postprocess_fn(output)
-
         # TODO: Denormalize output ???
-
         return output
 
     def update_normalizer(self, batch: mbrl.types.TransitionBatch):
@@ -221,6 +222,8 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         with torch.no_grad():
             model_in, target = self._process_batch(batch)
             sub_output = self.model.forward(model_in)
+            if self.output_normalizer:
+                sub_output = self.output_normalizer.denormalize(sub_output)
 
             out = model_in
             out[:, self.model_output_mask] = sub_output

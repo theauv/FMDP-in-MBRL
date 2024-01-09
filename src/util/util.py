@@ -1,9 +1,10 @@
 import git
 import logging
-from typing import Dict, Union, Tuple, List
+from typing import Dict, Union, Tuple, List, Optional
 import yaml
 import warnings
 
+import gymnasium as gym
 import omegaconf
 import os
 import numpy as np
@@ -13,6 +14,85 @@ import mbrl
 from mbrl.models.model import Model
 from mbrl.models.gaussian_mlp import GaussianMLP
 from lassonet.model import LassoNet
+
+
+
+def get_env_factors(cfg: omegaconf.DictConfig, env: Optional[gym.Env]):
+    """Utilitary function to initiliaze the correct factors in case
+    you use a general factored model
+    :return: correct factors
+    """
+    if cfg.overrides.env == "maze":
+        factors = [[0, 2], [1, 3]]
+    if cfg.overrides.env == "hypergrid":
+        grid_dim = cfg.overrides.env_config.grid_dim
+        factors = [[output, output + grid_dim] for output in range(grid_dim)]
+    elif cfg.overrides.env == "dbn_hypergrid":
+        state_factors = cfg.overrides.env_config.state_dbn
+        action_factors = cfg.overrides.env_config.action_dbn
+        state_dim = len(state_factors)
+        factors = state_factors
+        action_factors = [
+            [factor + state_dim for factor in out_factors]
+            for out_factors in action_factors
+        ]
+        for output, factor in enumerate(factors):
+            for action_factor in action_factors[output]:
+                factor.append(action_factor)
+    elif cfg.overrides.env == "bikes":
+        station_dependencies = cfg.overrides.env_config.get(
+            "station_dependencies", None
+        )
+        if station_dependencies is None:
+            raise ValueError(
+                "You are using a factored model without specifying any factors in the environment"
+            )
+
+        base_dir = get_base_dir_path()
+        adjacency = np.load(base_dir + station_dependencies)
+        factors = [
+            [i for i, e in enumerate(station) if e != 0] for station in adjacency
+        ]
+        #Compute the additional scopes
+        input_obs_keys = cfg.overrides.model_wrapper.model_input_obs_key
+        input_act_keys = cfg.overrides.model_wrapper.model_input_act_key
+        n_scopes_before = 0
+        n_scopes_after = 0
+        before = True
+        for key in env.dict_observation_space.keys():
+            if key in input_obs_keys:
+                if key != "bikes_dist_before_shift":
+                    scope_length = env.dict_observation_space[key].shape[0]
+                    if before:
+                        n_scopes_before += scope_length
+                    else:
+                        n_scopes_after += scope_length
+                else:
+                    before=False
+            elif key == "bikes_dist_before_shift":
+                raise ValueError(
+                    "Key 'bikes_dist_before_shift' must be in the input keys"
+                    "when using a factored model (useless otherwise)"
+                )
+        for key in input_act_keys:
+            n_scopes_after +=  env.dict_action_space[key].shape[0]
+
+        scopes_after = [
+            i + adjacency.
+            shape[0] for i in range(n_scopes_after)
+        ]
+        factors = [factor + scopes_after for factor in factors]
+        factors = [[scope+n_scopes_before for scope in factor] for factor in factors]
+        scopes_before = [i for i in range(n_scopes_before)]
+        factors = [scopes_before+factor for factor in factors]
+        #TODO: works for now because day, month and timeshift comes after bikes_distribution
+        #in the alphabetic order but make sure the factors do correspond well if any changes are made!!!
+    else:
+        raise ValueError(
+            "No factors implementation for this env, either use a non-factored model \
+                         either implement a way to get the factor of this env in this function"
+        )
+    return factors
 
 
 def get_base_dir_path():
