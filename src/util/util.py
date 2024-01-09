@@ -151,17 +151,13 @@ def convert_yaml_config(
     Convert a yaml file to a Dict or a DictConfig
     :param dictconfig: whether to return a Dict or a DictConfig, defaults to True
     """
-
     with open(config_path, "r") as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
-
     # Update with overrides
     config.update(overrides)
-
     # Create a DictConfig with omegaconf
     if dictconfig:
         return omegaconf.OmegaConf.create(config)
-
     return config
 
 

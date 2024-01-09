@@ -1,0 +1,16 @@
+defaults:
+  - overrides: pets_bikes 
+
+env_name: ${overrides.env}
+agent: random
+num_steps: 200
+with_tracking: false
+env_config: ${overrides.env_config}
+render_mode: human
+additional_run_name: test
+  
+hydra:  
+  output_subdir: null
+  job_logging: null  
+  run:  
+    dir: .

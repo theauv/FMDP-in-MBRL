@@ -1,0 +1,118 @@
+import argparse
+import git
+import gymnasium as gym
+import hydra
+import logging
+import matplotlib
+from matplotlib import pyplot as plt
+import numpy as np
+import omegaconf
+from omegaconf import DictConfig
+import os
+from time import sleep
+import wandb
+
+from mbrl.planning.core import RandomAgent
+
+from src.env.bikes import Bikes
+from src.env.hypergrid import ContinuousHyperGrid
+from src.callbacks.wandb_callbacks import CallbackWandb
+from src.util.util import convert_yaml_config
+
+
+def benchmark_agent(env: gym.Env, agent, num_steps: int, callbacks: CallbackWandb):
+    # create env and random seed
+    observation, info = env.reset(seed=42)
+
+    if callbacks is not None:
+        action = env.action_space.sample()
+        observation, reward, terminated, truncated, info = env.step(action)
+        callbacks.env_callback(env)
+
+    all_n_steps = []
+    all_rewards = []
+
+    n_steps = 0
+    rewards = 0
+    for env_step in range(num_steps):
+        print(
+            f"Total env step: {env_step} Episode: {len(all_n_steps)} Current episode step: {n_steps}"
+        )
+        action = env.action_space.sample()
+        observation, reward, terminated, truncated, info = env.step(action)
+
+        n_steps += 1
+        rewards += reward
+        sleep(1)
+
+        if terminated or truncated:
+            all_n_steps.append(n_steps)
+            all_rewards.append(rewards)
+            if callbacks is not None:
+                callbacks.agent_callback(len(all_n_steps), n_steps, rewards)
+            observation, info = env.reset()
+            n_steps = 0
+            rewards = 0
+    env.close()
+
+    print(f"Mean reward: {np.mean(all_rewards)}")
+
+    matplotlib.use("TkAgg")
+    fig, axs = plt.subplots(1, 2)
+    axs[0].plot(all_n_steps)
+    axs[1].plot(all_rewards)
+    axs[0].set_xlabel("Episode")
+    axs[1].set_xlabel("Episode")
+    axs[0].set_ylabel("Number of steps")
+    axs[1].set_ylabel("Total reward")
+    plt.show()
+
+
+@hydra.main(config_path="../configs", config_name="benchmarking")
+def run(cfg: omegaconf.DictConfig):
+    #Choose the environment
+    if cfg.env_name == "hypergrid":
+        env = ContinuousHyperGrid(env_config=cfg.env_config, render_mode=cfg.render_mode)
+    elif cfg.env_name == "bikes":
+        env = Bikes(env_config=cfg.env_config, render_mode=cfg.render_mode)
+    else:
+        raise ValueError(f"No environment called {cfg.env_name} implemented")
+
+    #Choose the benchmark agent
+    if cfg.agent == "random":
+        agent = RandomAgent(env)
+    else:
+        raise ValueError(f"No benchmark agent called {cfg.agent} implemented (yet)")
+
+    callbacks = None
+    if cfg.with_tracking:
+        repo = git.Repo(search_parent_directories=True)
+        sha = repo.head.object.hexsha
+        group_name = f"Benchmarking_{cfg.env_name}"
+        run_name = f"{cfg.agent}"
+        if cfg.additional_run_name:
+            run_name += f"_{cfg.additional_run_name}"
+            logging.basicConfig(
+                format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+                datefmt="%m/%d/%Y %H:%M:%S",
+                level=logging.INFO,
+            )
+        wandb_config = {
+            "project": "hucrl_fmdp",
+            "group": group_name,
+            "name": run_name,
+            "settings": None,
+            "tags": None,
+        }
+
+        init_run_kwargs = wandb_config
+        init_run_kwargs["config"] = omegaconf.OmegaConf.to_container(cfg, resolve=True)
+        wandb.init(**init_run_kwargs)
+        callbacks = CallbackWandb(
+            cfg.with_tracking,
+        )   
+    benchmark_agent(env, agent, cfg.num_steps, callbacks)
+
+
+if __name__ == "__main__":
+    run()
