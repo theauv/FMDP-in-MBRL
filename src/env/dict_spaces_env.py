@@ -11,7 +11,8 @@ from gymnasium import spaces
 import numpy as np
 import torch
 
-#TODO: Have a look at structured np.array might simplify the mapping part
+# TODO: Have a look at structured np.array might simplify the mapping part
+
 
 class DictSpacesEnv(ABC, gym.Env):
     def __init__(self,):
@@ -94,7 +95,7 @@ class DictSpacesEnv(ABC, gym.Env):
                     low = torch.tensor(low)
                     high = torch.tensor(high)
                 if scale:
-                    flat_obs[:, value] = (high - low)*flat_obs[:, value] + low
+                    flat_obs[:, value] = (high - low) * flat_obs[:, value] + low
                 else:
                     flat_obs[:, value] = (flat_obs[:, value] - low) / (high - low)
         return flat_obs
@@ -111,7 +112,7 @@ class DictSpacesEnv(ABC, gym.Env):
                     low = torch.tensor(low)
                     high = torch.tensor(high)
                 if scale:
-                    flat_act[:, value] = (high - low)*flat_act[:, value] + low
+                    flat_act[:, value] = (high - low) * flat_act[:, value] + low
                 else:
                     flat_act[:, value] = (flat_act[:, value] - low) / (high - low)
         return flat_act

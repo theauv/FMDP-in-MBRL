@@ -29,18 +29,20 @@ class Rentals_Simulator:
         self,
         trips_data,
         centroids,
-        walk_dist_max=1,
+        start_walk_dist_max=1,
+        end_walk_dist_max=1,
         station_dependencies: Optional[np.array] = None,
-        shift_duration: Optional[float] = None,
+        trip_duration: Optional[float] = None,
     ):
         self.trips_data = trips_data
         self.centroids = centroids
         self.R = len(centroids)
-        self.walk_dist_max = walk_dist_max
+        self.start_walk_dist_max = start_walk_dist_max
+        self.end_walk_dist_max = end_walk_dist_max
         self.taken_bikes = []
         self.station_dependencies = station_dependencies
         self.station_dependencies_ll = self.station_dependencies_linked_list()
-        self.shift_duration = shift_duration if shift_duration else None
+        self.trip_duration = trip_duration if trip_duration else 0.5
 
     def reset(self):
         self.taken_bikes = []
@@ -76,10 +78,7 @@ class Rentals_Simulator:
         # TODO: maybe not a fixed time for every trip ?
         # TODO: Penser à si dans un meme timeshift velos finissent leur trip
         # Does it make sense for the current reward ? Does it make sense for what we are doing ?
-        TRIP_DURATION = (
-            self.shift_duration if self.shift_duration is not None else 1
-        )  # in hours: the time a bike is removed from the system for while a trip is happening
-        #BIKE_SPEED = 20  # km/h
+        # BIKE_SPEED = 20  # km/h
 
         total_walking_distance = 0
 
@@ -110,7 +109,7 @@ class Rentals_Simulator:
                 total_walking_distance = geopy.distance.distance(
                     start_loc, self.centroids[idx_start_centroid, :]
                 ).km
-                if total_walking_distance > self.walk_dist_max:
+                if total_walking_distance > self.start_walk_dist_max:
                     break
                 # Find the potential ending
                 if self.station_dependencies_ll is not None:
@@ -130,7 +129,7 @@ class Rentals_Simulator:
                 geo_ending_dist = geopy.distance.distance(
                     end_loc, self.centroids[idx_end_centroid, :]
                 ).km
-                if geo_ending_dist <= self.walk_dist_max:
+                if geo_ending_dist <= self.end_walk_dist_max:
                     feasible_trips[i] = 1
                     tot_demand_per_centroid[idx_start_centroid] += 1
                     if new_x[idx_start_centroid] > 0:
@@ -149,7 +148,7 @@ class Rentals_Simulator:
                         #     delta_t = distance_trip / BIKE_SPEED + uniform(0.1, 0.2)
 
                         self.taken_bikes.append(
-                            (start_time + TRIP_DURATION, idx_end_centroid)
+                            (start_time + self.trip_duration, idx_end_centroid)
                         )
                         adjacency_matrix[idx_start_centroid, idx_end_centroid] += 1
 
@@ -331,10 +330,11 @@ class Bikes(DictSpacesEnv):
         self.sim = Rentals_Simulator(
             self.all_trips_data,
             self.centroid_coords,
-            walk_dist_max=env_config.walk_distance_max,
+            start_walk_dist_max=env_config.start_walk_dist_max,
+            end_walk_dist_max=env_config.end_walk_dist_max,
             station_dependencies=station_dependencies,
-            shift_duration=(self.day_end-self.day_start)/self.action_per_day 
-            #TODO: Not sure if good idea to give shift_duration but induce more sparsity
+            trip_duration=env_config.trip_duration,
+            # TODO: Not sure if good idea to give shift_duration but induce more sparsity
         )
 
         self.state = None
@@ -414,7 +414,7 @@ class Bikes(DictSpacesEnv):
             self.adjacency,
         ) = self.sim.simulate_rentals(current_trips, x["bikes_dist_before_shift"])
 
-        #TODO: Here we have an incremental reward computed at each time-step, but might make sense
+        # TODO: Here we have an incremental reward computed at each time-step, but might make sense
         # to have just a final one (more accurate by harder for the RL agent to interpret)
         reward = self.compute_reward()
 
@@ -491,7 +491,7 @@ class Bikes(DictSpacesEnv):
             act = spaces.unflatten(self.dict_action_space, act)
 
         # Add the new bikes to the centroids
-        old_state = self.state
+        old_state = self.state.copy()
         self.delta_bikes = np.zeros(self.num_centroids, dtype=int)
         truck_centroid = act["truck_centroid"]
         truck_num_bikes = act["truck_num_bikes"]

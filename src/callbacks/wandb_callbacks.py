@@ -41,6 +41,18 @@ class CallbackWandb:
             wandb.define_metric("episode_steps", step_metric="env_episode")
             wandb.define_metric("episode_reward", step_metric="env_episode")
 
+            # DEBUG Bikes Benchmark only
+            wandb.define_metric("env_step", hidden=True)
+            wandb.define_metric("step_reward", step_metric="env_step")
+            wandb.define_metric("step_time_0_6", hidden=True)
+            wandb.define_metric("step_reward_0_6", step_metric="step_time_0_6")
+            wandb.define_metric("step_time_6_12", hidden=True)
+            wandb.define_metric("step_reward_6_12", step_metric="step_time_6_12")
+            wandb.define_metric("step_time_12_18", hidden=True)
+            wandb.define_metric("step_reward_12_18", step_metric="step_time_12_18")
+            wandb.define_metric("step_time_18_24", hidden=True)
+            wandb.define_metric("step_reward_18_24", step_metric="step_time_18_24")
+
             wandb.define_metric("train_iteration", hidden=True)
             wandb.define_metric("total_avg_loss", step_metric="train_iteration")
             wandb.define_metric("eval_score", step_metric="train_iteration")
@@ -108,6 +120,32 @@ class CallbackWandb:
         self.episodes_steps = episode_steps
 
         wandb.log(tracked_values)
+
+    def track_each_step(self, step: int, step_reward: float):
+        """
+        DEBUGGING PURPOSE
+        Plot the performance of the agent in the real environment
+        update associated tables and add them to the plots in wandb
+        """
+
+        if not self.with_tracking:
+            return
+
+        tracked_values = {"env_step": step, "step_reward": step_reward}
+        wandb.log(tracked_values)
+
+        if step % 8 < 2:
+            tracked_values = {"step_time_0_6": step, "step_reward_0_6": step_reward}
+            wandb.log(tracked_values)
+        elif step % 8 < 4:
+            tracked_values = {"step_time_6_12": step, "step_reward_6_12": step_reward}
+            wandb.log(tracked_values)
+        elif step % 8 < 6:
+            tracked_values = {"step_time_12_18": step, "step_reward_12_18": step_reward}
+            wandb.log(tracked_values)
+        else:
+            tracked_values = {"step_time_18_24": step, "step_reward_18_24": step_reward}
+            wandb.log(tracked_values)
 
     def trajectory_optimizer_callback(self, population, values, iterations):
 

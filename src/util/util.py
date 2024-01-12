@@ -16,7 +16,6 @@ from mbrl.models.gaussian_mlp import GaussianMLP
 from lassonet.model import LassoNet
 
 
-
 def get_env_factors(cfg: omegaconf.DictConfig, env: Optional[gym.Env]):
     """Utilitary function to initiliaze the correct factors in case
     you use a general factored model
@@ -53,7 +52,7 @@ def get_env_factors(cfg: omegaconf.DictConfig, env: Optional[gym.Env]):
         factors = [
             [i for i, e in enumerate(station) if e != 0] for station in adjacency
         ]
-        #Compute the additional scopes
+        # Compute the additional scopes
         input_obs_keys = cfg.overrides.model_wrapper.model_input_obs_key
         input_act_keys = cfg.overrides.model_wrapper.model_input_act_key
         n_scopes_before = 0
@@ -68,25 +67,22 @@ def get_env_factors(cfg: omegaconf.DictConfig, env: Optional[gym.Env]):
                     else:
                         n_scopes_after += scope_length
                 else:
-                    before=False
+                    before = False
             elif key == "bikes_dist_before_shift":
                 raise ValueError(
                     "Key 'bikes_dist_before_shift' must be in the input keys"
                     "when using a factored model (useless otherwise)"
                 )
         for key in input_act_keys:
-            n_scopes_after +=  env.dict_action_space[key].shape[0]
+            n_scopes_after += env.dict_action_space[key].shape[0]
 
-        scopes_after = [
-            i + adjacency.
-            shape[0] for i in range(n_scopes_after)
-        ]
+        scopes_after = [i + adjacency.shape[0] for i in range(n_scopes_after)]
         factors = [factor + scopes_after for factor in factors]
-        factors = [[scope+n_scopes_before for scope in factor] for factor in factors]
+        factors = [[scope + n_scopes_before for scope in factor] for factor in factors]
         scopes_before = [i for i in range(n_scopes_before)]
-        factors = [scopes_before+factor for factor in factors]
-        #TODO: works for now because day, month and timeshift comes after bikes_distribution
-        #in the alphabetic order but make sure the factors do correspond well if any changes are made!!!
+        factors = [scopes_before + factor for factor in factors]
+        # TODO: works for now because day, month and timeshift comes after bikes_distribution
+        # in the alphabetic order but make sure the factors do correspond well if any changes are made!!!
     else:
         raise ValueError(
             "No factors implementation for this env, either use a non-factored model \

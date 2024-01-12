@@ -1,10 +1,10 @@
 # @package _group_
-with_tracking: false #true
+with_tracking: true #true
 plot_local: false
 api_name: wandb
 run_configs:             
   project: hucrl_fmdp
   group:  null #correct_bikes_test #null
-  name: test_factors #n_bikes_2_large
+  name: test_model_benchmark #n_bikes_2_large
   settings: null
   tags: null

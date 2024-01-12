@@ -19,7 +19,7 @@ def run(cfg: omegaconf.DictConfig):
 
     # set-up run and api
     if cfg.experiment.with_tracking:
-        cfg.overrides.render_mode = "rgb_array"
+        cfg.overrides.render_mode = None
         if cfg.experiment.api_name == "wandb":
             # start a new wandb run to track this script
             wandb.init(**get_run_kwargs(cfg))
