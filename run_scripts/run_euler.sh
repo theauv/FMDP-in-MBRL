@@ -1,5 +1,5 @@
 git pull
-git config --global https.proxy http://proxy.ethz.ch:3128
+module load eth_proxy
 module load gcc/8.2.0 python/3.9.9
 source euler-pdm-env/bin/activate
 
