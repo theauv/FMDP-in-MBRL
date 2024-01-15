@@ -184,7 +184,11 @@ class CallbackWandb:
                 }
             )
 
-    def model_dbn(self, factors: List):
+    def model_dbn(self, factors: List, positions = None):
+        """
+        Warning: positions parameter is more of a debugging parameters for the 
+        Bikes environment
+        """
         def dbn_graph_pyvis(factors):
             n_outputs = len(factors)
             n_inputs = max(map(max, factors)) + 1
@@ -197,19 +201,37 @@ class CallbackWandb:
             net = Network(f"{size}px", select_menu=True)
             net.toggle_physics(False)
 
-            for x in range(n_inputs):
+            for i in range(n_inputs):
+                if positions is not None and i<len(positions):
+                    net.add_node(
+                        f"i{i}",
+                        x=positions[i][0],
+                        y=positions[i][1],
+                        color="blue",
+                        size=input_node_size,
+                    )
+                else:
+                    net.add_node(
+                        f"i{i}",
+                        x=-size / 2,
+                        y=i * input_scale,
+                        color="blue",
+                        size=input_node_size,
+                    )
+                    
+                    
+
+            for i in range(n_outputs):
+                if positions is not None:
+                    x = positions[i][0]
+                    y = positions[i][1]
+                else:
+                    x = size/2
+                    y = i*output_scale
                 net.add_node(
-                    f"i{x}",
-                    x=-size / 2,
-                    y=x * input_scale,
-                    color="blue",
-                    size=input_node_size,
-                )
-            for x in range(n_outputs):
-                net.add_node(
-                    f"o{x}",
-                    x=size / 2,
-                    y=x * output_scale,
+                    f"o{i}",
+                    x=x,
+                    y=y,
                     color="red",
                     size=output_node_size,
                 )

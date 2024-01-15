@@ -52,7 +52,7 @@ class Rentals_Simulator:
             return None
         else:
             return [
-                [i for i, e in enumerate(station) if e != 0]
+                [i for i, e in enumerate(station) if e > 0]
                 for station in self.station_dependencies
             ]
 
@@ -126,6 +126,8 @@ class Rentals_Simulator:
                     metric="euclidean",
                 )
                 idx_end_centroid = np.argmin(ending_distances)
+                if self.station_dependencies_ll:
+                    idx_end_centroid = self.station_dependencies_ll[idx_start_centroid][idx_end_centroid]
                 geo_ending_dist = geopy.distance.distance(
                     end_loc, self.centroids[idx_end_centroid, :]
                 ).km

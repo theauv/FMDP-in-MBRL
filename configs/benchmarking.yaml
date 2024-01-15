@@ -4,7 +4,7 @@ defaults:
 env_name: ${overrides.env}
 agent: good_heuristic #random
 num_steps: 2800 #(~2months with 8 action_per_day)
-with_tracking: true
+with_tracking: false
 env_config: ${overrides.env_config}
 render_mode: human
 additional_run_name: null
