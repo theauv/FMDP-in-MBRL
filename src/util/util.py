@@ -60,7 +60,7 @@ def get_env_factors(cfg: omegaconf.DictConfig, env: Optional[gym.Env]):
         before = True
         for key in env.dict_observation_space.keys():
             if key in input_obs_keys:
-                if key != "bikes_dist_before_shift":
+                if key != "bikes_distr":
                     scope_length = env.dict_observation_space[key].shape[0]
                     if before:
                         n_scopes_before += scope_length
@@ -68,9 +68,9 @@ def get_env_factors(cfg: omegaconf.DictConfig, env: Optional[gym.Env]):
                         n_scopes_after += scope_length
                 else:
                     before = False
-            elif key == "bikes_dist_before_shift":
+            elif key == "bikes_distr":
                 raise ValueError(
-                    "Key 'bikes_dist_before_shift' must be in the input keys"
+                    "Key 'bikes_distr' must be in the input keys"
                     "when using a factored model (useless otherwise)"
                 )
         for key in input_act_keys:

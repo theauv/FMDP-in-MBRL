@@ -49,7 +49,7 @@ def run_agent_in_env(
         if callbacks is not None:
             callbacks.track_each_step(env_step, reward)
         elif env.render_mode == "human":
-            #input()
+            # input()
             sleep(1)
 
         if terminated or truncated:

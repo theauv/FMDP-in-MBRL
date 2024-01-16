@@ -127,7 +127,9 @@ class Rentals_Simulator:
                 )
                 idx_end_centroid = np.argmin(ending_distances)
                 if self.station_dependencies_ll:
-                    idx_end_centroid = self.station_dependencies_ll[idx_start_centroid][idx_end_centroid]
+                    idx_end_centroid = self.station_dependencies_ll[idx_start_centroid][
+                        idx_end_centroid
+                    ]
                 geo_ending_dist = geopy.distance.distance(
                     end_loc, self.centroids[idx_end_centroid, :]
                 ).km
@@ -236,13 +238,7 @@ class Bikes(DictSpacesEnv):
 
         self.dict_observation_space = spaces.Dict(
             {
-                "bikes_dist_before_shift": spaces.Box(
-                    low=0,
-                    high=self.n_bikes,
-                    shape=(self.num_centroids,),
-                    dtype=np.float32,
-                ),
-                "bikes_dist_after_shift": spaces.Box(
+                "bikes_distr": spaces.Box(
                     low=0,
                     high=self.n_bikes,
                     shape=(self.num_centroids,),
@@ -414,7 +410,7 @@ class Bikes(DictSpacesEnv):
             self.tot_demand_per_centroid,
             self.met_trips_per_centroid,
             self.adjacency,
-        ) = self.sim.simulate_rentals(current_trips, x["bikes_dist_before_shift"])
+        ) = self.sim.simulate_rentals(current_trips, x["bikes_distr"])
 
         # TODO: Here we have an incremental reward computed at each time-step, but might make sense
         # to have just a final one (more accurate by harder for the RL agent to interpret)
@@ -486,13 +482,11 @@ class Bikes(DictSpacesEnv):
         # Indeed, we should also check if the receiving centroid is able to store one more bike
         # But this is complicated if we care about the time duration ???
 
-        self.state["bikes_dist_before_shift"] = self.state["bikes_dist_after_shift"]
-
         if type(action) == np.ndarray:
             act = np.round(action)
             act = spaces.unflatten(self.dict_action_space, act)
 
-        # Add the new bikes to the centroids
+        # Compute the number of new bikes added to each centroid
         old_state = self.state.copy()
         self.delta_bikes = np.zeros(self.num_centroids, dtype=int)
         truck_centroid = act["truck_centroid"]
@@ -503,14 +497,12 @@ class Bikes(DictSpacesEnv):
             ]
 
         # Update obs
-        self.state["bikes_dist_before_shift"] = (
-            self.state["bikes_dist_after_shift"] + self.delta_bikes
-        )
-        self.state["bikes_dist_after_shift"] = self.state["bikes_dist_before_shift"]
+        self.state["bikes_distr"] += self.delta_bikes
+        self.previous_bikes_distr = self.state["bikes_distr"]
 
         # Let all the vehicules being used during the day
         new_bikes_dist_after_shift, reward = self.trips_steps()
-        self.state["bikes_dist_after_shift"] = new_bikes_dist_after_shift
+        self.state["bikes_distr"] = new_bikes_dist_after_shift
 
         # Render the environment
         if self.render_mode == "human":
@@ -599,8 +591,7 @@ class Bikes(DictSpacesEnv):
         else:
             day, month = self.new_day()
         self.state = {
-            "bikes_dist_before_shift": self.get_initial_bikes_distribution(),
-            "bikes_dist_after_shift": self.get_initial_bikes_distribution(),
+            "bikes_distr": self.get_initial_bikes_distribution(),
             "day": day,
             "month": month,
             "time_counter": 0,
@@ -613,6 +604,7 @@ class Bikes(DictSpacesEnv):
         self.met_trips_per_centroid = None
         self.adjacency = None
         self.delta_bikes = None
+        self.previous_bikes_distr = None
         self.sim.reset()
 
         self.steps_beyond_terminated = None
@@ -712,9 +704,7 @@ class Bikes(DictSpacesEnv):
         scale_bikes_render = 1 * (self.num_centroids / self.n_bikes)
         offset_bikes_render = 5
         new_centroid_coords = []
-        for coord, bikes in zip(
-            self.centroid_coords, self.state["bikes_dist_after_shift"]
-        ):
+        for coord, bikes in zip(self.centroid_coords, self.state["bikes_distr"]):
             coord = (coord[1], coord[0])
             new_coord = (coord - self.offset) * self.scale
             new_coord[1] = self.screen_dim[1] - new_coord[1]
@@ -952,9 +942,9 @@ class Bikes(DictSpacesEnv):
             batch_obs = np.expand_dims(batch_obs, axis=0)
 
         batch_size = batch_obs.shape[0]
-        distr_size = len(batch_obs[0, self.map_obs["bikes_dist_after_shift"]])
+        distr_size = len(batch_obs[0, self.map_obs["bikes_distr"]])
 
-        # Compute delta_bikes
+        # Compute delta_bikes in a parallel way
         delta_bikes = np.zeros((batch_size, distr_size), dtype=int)
         truck_centroids = batch_action[:, self.map_act["truck_centroid"]]
         truck_bikes = batch_action[:, self.map_act["truck_num_bikes"]]
@@ -968,12 +958,7 @@ class Bikes(DictSpacesEnv):
         delta_bikes[unq // n, unq % n] = sol
 
         # Update obs
-        batch_obs[:, self.map_obs["bikes_dist_before_shift"]] = (
-            batch_obs[:, self.map_obs["bikes_dist_after_shift"]] + delta_bikes
-        )
-        batch_obs[:, self.map_obs["bikes_dist_after_shift"]] = batch_obs[
-            :, self.map_obs["bikes_dist_before_shift"]
-        ]
+        batch_obs[:, self.map_obs["bikes_distr"]] += delta_bikes
 
         return batch_obs
 

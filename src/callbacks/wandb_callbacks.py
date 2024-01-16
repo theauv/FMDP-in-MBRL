@@ -211,22 +211,15 @@ class CallbackWandb:
                 y=i * input_scale,
                 color="blue",
                 size=input_node_size,
-            )       
-        for i in range(n_outputs):
-            x = size/2
-            y = i*output_scale
-            net.add_node(
-                f"o{i}",
-                x=x,
-                y=y,
-                color="red",
-                size=output_node_size,
             )
+        for i in range(n_outputs):
+            x = size / 2
+            y = i * output_scale
+            net.add_node(f"o{i}", x=x, y=y, color="red", size=output_node_size)
         for output, factor in enumerate(factors):
             for input_ in factor:
                 net.add_edge(f"i{input_}", f"o{output}", width=0.1)
         return net
-    
 
     @staticmethod
     def dbn_graph_pyvis(factors, centroid_coords):
@@ -238,8 +231,8 @@ class CallbackWandb:
         net = Network(f"{graph_size}px", select_menu=True)
         net.toggle_physics(False)
 
-        #TODO: Write this in a modulable way
-        factors = factors[:len(centroid_coords)]
+        # TODO: Write this in a modulable way
+        factors = factors[: len(centroid_coords)]
 
         for i, centroid_coord in enumerate(centroid_coords):
             centroid_coord = np.flip(centroid_coord)
@@ -254,13 +247,12 @@ class CallbackWandb:
 
         for output, factor in enumerate(factors):
             for input_ in factor:
-                if input_ < len(centroid_coords) and output!=input_:
+                if input_ < len(centroid_coords) and output != input_:
                     net.add_edge(int(input_), output, width=0.1)
 
         return net
 
-
-    def model_dbn(self, factors: List, positions = None):
+    def model_dbn(self, factors: List, positions=None):
         """
         Warning: positions parameter is more of a debugging parameters for the 
         Bikes environment

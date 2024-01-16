@@ -139,7 +139,7 @@ class GoodBikesHeuristic(Agent):
         month = int(obs[self.map_obs["month"]][0])
         day = int(obs[self.map_obs["day"]][0])
         time_counter = int(obs[self.map_obs["time_counter"]][0])
-        bikes_distribution = obs[self.map_obs["bikes_dist_after_shift"]]
+        bikes_distribution = obs[self.map_obs["bikes_distr"]]
 
         current_trips = self.get_current_trips_data(
             month=month, day=day, time_counter=time_counter

@@ -189,7 +189,9 @@ def train(
                 {},
                 replay_buffer,
                 optimizer_callback=callbacks.trajectory_optimizer_callback,
-                agent_uses_low_dim_obs=cfg.overrides.get("agent_uses_low_dim_obs", False)
+                agent_uses_low_dim_obs=cfg.overrides.get(
+                    "agent_uses_low_dim_obs", False
+                ),
             )
 
             obs = next_obs
