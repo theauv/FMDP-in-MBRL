@@ -1,3 +1,4 @@
+from copy import deepcopy
 from math import ceil
 from typing import Union, Optional, Dict, Tuple, Any, List
 
@@ -207,7 +208,7 @@ class FactoredSimple(Simple):
                     model_factors=self.reward_model_factors,
                 )
 
-        self.model_factors = self.get_model_factors(factors)
+        self.model_factors = self.get_model_factors(self.factors)
         self.models = self.get_factored_models(
             hid_size=hid_size,
             num_layers=num_layers,
@@ -219,7 +220,7 @@ class FactoredSimple(Simple):
         self.to(self.device)
 
     @staticmethod
-    def get_model_factors(raw_factors):
+    def get_model_factors(raw_factors_):
         """_summary_
 
         :param raw_factors: List for which each entry i is a tuple or a List of the inputs the output i
@@ -227,6 +228,7 @@ class FactoredSimple(Simple):
         :return: The Linked list of the factored models: [(in_1, out_1), ..., (in_n, out_n)]. in_i is the inputs
         playing in a role in the model i, out_i the outputs of the model i.
         """
+        raw_factors = deepcopy(raw_factors_)
         factors = []
         for output, inputs in enumerate(raw_factors):
             inputs = list(inputs)
@@ -280,8 +282,7 @@ class FactoredSimple(Simple):
             input_idx, output_idx = self.model_factors[i]
             sub_x = x.index_select(-1, index=torch.tensor(input_idx))
             pred = model_i.forward(sub_x)
-            for j, k in enumerate(output_idx):
-                preds[:, k] = pred[:, j]
+            preds[:, output_idx] = pred
 
         # In case we are learning the factors too
         if self.learn_reward and self.reward_factors is not None:
@@ -309,7 +310,7 @@ class FactoredSimple(Simple):
             )
             sub_target = target.index_select(-1, torch.tensor(self.model_factors[i][1]))
             eval_score, meta = model.eval_score(sub_model_in, sub_target)
-            eval_scores[0, :, i] = eval_score
+            eval_scores[0, :, self.model_factors[i][1]] = eval_score
             metas.append(meta)
 
         if self.learn_reward and self.reward_factors is not None:

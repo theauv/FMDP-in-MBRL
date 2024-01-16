@@ -1,6 +1,6 @@
 # @package _group_
 with_tracking: false #true
-plot_local: true
+plot_local: false
 api_name: wandb
 run_configs:             
   project: hucrl_fmdp

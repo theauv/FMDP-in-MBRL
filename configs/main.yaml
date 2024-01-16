@@ -1,6 +1,6 @@
 defaults:
   - algorithm: pets_adapted
-  - dynamics_model: simple
+  - dynamics_model: factored_simple
   - overrides: pets_bikes
   - action_optimizer: cem
   - experiment: wandb

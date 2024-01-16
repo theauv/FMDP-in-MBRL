@@ -81,8 +81,6 @@ def get_env_factors(cfg: omegaconf.DictConfig, env: Optional[gym.Env]):
         factors = [[scope + n_scopes_before for scope in factor] for factor in factors]
         scopes_before = [i for i in range(n_scopes_before)]
         factors = [scopes_before + factor for factor in factors]
-        # TODO: works for now because day, month and timeshift comes after bikes_distribution
-        # in the alphabetic order but make sure the factors do correspond well if any changes are made!!!
     else:
         raise ValueError(
             "No factors implementation for this env, either use a non-factored model \

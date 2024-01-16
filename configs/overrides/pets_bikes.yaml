@@ -13,7 +13,7 @@ env_config:
   weather_data: src/env/bikes_data/weather_data.csv
   centroids_coord: src/env/bikes_data/LouVelo_centroids_coords.npy
   #centroids_idx: #[93,83,80,98,6,84,87,99,56,97] #Number of centroids or list of indices
-  #station_dependencies: src/env/bikes_data/factors_radius_3.npy
+  station_dependencies: src/env/bikes_data/factors_radius_1.npy
 model_wrapper:
   _target_: src.model.dict_model_wrapper.OneDTransitionRewardModelDictSpace
   model_input_obs_key: ["bikes_dist_before_shift", "day", "month", "time_counter"]

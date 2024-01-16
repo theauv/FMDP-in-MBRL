@@ -136,6 +136,7 @@ def train(
         max_traj_iterations=cfg.overrides.cem_num_iters,
         model_out_size=dynamics_model.model.out_size,
         plot_local=cfg.experiment.plot_local,
+        centroid_coords=env.centroid_coords,
     )
 
     callbacks.env_callback(env)
@@ -188,6 +189,7 @@ def train(
                 {},
                 replay_buffer,
                 optimizer_callback=callbacks.trajectory_optimizer_callback,
+                agent_uses_low_dim_obs=cfg.overrides.get("agent_uses_low_dim_obs", False)
             )
 
             obs = next_obs

@@ -1,4 +1,3 @@
-import argparse
 import git
 import gymnasium as gym
 import hydra
@@ -7,8 +6,6 @@ import matplotlib
 from matplotlib import pyplot as plt
 import numpy as np
 import omegaconf
-from omegaconf import DictConfig
-import os
 from time import sleep
 import wandb
 
@@ -40,22 +37,20 @@ def run_agent_in_env(
     n_steps = 0
     rewards = 0
     for env_step in range(num_steps):
-        print(
-            f"Total env step: {env_step} Episode: {len(all_n_steps)} Current episode step: {n_steps}"
-        )
         action = agent.act(observation)
         observation, reward, terminated, truncated, info = env.step(action)
+        print(
+            f"Total env step: {env_step} Episode: {len(all_n_steps)} Current episode step: {n_steps}"
+            f"Rward: {reward}"
+        )
         n_steps += 1
         rewards += reward
-        # Debug
-        all_n_feasible_trips.append(env.feasible_trips)
-        all_ratio_feasible_trips.append(env.feasible_trips / max(1, env.tot_num_trips))
 
         if callbacks is not None:
             callbacks.track_each_step(env_step, reward)
         elif env.render_mode == "human":
-            input()
-            # sleep(1)
+            #input()
+            sleep(1)
 
         if terminated or truncated:
             all_n_steps.append(n_steps)

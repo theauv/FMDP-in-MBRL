@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Optional
 
 import matplotlib
 from matplotlib import pyplot as plt
+import numpy as np
 from pyvis.network import Network
 import torch
 import wandb
@@ -22,6 +23,7 @@ class CallbackWandb:
         max_traj_iterations: int = 0,
         model_out_size: int = None,
         plot_local: bool = False,
+        centroid_coords: Optional[List] = None,
     ) -> None:
         """
         Define the different metrics usseful to track and plot
@@ -34,6 +36,7 @@ class CallbackWandb:
         self.env_step = 0
         self.model_out_size = model_out_size
         self.plot_local = plot_local
+        self.centroid_coords = centroid_coords
 
         # Define new metrics for each tracked values
         if self.with_tracking:
@@ -184,69 +187,97 @@ class CallbackWandb:
                 }
             )
 
+    @staticmethod
+    def dbn_graph_pyvis(factors):
+        """
+        Create a dbn graph visualization of the model factors 
+        with pyvis for a general model
+        """
+        n_outputs = len(factors)
+        n_inputs = max(map(max, factors)) + 1
+        size = 600
+        input_scale = size / n_inputs
+        output_scale = size / n_outputs
+        input_node_size = size / (4 * n_inputs)
+        output_node_size = size / (4 * n_outputs)
+        font_size = min(300 / n_inputs, 10)
+        net = Network(f"{size}px", select_menu=True)
+        net.toggle_physics(False)
+
+        for i in range(n_inputs):
+            net.add_node(
+                f"i{i}",
+                x=-size / 2,
+                y=i * input_scale,
+                color="blue",
+                size=input_node_size,
+            )       
+        for i in range(n_outputs):
+            x = size/2
+            y = i*output_scale
+            net.add_node(
+                f"o{i}",
+                x=x,
+                y=y,
+                color="red",
+                size=output_node_size,
+            )
+        for output, factor in enumerate(factors):
+            for input_ in factor:
+                net.add_edge(f"i{input_}", f"o{output}", width=0.1)
+        return net
+    
+
+    @staticmethod
+    def dbn_graph_pyvis(factors, centroid_coords):
+        """
+        Create a dbn graph visualization of the model factors 
+        with pyvis for a model that deals with Bikes environment
+        """
+        graph_size = 600
+        net = Network(f"{graph_size}px", select_menu=True)
+        net.toggle_physics(False)
+
+        #TODO: Write this in a modulable way
+        factors = factors[:len(centroid_coords)]
+
+        for i, centroid_coord in enumerate(centroid_coords):
+            centroid_coord = np.flip(centroid_coord)
+            net.add_node(
+                i,
+                label=i,
+                x=centroid_coord[0] * graph_size ** 2,
+                y=(graph_size - centroid_coord[1]) * graph_size ** 2,
+                color="blue",
+                size=100,
+            )
+
+        for output, factor in enumerate(factors):
+            for input_ in factor:
+                if input_ < len(centroid_coords) and output!=input_:
+                    net.add_edge(int(input_), output, width=0.1)
+
+        return net
+
+
     def model_dbn(self, factors: List, positions = None):
         """
         Warning: positions parameter is more of a debugging parameters for the 
         Bikes environment
         """
-        def dbn_graph_pyvis(factors):
-            n_outputs = len(factors)
-            n_inputs = max(map(max, factors)) + 1
-            size = 600
-            input_scale = size / n_inputs
-            output_scale = size / n_outputs
-            input_node_size = size / (4 * n_inputs)
-            output_node_size = size / (4 * n_outputs)
-            font_size = min(300 / n_inputs, 10)
-            net = Network(f"{size}px", select_menu=True)
-            net.toggle_physics(False)
-
-            for i in range(n_inputs):
-                if positions is not None and i<len(positions):
-                    net.add_node(
-                        f"i{i}",
-                        x=positions[i][0],
-                        y=positions[i][1],
-                        color="blue",
-                        size=input_node_size,
-                    )
-                else:
-                    net.add_node(
-                        f"i{i}",
-                        x=-size / 2,
-                        y=i * input_scale,
-                        color="blue",
-                        size=input_node_size,
-                    )
-                    
-                    
-
-            for i in range(n_outputs):
-                if positions is not None:
-                    x = positions[i][0]
-                    y = positions[i][1]
-                else:
-                    x = size/2
-                    y = i*output_scale
-                net.add_node(
-                    f"o{i}",
-                    x=x,
-                    y=y,
-                    color="red",
-                    size=output_node_size,
-                )
-            for output, factor in enumerate(factors):
-                for input_ in factor:
-                    net.add_edge(f"i{input_}", f"o{output}", width=0.1)
-            return net
-
         html_file = "dbn_graph.html"
         if not self.with_tracking:
             if self.plot_local:
-                net = dbn_graph_pyvis(factors)
+                if self.centroid_coords is None:
+                    net = self.dbn_graph_pyvis(factors)
+                else:
+                    net = self.dbn_graph_pyvis(factors, self.centroid_coords)
                 net.show(html_file, notebook=False)
             return
-        net = dbn_graph_pyvis(factors)
+        if self.centroid_coords is None:
+            net = self.dbn_graph_pyvis(factors)
+        else:
+            net = self.dbn_graph_pyvis(factors, self.centroid_coords)
         if self.plot_local:
             net.show(html_file, notebook=False)
         else:
