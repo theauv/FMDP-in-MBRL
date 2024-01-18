@@ -1,3 +1,5 @@
+from typing import Optional
+
 import git
 import gymnasium as gym
 import hydra
@@ -26,11 +28,11 @@ from src.util.common_overriden import (
 )
 
 
-#TODO: loading bar for dataset populating
-#TODO: run_name
+# TODO: loading bar for dataset populating
+# TODO: run_name
 
-def train_model(cfg: omegaconf.DictConfig, env: gym.Env):
 
+def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional = None):
     # -------- Initialization --------
     obs_shape = env.observation_space.shape
     act_shape = env.action_space.shape
@@ -39,6 +41,9 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env):
     torch_generator = torch.Generator(device=cfg.device)
     if cfg.seed is not None:
         torch_generator.manual_seed(cfg.seed)
+
+    work_dir = work_dir or Path.cwd()
+    print(f"Results will be saved at {work_dir}.")
 
     env_is_bikes = False
     base_env = env
@@ -51,10 +56,7 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env):
     if cfg.silent:
         logger = None
     else:
-        path = Path(Path.cwd(), "trainmodel_results")
-        if not path.exists():
-            path.mkdir(parents=True, exist_ok=True)
-        logger = mbrl.util.Logger(path)
+        logger = mbrl.util.Logger(work_dir)
         logger.register_group(RESULTS_LOG_NAME, EVAL_LOG_FORMAT, color="green")
 
     # -------- Create and populate initial env dataset --------
@@ -97,7 +99,17 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env):
             replay_buffer=replay_buffer,
         )
         if dataset_dir.exists() and dataset_dir.is_dir():
-            shutil.rmtree(dataset_dir)
+            problem = True
+            for i, p in enumerate(dataset_dir.rglob("*")):
+                if p.name == "replay_buffer.npz":
+                    problem = False
+                if i > 0:
+                    problem = True
+                    raise ValueError(
+                        "The dataset directory should contain only one replay buffer file"
+                    )
+            if not problem:
+                shutil.rmtree(dataset_dir)
         dataset_dir.mkdir(parents=True, exist_ok=True)
         replay_buffer.save(dataset_dir)
 
@@ -138,7 +150,7 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env):
         model_trainer,
         cfg,
         replay_buffer,
-        work_dir=None,
+        work_dir=work_dir,
         callback=callbacks.model_train_callback_per_epoch,
         callback_sparsity=callbacks.model_sparsity,
     )
@@ -150,7 +162,6 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env):
 
 @hydra.main(config_path="../configs", config_name="training_model")
 def run(cfg: omegaconf.DictConfig):
-
     # set-up run and api
     if cfg.debug_mode:
         cfg.experiment.with_tracking = False
@@ -192,24 +203,6 @@ def run(cfg: omegaconf.DictConfig):
 
     train_model(cfg, env)
 
-    if cfg.experiment.with_tracking and cfg.experiment.api_name == "wandb":
-        wandb.finish()
-
-    # Delete unwanted local directories
-    unwanted_dirs = ["wandb", "trainmodel_results"]
-    for directory in unwanted_dirs:
-        dirpath = Path(directory)
-        if dirpath.exists() and dirpath.is_dir():
-            shutil.rmtree(dirpath)
-
 
 if __name__ == "__main__":
-    try:
-        run()
-    except:
-        # Delete unwanted local directories
-        unwanted_dirs = ["wandb", "trainmodel_results"]
-        for directory in unwanted_dirs:
-            dirpath = Path(directory)
-            if dirpath.exists() and dirpath.is_dir():
-                shutil.rmtree(dirpath)
+    run()

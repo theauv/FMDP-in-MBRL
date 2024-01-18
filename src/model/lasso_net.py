@@ -56,7 +56,6 @@ class LassoNetAdapted(LassoNet):
         groups: Optional[int] = None,
         dropout: Optional[bool] = None,
     ):
-
         self.in_size = in_size
         self.out_size = out_size
 
@@ -120,7 +119,6 @@ class LassoNetAdapted(LassoNet):
 
 
 class LassoModelTrainer(ModelTrainer):
-
     _SPARSITY_LOG_GROUP_NAME = "lasso_sparsity"
 
     def __init__(
@@ -139,7 +137,6 @@ class LassoModelTrainer(ModelTrainer):
         theta_tol: float = 0.01,
         reinit: bool = False,
     ):
-
         self.model = model
         self.unwrapped_model = model.model
         assert hasattr(
@@ -303,10 +300,15 @@ class LassoModelTrainer(ModelTrainer):
         evaluate: bool = True,
         silent: bool = False,
     ):
-
         all_factors = []
         for which_output, lassonet in enumerate(self.unwrapped_model.lassonets):
-            factors, best_lambda, best_train_loss, best_eval_loss, best_thetas = self._train_and_find_sparsity_lassonet(
+            (
+                factors,
+                best_lambda,
+                best_train_loss,
+                best_eval_loss,
+                best_thetas,
+            ) = self._train_and_find_sparsity_lassonet(
                 dataset_train,
                 lassonet,
                 which_output,
@@ -357,7 +359,6 @@ class LassoModelTrainer(ModelTrainer):
         evaluate: bool = True,
         silent: bool = False,
     ) -> Tuple:
-
         current_lambda = self.lambda_start
         lambda_iters = ceil((self.lambda_max - self.lambda_start) / self.lambda_step)
 
@@ -528,7 +529,6 @@ class LassoModelTrainer(ModelTrainer):
         batch_callback: Optional[Callable] = None,
         lambda_: Optional[float] = None,
     ) -> torch.Tensor:
-
         if isinstance(dataset, BootstrapIterator):
             dataset.toggle_bootstrap()
 
@@ -571,7 +571,6 @@ class LassoModelTrainer(ModelTrainer):
         evaluate: bool = True,
         silent: bool = False,
     ) -> Tuple[List[float], List[float]]:
-
         if self._train_iteration == 0:
             self.find_sparse_model(
                 dataset_train, dataset_val, callback_sparsity, evaluate, silent
@@ -609,7 +608,6 @@ class LassoSimple(Simple):
         gamma_skip: float = 0.0,
         M: float = 1.0,
     ):
-
         Model.__init__(self, device)
 
         self.in_size = in_size
@@ -636,7 +634,6 @@ class LassoSimple(Simple):
         self.factors = factors
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-
         for i, lassonet in enumerate(self.lassonets):
             if i == 0:
                 pred = lassonet.forward(x)
@@ -664,7 +661,6 @@ class LassoSimple(Simple):
         target: Optional[torch.Tensor] = None,
         lambda_: float = None,
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
-
         assert model_in.ndim == 2 and target.ndim == 2
         assert target.shape[-1] == 1
 
@@ -691,7 +687,6 @@ class LassoSimple(Simple):
         target: Optional[torch.Tensor] = None,
         lambda_: float = None,
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
-
         if lambda_ is None:
             warnings.warn("You did not give any lambda, default lambda = 0.")
             lambda_ = 0.0
@@ -723,7 +718,6 @@ class LassoSimple(Simple):
         target: Optional[torch.Tensor] = None,
         lambda_: float = None,
     ) -> Tuple[float, Dict[str, Any]]:
-
         if lambda_ is None:
             self.train()
             optimizer.zero_grad()
@@ -782,7 +776,6 @@ class LassoSimple(Simple):
         lambda_: float = None,
         mode: str = "sum",
     ) -> Tuple[float, Dict[str, Any]]:
-
         assert model_in.ndim == 2 and target.ndim == 2
 
         self.train()
@@ -790,7 +783,6 @@ class LassoSimple(Simple):
         all_ans = []
         all_meta = []
         for i, lassonet in enumerate(self.lassonets):
-
             sub_target = target[:, i].unsqueeze(-1)
             ans, meta = self.lassonet_update(
                 lassonet,

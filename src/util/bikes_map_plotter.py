@@ -31,7 +31,7 @@ def map_plot(
     lats, longs, s, title=None, save_path=None, centroids=None, met=None, unmet=None
 ):
     """
-    Take latitudes, longitudes, and s (size of the point) and plot them as points on a map with strength alpha. 
+    Take latitudes, longitudes, and s (size of the point) and plot them as points on a map with strength alpha.
     If centroids=None is overridden by the list of centroids then they are plotted as well. Same for coordinates of met and unmet trips
     """
     fig, ax = plt.subplots()
@@ -101,7 +101,7 @@ def map_plot(
 
 def plot_bikes_timestep(bikes, centroids, t=0, algo_str="", met=None, unmet=None):
     """
-    For a single timestep takes the bikes and centroids, then plots them on the graph. 
+    For a single timestep takes the bikes and centroids, then plots them on the graph.
     """
     lats, longs = bikes_to_centroids(bikes, centroids)
     map_plot(
@@ -118,7 +118,7 @@ def plot_bikes_timestep(bikes, centroids, t=0, algo_str="", met=None, unmet=None
 
 def bikes_to_centroids(bikes, centroids):
     """
-    Takes an array of bike indexes and returns lats and longs by indexing centroids, which is a list of centroid locations.  
+    Takes an array of bike indexes and returns lats and longs by indexing centroids, which is a list of centroid locations.
     """
     centroids = torch.tensor(centroids, requires_grad=False)
 
@@ -130,7 +130,7 @@ def bikes_to_centroids(bikes, centroids):
 
 def weights_to_plot_data(weights, centroids):
     """
-    Take weights and centroids and return the lats longs s for plotting on map. 
+    Take weights and centroids and return the lats longs s for plotting on map.
     """
     centroids = torch.tensor(centroids, requires_grad=False)
     lats = centroids[:, 0]
@@ -141,7 +141,7 @@ def weights_to_plot_data(weights, centroids):
 
 def plot_weights_timestamp(weights, centroids, t=0, algo_str="", truck_num=0):
     """
-    For a single timestep takes the weights and centroids, then plots the weight of each centroid on the map.  
+    For a single timestep takes the weights and centroids, then plots the weight of each centroid on the map.
     """
     lats, longs, s = weights_to_plot_data(weights, centroids)
     map_plot(
@@ -176,7 +176,7 @@ def plot_bike_locations(X, centroids, algo_str, t=0, met=None, unmet=None):
 
 def full_trial_map_plotter(X, centroids, algo_str, t=0, met=None, unmet=None):
     """
-    The plots for the paper that show average bike locations over the year with all demand data for the year. 
+    The plots for the paper that show average bike locations over the year with all demand data for the year.
     """
     trips_data = pd.read_csv(
         "scripts/bikes_data/dockless-vehicles-3_full.csv",
@@ -205,7 +205,7 @@ def full_trial_map_plotter(X, centroids, algo_str, t=0, met=None, unmet=None):
 
 def centroid_cluster(centroids, clusters):
     """
-    Performs clustering on the centroids, then plots centroids as different locations depending on their group number. 
+    Performs clustering on the centroids, then plots centroids as different locations depending on their group number.
     """
     centroids = torch.tensor(centroids, requires_grad=False)
 

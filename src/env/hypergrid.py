@@ -25,7 +25,6 @@ class ContinuousHyperGrid(gym.Env):
         env_config: Optional[omegaconf.DictConfig],
         render_mode: Optional[str] = None,
     ) -> None:
-
         self.step_penalty = env_config.step_penalty
         self.grid_dim = env_config.grid_dim
         self.grid_size = env_config.grid_size
@@ -236,7 +235,6 @@ class ContinuousHyperGrid(gym.Env):
         return self.state, {}
 
     def render(self, mode: str = None):
-
         if mode is None:
             mode = self.render_mode
 
@@ -367,7 +365,7 @@ class ContinuousHyperGrid(gym.Env):
 
         :param action: batch of actions
         :param next_obs: batch of next_obs
-        :return: batch of bool tensors whether the associated (action, next_obs) 
+        :return: batch of bool tensors whether the associated (action, next_obs)
                 is a final state
         """
         assert len(next_obs.shape) == 2

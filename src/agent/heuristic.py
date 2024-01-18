@@ -16,12 +16,12 @@ class StubbornAgent(Agent):
     ) -> None:
         """
         Agent repeating the exact same action each environment step.
-        :param action: The action can be directly pass to the agent 
+        :param action: The action can be directly pass to the agent
         (needs to be of the right dtype and dimension).
         Or you can pass a single value, then the whole action will be
         equal to this value for each action entry
         Or by default, None will sample a random action and fix it for the whole
-        simulation. 
+        simulation.
         """
         if action is None:
             self.action = env.action_space.sample()
@@ -40,15 +40,14 @@ class StubbornAgent(Agent):
 
 class GoodBikesHeuristic(Agent):
     """
-        TODO: Does not take into account taken_bikes
-        TODO: Greedily solve each timeshift but not the whole day
-        TODO: Does not take into account demand of a centroid being > bikes_per_truck
-        TODO: Put as much as bikes as possible each time (does not try to minimize the number
-        of bikes)
+    TODO: Does not take into account taken_bikes
+    TODO: Greedily solve each timeshift but not the whole day
+    TODO: Does not take into account demand of a centroid being > bikes_per_truck
+    TODO: Put as much as bikes as possible each time (does not try to minimize the number
+    of bikes)
     """
 
     def __init__(self, env_config, env: Bikes) -> None:
-
         self.all_trips_data = env.all_trips_data
         self.action_timeshifts = env.action_timeshifts
         self.centroids = env.centroid_coords
@@ -62,7 +61,7 @@ class GoodBikesHeuristic(Agent):
 
     def get_timeshift(self, counter):
         """
-        get the current timeshift, namely the time between 
+        get the current timeshift, namely the time between
         2 actions (the one we take now and the next one).
 
         :param counter: number of actions took so far. As the total
@@ -135,7 +134,6 @@ class GoodBikesHeuristic(Agent):
         return demand
 
     def act(self, obs: np.ndarray, **_kwargs) -> np.ndarray:
-
         month = int(obs[self.map_obs["month"]][0])
         day = int(obs[self.map_obs["day"]][0])
         time_counter = int(obs[self.map_obs["time_counter"]][0])

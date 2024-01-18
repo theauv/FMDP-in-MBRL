@@ -23,12 +23,12 @@ VisData = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
 
 def unit_vector(vector):
-    """ Returns the unit vector of the vector.  """
+    """Returns the unit vector of the vector."""
     return vector / np.linalg.norm(vector)
 
 
 def angle_between(v1, v2):
-    """ 
+    """
     Returns the angle in radians between vectors 'v1' and 'v2'
     """
     v1_u = unit_vector(v1)
@@ -269,7 +269,6 @@ class AdaptedVisualizer(Visualizer):
 
         # If trajectories are of a higher dimension
         else:
-
             # Define a vector of reference
             ref_vector = np.ones(self.env.observation_space.shape[0])
 
@@ -311,23 +310,23 @@ class AdaptedVisualizer(Visualizer):
 
     def test_model_sparsity(self):
         """
-        Gives an idea of how much each new_state dimension is correlated to 
+        Gives an idea of how much each new_state dimension is correlated to
         the previous state and action dimensions in the learned model_env.
         A good model should typically show the same Bayesian Dependencies structure than
-        the actual environment. 
-        The "correlation values" are computed by changing a single dimension of the 
+        the actual environment.
+        The "correlation values" are computed by changing a single dimension of the
         state-action space multiple times and see how it changes the given next state output.
         Repeat for each dimensions to obtain 2 correlation matrices of the form:
         state space x next_state space and action space x next_state space.
-        Each row of the matrix is normalized by its diagonal entry. It makes sense for the 
-        environments we are dealing for now (continuous grid-like envs). But might need to 
+        Each row of the matrix is normalized by its diagonal entry. It makes sense for the
+        environments we are dealing for now (continuous grid-like envs). But might need to
         be changed in the future.
 
-        Careful, this function only gives an idea of the real correlation between the 
+        Careful, this function only gives an idea of the real correlation between the
         state_action space and the next_state space.
 
         TODO: Make sure this function works for a general model and env
-        For now, should be running for any model and env with 
+        For now, should be running for any model and env with
         action and state spaces like gym.spaces.Box like.
         """
 
@@ -425,13 +424,13 @@ class AdaptedVisualizer(Visualizer):
 
     def model_weights_dependencies(self, verbose=True):
         """
-        This function gives another idea of the correlation between the 
+        This function gives another idea of the correlation between the
         next_state space and the state_action space in the learned model_env.
         For each nex_state output, we want to observe the total weight contribution
         of each state_action input.
 
         Careful, for the moment this function only looks at the weights (not the bias,
-        residual layers or any fancy NN architecture), therefore it's hard to tell whether 
+        residual layers or any fancy NN architecture), therefore it's hard to tell whether
         or not this function gives a relevant result...
         TODO: Make this function more reliable
         """

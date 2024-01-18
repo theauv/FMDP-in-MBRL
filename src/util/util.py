@@ -102,7 +102,9 @@ def get_base_dir_path():
     return base_dir
 
 
-def get_run_kwargs(configs: omegaconf.DictConfig,) -> Dict:
+def get_run_kwargs(
+    configs: omegaconf.DictConfig,
+) -> Dict:
     """
     Gather the important informations to initialize the wandb api
 
@@ -179,7 +181,6 @@ def model_correlations(
     num_iters: int = 1,
     num_inputs: int = 100,
 ):
-
     if isinstance(bounds, Tuple):
         assert len(bounds) == 2
         bounds = [bounds for i in range(model.in_size)]
@@ -217,14 +218,11 @@ def model_correlations(
 
 
 def get_weights_model(model: torch.nn.Module, verbose: bool = False):
-
     with torch.no_grad():
-
         biases = []
         weights = []
         deterministic = True
         for i, (name, param) in enumerate(model.named_parameters()):
-
             if verbose:
                 print(name)
                 print(param.shape)

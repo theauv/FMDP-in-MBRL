@@ -90,7 +90,6 @@ class Simple(Model):
     def reset_1d(
         self, obs: torch.Tensor, rng: Optional[torch.Generator] = None
     ) -> Dict[str, torch.Tensor]:
-
         assert rng is not None
         propagation_indices = None
         return {"obs": obs, "propagation_indices": propagation_indices}
@@ -102,7 +101,6 @@ class Simple(Model):
         deterministic: bool = False,
         rng: Optional[torch.Generator] = None,
     ) -> Tuple[torch.Tensor, Optional[Dict[str, torch.Tensor]]]:
-
         return (self.forward(model_input), model_state)
 
 
@@ -116,7 +114,6 @@ class GridFactoredSimple(Simple):
         hid_size: int = 200,
         activation_fn_cfg: Optional[Union[Dict, omegaconf.DictConfig]] = None,
     ):
-
         self.n_dims = out_size
         self.factored_in_size = in_size // self.n_dims
         self.factored_out_size = 1
@@ -273,7 +270,6 @@ class FactoredSimple(Simple):
         return models
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-
         assert len(x.shape) == 2
 
         batch_size = x.shape[0]
@@ -297,7 +293,6 @@ class FactoredSimple(Simple):
     def eval_score(
         self, model_in: torch.Tensor, target: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
-
         assert model_in.ndim == 2 and target.ndim == 2
 
         batch_size = model_in.shape[0]
@@ -340,7 +335,6 @@ class FactoredSimple(Simple):
         target: Optional[torch.Tensor] = None,
         mode: str = "sum",
     ) -> Tuple[float, Dict[str, Any]]:
-
         assert model_in.ndim == 2 and target.ndim == 2
 
         self.train()
@@ -348,7 +342,6 @@ class FactoredSimple(Simple):
         all_loss = []
         all_meta = []
         for i, model in enumerate(self.models):
-
             sub_model_in = model_in.index_select(
                 -1, torch.tensor(self.model_factors[i][0])
             )
@@ -394,7 +387,6 @@ class MultiModelsTrainer(ModelTrainer):
         optim_eps: float = 1e-8,
         logger: Optional[Logger] = None,
     ):
-
         self.model = model
         self._train_iteration = 0
 

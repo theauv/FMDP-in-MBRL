@@ -81,7 +81,6 @@ def run_agent_in_env(
 
 @hydra.main(config_path="../configs", config_name="benchmarking")
 def run(cfg: omegaconf.DictConfig):
-
     if cfg.with_tracking:
         cfg.render_mode = None
 
@@ -132,13 +131,6 @@ def run(cfg: omegaconf.DictConfig):
         wandb.init(**init_run_kwargs)
         callbacks = CallbackWandb(cfg.with_tracking)
     run_agent_in_env(env, agent, cfg.num_steps, callbacks)
-
-    # Delete unwanted local directories
-    unwanted_dirs = ["wandb"]
-    for directory in unwanted_dirs:
-        dirpath = Path(directory)
-        if dirpath.exists() and dirpath.is_dir():
-            shutil.rmtree(dirpath)
 
 
 if __name__ == "__main__":

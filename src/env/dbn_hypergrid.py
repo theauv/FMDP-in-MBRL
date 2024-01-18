@@ -15,7 +15,6 @@ class DBNHyperGrid(ContinuousHyperGrid):
         env_config: Optional[omegaconf.DictConfig],
         render_mode: Optional[str] = None,
     ) -> None:
-
         self.step_penalty = env_config.step_penalty
         self.action_dim = env_config.action_dim
         self.action_lim = env_config.action_lim

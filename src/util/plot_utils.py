@@ -11,7 +11,6 @@ NEURIPS_FONT_FAMILY = "Times New Roman"
 
 
 def set_up_plt(font_family):
-
     plt.rcParams["text.usetex"] = True
 
     SMALL_SIZE = 18
@@ -43,7 +42,7 @@ def set_size(width, fraction=1, subplots=(1, 1)):
 
     # Golden ratio to set aesthetic figure height
     # https://disq.us/p/2940ij3
-    golden_ratio = (5 ** 0.5 - 1) / 2
+    golden_ratio = (5**0.5 - 1) / 2
 
     # Figure width in inches
     fig_width_in = fig_width_pt * inches_per_pt - 1

@@ -74,11 +74,11 @@ class HandMadeEnvHandler(EnvHandler):
         cfg: Union[Dict, omegaconf.ListConfig, omegaconf.DictConfig],
     ) -> Tuple[gym.Env, mbrl.types.TermFnType, Optional[mbrl.types.RewardFnType]]:
         """
-        Creates a gym environment specified in the onfigs (either from this repo 
+        Creates a gym environment specified in the onfigs (either from this repo
         or loading from mbrl library)
 
         :param cfg: general configs (see configs directory)
-        :return: environment, and the termination and reward functions associated 
+        :return: environment, and the termination and reward functions associated
         """
 
         cfg = omegaconf.OmegaConf.create(cfg)

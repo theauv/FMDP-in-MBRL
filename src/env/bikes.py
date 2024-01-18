@@ -23,7 +23,7 @@ from src.env.dict_spaces_env import DictSpacesEnv
 
 
 class Rentals_Simulator:
-    """ Class used to simulate rentals in the city from historic data."""
+    """Class used to simulate rentals in the city from historic data."""
 
     def __init__(
         self,
@@ -57,10 +57,10 @@ class Rentals_Simulator:
             ]
 
     def simulate_rentals(self, trips, X):
-        """ 
-        Simulate daily rentals when X[i] bikes are positioned in each region i at 
+        """
+        Simulate daily rentals when X[i] bikes are positioned in each region i at
         the beginning of the day on daynum of month.
-        Returns a list of the starting coordinates of the trips that were met and 
+        Returns a list of the starting coordinates of the trips that were met and
         a list of the starting coordinates of the trips that were unmet.
         """
         new_x = np.array(X)
@@ -186,7 +186,6 @@ class Bikes(DictSpacesEnv):
         env_config: Optional[omegaconf.DictConfig],
         render_mode: Optional[str] = None,
     ) -> None:
-
         # TODO: self.split_reward_by_centroid = env_config.split_reward_by_centroid # if true, we model the number of trips from each centroid individual, instead of the total number of trips
         # TODO: not especially optimal, could also decide for fix number of actions WHEN to take them during the day ??
         # TODO: "self strips" ?? Should we consider them or not (only influence is the trip_duration)
@@ -379,7 +378,6 @@ class Bikes(DictSpacesEnv):
             return None
 
     def trips_steps(self, x=None):
-
         if x is None:
             x = self.state
 
@@ -615,7 +613,6 @@ class Bikes(DictSpacesEnv):
         return spaces.flatten(self.dict_observation_space, self.state), {}
 
     def render(self, mode: str = None):
-
         if mode is None:
             mode = self.render_mode
 

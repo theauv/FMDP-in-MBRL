@@ -39,10 +39,10 @@ def train(
     work_dir: Optional[str] = None,
 ) -> np.float32:
     """Training pipeline using a Probabilistic Ensemble Trajectory Sampling (PETS) approach
-    Chua, Kurtland, et al. "Deep reinforcement learning in a handful of trials using probabilistic 
+    Chua, Kurtland, et al. "Deep reinforcement learning in a handful of trials using probabilistic
     dynamics models." Advances in neural information processing systems 31 (2018).
 
-    This function is adapted from the original mbrl.algorithms.pets one to handle callbacks and 
+    This function is adapted from the original mbrl.algorithms.pets one to handle callbacks and
     possible future changes.
 
     :param termination_fn: termination function associated to the given environment

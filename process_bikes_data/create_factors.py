@@ -15,7 +15,6 @@ import geopy.distance
 
 
 def create_local_factor(centroid_coords, radius):
-
     num_centroids = len(centroid_coords)
     adjacency = np.zeros((num_centroids, num_centroids))
 
@@ -40,8 +39,8 @@ def draw_map_factors(centroid_coords, adjacency):
         net.add_node(
             i,
             label=i,
-            x=centroid_coord[0] * graph_size ** 2,
-            y=(graph_size - centroid_coord[1]) * graph_size ** 2,
+            x=centroid_coord[0] * graph_size**2,
+            y=(graph_size - centroid_coord[1]) * graph_size**2,
             color="blue",
             size=100,
         )

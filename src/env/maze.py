@@ -43,7 +43,6 @@ class ContinuousMaze(gym.Env):
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": [50]}
 
     def __init__(self, render_mode: Optional[str] = None) -> None:
-
         # Should be in a env_config
         self.step_penalty = -0.1
         self.step_size = 10  # Could also be learned
@@ -215,7 +214,6 @@ class ContinuousMaze(gym.Env):
         return self.state, {}
 
     def render(self, mode: str = "human"):
-
         if self.render_mode is None:
             gym.logger.warn(
                 "You are calling render method without specifying any render mode. "
@@ -287,7 +285,7 @@ class ContinuousMaze(gym.Env):
 
         :param action: batch of actions
         :param next_obs: batch of next_obs
-        :return: batch of bool tensors whether the associated (action, next_obs) 
+        :return: batch of bool tensors whether the associated (action, next_obs)
                 is a final state
         """
         assert len(next_obs.shape) == 2

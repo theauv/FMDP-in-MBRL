@@ -73,7 +73,6 @@ class CallbackWandb:
             wandb.define_metric("best_eval_score", step_metric="train_epoch")
 
     def env_callback(self, env):
-
         if not self.with_tracking:
             if self.plot_local and env.render_mode == "rgb_array":
                 matplotlib.use("Agg")
@@ -182,7 +181,6 @@ class CallbackWandb:
             wandb.log(tracked_values)
 
     def trajectory_optimizer_callback(self, population, values, iterations):
-
         if not self.with_tracking:
             return
 
@@ -200,13 +198,11 @@ class CallbackWandb:
     def model_sparsity(
         self, which_lassonet=None, fig_loss=None, fig_theta=None, factors=None
     ):
-
         if not self.with_tracking:
             print(f"Lassonet {which_lassonet}")
             return
 
         if which_lassonet is not None:
-
             wandb.log(
                 {
                     f"Loss pretraining lassonet {which_lassonet}": wandb.Image(
@@ -221,7 +217,7 @@ class CallbackWandb:
     @staticmethod
     def dbn_graph_pyvis(factors):
         """
-        Create a dbn graph visualization of the model factors 
+        Create a dbn graph visualization of the model factors
         with pyvis for a general model
         """
         n_outputs = len(factors)
@@ -255,7 +251,7 @@ class CallbackWandb:
     @staticmethod
     def dbn_graph_pyvis(factors, centroid_coords):
         """
-        Create a dbn graph visualization of the model factors 
+        Create a dbn graph visualization of the model factors
         with pyvis for a model that deals with Bikes environment
         """
         graph_size = 600
@@ -270,8 +266,8 @@ class CallbackWandb:
             net.add_node(
                 i,
                 label=i,
-                x=centroid_coord[0] * graph_size ** 2,
-                y=(graph_size - centroid_coord[1]) * graph_size ** 2,
+                x=centroid_coord[0] * graph_size**2,
+                y=(graph_size - centroid_coord[1]) * graph_size**2,
                 color="blue",
                 size=100,
             )
@@ -285,7 +281,7 @@ class CallbackWandb:
 
     def model_dbn(self, factors: List, positions=None):
         """
-        Warning: positions parameter is more of a debugging parameters for the 
+        Warning: positions parameter is more of a debugging parameters for the
         Bikes environment
         """
         html_file = "dbn_graph.html"

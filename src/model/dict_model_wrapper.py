@@ -14,10 +14,10 @@ from mbrl.models import Model, OneDTransitionRewardModel
 class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
     """
     Wrapper class for 1-D dynamics models when dealing with a DictSpacesEnv.
-    In this case part of the whole dynamics are known and thus only part of the 
+    In this case part of the whole dynamics are known and thus only part of the
     observation and action are required to learn the unknown dynamics.
     e.g. In the Bikes environment, we know the dynamics of adding bikes at different locations
-    but we want to learn how the trips will occur during a given period after adding the bikes. 
+    but we want to learn how the trips will occur during a given period after adding the bikes.
     Then the dynamics of stepping day, month and timeshift is also known.
     """
 
@@ -109,7 +109,6 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
             )
 
     def _get_next_obs(self, batch_next_obs):
-
         if len(batch_next_obs.shape) == 1:
             batch_next_obs = np.expand_dims(batch_next_obs, axis=0)
 
@@ -288,7 +287,6 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
     def reset(
         self, obs: torch.Tensor, rng: Optional[torch.Generator] = None
     ) -> Dict[str, torch.Tensor]:
-
         if not hasattr(self.model, "reset_1d"):
             raise RuntimeError(
                 "OneDTransitionRewardModel requires wrapped model to define method reset_1d"

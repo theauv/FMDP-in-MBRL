@@ -20,8 +20,12 @@ patience: ${num_epochs_train_model}
 # bootstrap_permutes: 
 # improvement_threshold: null
 
-hydra:  
-  output_subdir: null
-  job_logging: null  
-  run:  
-    dir: .
+experiment_dir: ${experiment.api_name}
+
+root_dir: "./exp"
+hydra:
+  run:
+    dir: ${root_dir}/${experiment_dir}/${overrides.env}/train_model/${now:%Y.%m.%d}/${now:%H%M%S}_${run_name}
+
+  sweep:
+    dir: ${root_dir}/${experiment_dir}/${overrides.env}/train_model/${now:%Y.%m.%d}/${now:%H%M%S}_${run_name}

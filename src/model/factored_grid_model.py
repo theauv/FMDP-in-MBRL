@@ -35,7 +35,6 @@ class FactoredGaussianMLP(GaussianMLP):
         learn_logvar_bounds: bool = False,
         activation_fn_cfg: Optional[Union[Dict, omegaconf.DictConfig]] = None,
     ):
-
         self.factored_in_size = factored_in_size
         self.factored_out_size = factored_out_size
         self.factor = in_size // self.factored_in_size
@@ -82,11 +81,9 @@ class FactoredGaussianMLP(GaussianMLP):
         propagation_indices: Optional[torch.Tensor] = None,
         use_propagation: bool = True,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-
         xs = self.create_factored_input(x)
 
         for i, x in enumerate(xs):
-
             if i == 0:
                 mean, log_var = super().forward(
                     x, rng, propagation_indices, use_propagation
