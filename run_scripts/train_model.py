@@ -163,7 +163,7 @@ def run(cfg: omegaconf.DictConfig):
             sha = repo.head.object.hexsha
             group_name = cfg.get("group_name", f"Train_model")
             if cfg.run_name:
-                run_name += cfg.run_name
+                run_name = cfg.run_name
             else:
                 run_name = f"{sha}"
             logging.basicConfig(
