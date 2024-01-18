@@ -1,21 +1,23 @@
 defaults:
-  - algorithm: pets_adapted
-  - dynamics_model: simple
-  - overrides: pets_bikes
   - action_optimizer: cem
+  - algorithm: pets_adapted
+  - dynamics_model: factored_simple
+  - overrides: pets_bikes
   - experiment: wandb
 
 seed: 0
 device: "cpu" #"cuda:0"
 additional_run_name: null
 debug_mode: false
+silent: false
 
+dataset_folder_name: datasets
 dataset_size: ${overrides.dataset_size}
-model_batch_size: 128
+model_batch_size: 256
 validation_ratio: 0.2
-num_epochs_train_model: 10
+num_epochs_train_model: 100000
+patience: ${num_epochs_train_model}
 # bootstrap_permutes: 
-# patience: null
 # improvement_threshold: null
 
 hydra:  

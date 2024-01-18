@@ -4,21 +4,28 @@ import hydra
 import logging
 import numpy as np
 import omegaconf
-import os
+from pathlib import Path
+import shutil
+from time import time
 import torch
 import wandb
 
 import mbrl
-from mbrl.util.common import create_replay_buffer, rollout_agent_trajectories
+from mbrl.util.common import rollout_agent_trajectories
+from mbrl.util import Logger
 
+from src.callbacks.constants import RESULTS_LOG_NAME, EVAL_LOG_FORMAT
 from src.callbacks.wandb_callbacks import CallbackWandb
 from src.env.bikes import Bikes
 from src.env.env_handler import HandMadeEnvHandler
-from src.util.common_overriden import train_model_and_save_model_and_data_overriden, create_one_dim_tr_model_overriden
-from src.util.util import get_run_kwargs
+from src.util.common_overriden import (
+    train_model_and_save_model_and_data_overriden,
+    create_one_dim_tr_model_overriden,
+    create_overriden_replay_buffer,
+)
 
 
-def train_model(cfg, env: gym.Env):
+def train_model(cfg: omegaconf.DictConfig, env: gym.Env):
 
     # -------- Initialization --------
     obs_shape = env.observation_space.shape
@@ -36,13 +43,32 @@ def train_model(cfg, env: gym.Env):
     if isinstance(base_env, Bikes):
         env_is_bikes = True
         base_env.set_next_day_method("random")
-    
+
+    if cfg.silent:
+        logger = None
+    else:
+        path = Path(Path.cwd(), "trainmodel_results")
+        path.mkdir(parents=True, exist_ok=True)
+        logger = mbrl.util.Logger(path)
+        logger.register_group(RESULTS_LOG_NAME, EVAL_LOG_FORMAT, color="green")
+
     # -------- Create and populate initial env dataset --------
     use_double_dtype = cfg.algorithm.get("normalize_double_precision", False)
     dtype = np.double if use_double_dtype else np.float32
 
-    #TODO: add a load dir (already exists, but set it)
-    replay_buffer = create_replay_buffer(
+    # Try to load potentially existing dataset
+    station_dependencies = cfg.overrides.env_config.get("station_dependencies", None)
+    if station_dependencies is not None:
+        station_dependencies = station_dependencies.split("/")[-1].split(".")[0]
+    dataset_dir = Path(
+        cfg.dataset_folder_name,
+        f"{base_env.__class__.__name__}",
+        f"{station_dependencies}",
+    )
+    data_path = None
+    if dataset_dir.exists() and dataset_dir.is_dir():
+        data_path = dataset_dir
+    replay_buffer = create_overriden_replay_buffer(
         cfg,
         obs_shape,
         act_shape,
@@ -50,21 +76,28 @@ def train_model(cfg, env: gym.Env):
         obs_type=dtype,
         action_type=dtype,
         reward_type=dtype,
+        load_dir=data_path,
     )
-    rollout_agent_trajectories(
-        env,
-        cfg.dataset_size,
-        mbrl.planning.RandomAgent(env),
-        {},
-        replay_buffer=replay_buffer,
-    )
+    print("replay buffer", replay_buffer.capacity, replay_buffer.num_stored)
+
+    # If dataset not full, populate it
+    if replay_buffer.num_stored < replay_buffer.capacity:
+        print("Populate the replay buffer")
+        # TODO: keep in mind full_trajectories or not
+        rollout_agent_trajectories(
+            env,
+            int(replay_buffer.capacity - replay_buffer.num_stored),
+            mbrl.planning.RandomAgent(env),
+            {},
+            replay_buffer=replay_buffer,
+        )
+        if dataset_dir.exists() and dataset_dir.is_dir():
+            shutil.rmtree(dataset_dir)
+        dataset_dir.mkdir(parents=True, exist_ok=True)
+        replay_buffer.save(dataset_dir)
+
     if env_is_bikes:
         base_env.set_next_day_method(cfg.overrides.env_config.next_day_method)
-
-    dir_path = f"datasets/{base_env.__class__.__name__}/{cfg.dataset_size}"
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path) 
-        replay_buffer.save(dir_path)
 
     # -------- Create model and model trainer --------
     model_path = cfg.overrides.get("model_path", None)
@@ -77,7 +110,7 @@ def train_model(cfg, env: gym.Env):
         dynamics_model,
         optim_lr=cfg.overrides.model_lr,
         weight_decay=cfg.overrides.model_wd,
-        logger=None,
+        logger=logger,
     )
 
     # ----------------- Callbacks -----------------------------
@@ -92,6 +125,8 @@ def train_model(cfg, env: gym.Env):
         callbacks.model_dbn(dynamics_model.model.factors)
 
     # ------------- Train -------------
+    if cfg.debug_mode:
+        start = time()
     print("Training start")
     train_model_and_save_model_and_data_overriden(
         dynamics_model,
@@ -99,10 +134,13 @@ def train_model(cfg, env: gym.Env):
         cfg,
         replay_buffer,
         work_dir=None,
-        callback=callbacks.model_train_callback,
+        callback=callbacks.model_train_callback_per_epoch,
         callback_sparsity=callbacks.model_sparsity,
     )
     print("Training end")
+    if cfg.debug_mode:
+        end = time()
+        print(f"Training time: {end-start}")
 
 
 @hydra.main(config_path="../configs", config_name="training_model")
@@ -110,9 +148,9 @@ def run(cfg: omegaconf.DictConfig):
 
     # set-up run and api
     if cfg.debug_mode:
-        cfg.experiment.with_tracking=False
+        cfg.experiment.with_tracking = False
     else:
-        cfg.experiment.with_tracking=True
+        cfg.experiment.with_tracking = True
     if cfg.experiment.with_tracking:
         cfg.overrides.render_mode = None
         if cfg.experiment.api_name == "wandb":
@@ -134,11 +172,13 @@ def run(cfg: omegaconf.DictConfig):
                 "settings": None,
             }
             init_run_kwargs = wandb_config
-            init_run_kwargs["config"] = omegaconf.OmegaConf.to_container(cfg, resolve=True)
+            init_run_kwargs["config"] = omegaconf.OmegaConf.to_container(
+                cfg, resolve=True
+            )
             wandb.init(**init_run_kwargs)
         else:
             raise ValueError("Unsupported API")
-    
+
     # create env and random seed
     env, term_fn, reward_fn = HandMadeEnvHandler.make_env(cfg)
     np.random.seed(cfg.seed)
@@ -146,6 +186,24 @@ def run(cfg: omegaconf.DictConfig):
 
     train_model(cfg, env)
 
+    if cfg.experiment.with_tracking and cfg.experiment.api_name == "wandb":
+        wandb.finish()
+
+    # Delete unwanted local directories
+    unwanted_dirs = ["wandb", "trainmodel_results"]
+    for directory in unwanted_dirs:
+        dirpath = Path(directory)
+        if dirpath.exists() and dirpath.is_dir():
+            shutil.rmtree(dirpath)
+
 
 if __name__ == "__main__":
-    run()
+    try:
+        run()
+    except:
+        # Delete unwanted local directories
+        unwanted_dirs = ["wandb", "trainmodel_results"]
+        for directory in unwanted_dirs:
+            dirpath = Path(directory)
+            if dirpath.exists() and dirpath.is_dir():
+                shutil.rmtree(dirpath)

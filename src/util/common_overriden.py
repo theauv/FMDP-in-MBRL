@@ -1,5 +1,5 @@
 import pathlib
-from typing import Dict, Union, Tuple, Optional, Callable, List
+from typing import Dict, Union, Tuple, Optional, Callable, Sequence, Type
 
 import gymnasium as gym
 import hydra
@@ -13,6 +13,7 @@ from mbrl.planning import Agent
 
 from src.model.lasso_net import LassoModelTrainer
 from src.env.dict_spaces_env import DictSpacesEnv
+from src.util.replay_buffer import ReplayBufferOverriden
 from src.util.util import get_env_factors
 
 
@@ -214,3 +215,79 @@ def create_one_dim_tr_model_overriden(
         dynamics_model.load(model_dir)
 
     return dynamics_model
+
+
+def create_overriden_replay_buffer(
+    cfg: omegaconf.DictConfig,
+    obs_shape: Sequence[int],
+    act_shape: Sequence[int],
+    obs_type: Type = np.float32,
+    action_type: Type = np.float32,
+    reward_type: Type = np.float32,
+    load_dir: Optional[Union[str, pathlib.Path]] = None,
+    collect_trajectories: bool = False,
+    rng: Optional[np.random.Generator] = None,
+) -> ReplayBuffer:
+    """Creates a replay buffer from a given configuration.
+
+    The configuration should be structured as follows::
+
+        -cfg
+          -algorithm
+            -dataset_size (int, optional): the maximum size of the train dataset/buffer
+          -overrides
+            -num_steps (int, optional): how many steps to take in the environment
+            -trial_length (int, optional): the maximum length for trials. Only needed if
+                ``collect_trajectories == True``.
+
+    The size of the replay buffer can be determined by either providing
+    ``cfg.algorithm.dataset_size``, or providing ``cfg.overrides.num_steps``.
+    Specifying dataset set size directly takes precedence over number of steps.
+
+    Args:
+        cfg (omegaconf.DictConfig): the configuration to use.
+        obs_shape (Sequence of ints): the shape of observation arrays.
+        act_shape (Sequence of ints): the shape of action arrays.
+        obs_type (type): the data type of the observations (defaults to np.float32).
+        action_type (type): the data type of the actions (defaults to np.float32).
+        reward_type (type): the data type of the rewards (defaults to np.float32).
+        load_dir (optional str or pathlib.Path): if provided, the function will attempt to
+            populate the buffers from "load_dir/replay_buffer.npz".
+        collect_trajectories (bool, optional): if ``True`` sets the replay buffers to collect
+            trajectory information. Defaults to ``False``.
+        rng (np.random.Generator, optional): a random number generator when sampling
+            batches. If None (default value), a new default generator will be used.
+
+    Returns:
+        (:class:`mbrl.replay_buffer.ReplayBuffer`): the replay buffer.
+    """
+    dataset_size = (
+        cfg.algorithm.get("dataset_size", None) if "algorithm" in cfg else None
+    )
+    if not dataset_size:
+        dataset_size = cfg.overrides.num_steps
+    maybe_max_trajectory_len = None
+    if collect_trajectories:
+        if cfg.overrides.trial_length is None:
+            raise ValueError(
+                "cfg.overrides.trial_length must be set when "
+                "collect_trajectories==True."
+            )
+        maybe_max_trajectory_len = cfg.overrides.trial_length
+
+    replay_buffer = ReplayBufferOverriden(
+        dataset_size,
+        obs_shape,
+        act_shape,
+        obs_type=obs_type,
+        action_type=action_type,
+        reward_type=reward_type,
+        rng=rng,
+        max_trajectory_length=maybe_max_trajectory_len,
+    )
+
+    if load_dir:
+        load_dir = pathlib.Path(load_dir)
+        replay_buffer.load(str(load_dir))
+
+    return replay_buffer

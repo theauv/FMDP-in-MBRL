@@ -6,6 +6,8 @@ import matplotlib
 from matplotlib import pyplot as plt
 import numpy as np
 import omegaconf
+from pathlib import Path
+import shutil
 from time import sleep
 import wandb
 
@@ -130,6 +132,13 @@ def run(cfg: omegaconf.DictConfig):
         wandb.init(**init_run_kwargs)
         callbacks = CallbackWandb(cfg.with_tracking)
     run_agent_in_env(env, agent, cfg.num_steps, callbacks)
+
+    # Delete unwanted local directories
+    unwanted_dirs = ["wandb"]
+    for directory in unwanted_dirs:
+        dirpath = Path(directory)
+        if dirpath.exists() and dirpath.is_dir():
+            shutil.rmtree(dirpath)
 
 
 if __name__ == "__main__":

@@ -67,6 +67,11 @@ class CallbackWandb:
                 step_metric="trajectory_optimizer_iteration",
             )
 
+            wandb.define_metric("train_epoch", hidden=True)
+            wandb.define_metric("total_avg_loss", step_metric="train_epoch")
+            wandb.define_metric("eval_score", step_metric="train_epoch")
+            wandb.define_metric("best_eval_score", step_metric="train_epoch")
+
     def env_callback(self, env):
 
         if not self.with_tracking:
@@ -101,6 +106,32 @@ class CallbackWandb:
             "eval_score": eval_score,
             "best_eval_score": best_eval_score,
             "train_iteration": train_iter,
+        }
+
+        wandb.log(tracked_values)
+
+    def model_train_callback_per_epoch(
+        self,
+        model: Model,
+        train_iter: int,
+        epoch: int,
+        total_avg_loss: float,
+        eval_score: float,
+        best_eval_score: float,
+    ):
+        """
+        Plot the training scores of the model
+        This function is meant to be pass to the ModelTrainer as an argument
+        """
+
+        if not self.with_tracking:
+            return
+
+        tracked_values = {
+            "train_epoch": epoch,
+            "total_avg_loss": total_avg_loss,
+            "eval_score": eval_score,
+            "best_eval_score": best_eval_score,
         }
 
         wandb.log(tracked_values)
