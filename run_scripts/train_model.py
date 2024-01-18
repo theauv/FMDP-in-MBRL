@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 from time import time
 import torch
+from tqdm import tqdm
 import wandb
 
 import mbrl
@@ -24,6 +25,9 @@ from src.util.common_overriden import (
     create_overriden_replay_buffer,
 )
 
+
+#TODO: loading bar for dataset populating
+#TODO: run_name
 
 def train_model(cfg: omegaconf.DictConfig, env: gym.Env):
 
@@ -48,7 +52,8 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env):
         logger = None
     else:
         path = Path(Path.cwd(), "trainmodel_results")
-        path.mkdir(parents=True, exist_ok=True)
+        if not path.exists():
+            path.mkdir(parents=True, exist_ok=True)
         logger = mbrl.util.Logger(path)
         logger.register_group(RESULTS_LOG_NAME, EVAL_LOG_FORMAT, color="green")
 
@@ -157,14 +162,15 @@ def run(cfg: omegaconf.DictConfig):
             repo = git.Repo(search_parent_directories=True)
             sha = repo.head.object.hexsha
             group_name = cfg.get("group_name", f"Train_model")
-            run_name = f"{sha}"
-            if cfg.additional_run_name:
-                run_name += f"_{cfg.additional_run_name}"
-                logging.basicConfig(
-                    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-                    datefmt="%m/%d/%Y %H:%M:%S",
-                    level=logging.INFO,
-                )
+            if cfg.run_name:
+                run_name += cfg.run_name
+            else:
+                run_name = f"{sha}"
+            logging.basicConfig(
+                format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+                datefmt="%m/%d/%Y %H:%M:%S",
+                level=logging.INFO,
+            )
             wandb_config = {
                 "project": "hucrl_fmdp",
                 "group": group_name,

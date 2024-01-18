@@ -7,7 +7,7 @@ defaults:
 
 seed: 0
 device: "cpu" #"cuda:0"
-additional_run_name: null
+run_name: null
 debug_mode: false
 silent: false
 
