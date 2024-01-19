@@ -13,7 +13,7 @@ env_config:
   weather_data: src/env/bikes_data/weather_data.csv
   centroids_coord: src/env/bikes_data/LouVelo_centroids_coords.npy
   #centroids_idx: #[93,83,80,98,6,84,87,99,56,97] #Number of centroids or list of indices
-  station_dependencies: src/env/bikes_data/factors_radius_1-2.npy
+  station_dependencies: null #src/env/bikes_data/factors_radius_1-2.npy
 model_wrapper:
   _target_: src.model.dict_model_wrapper.OneDTransitionRewardModelDictSpace
   model_input_obs_key: ["bikes_distr", "time_counter"] #["bikes_distr", "day", "month", "time_counter"]
@@ -35,7 +35,7 @@ validation_ratio: 0
 freq_train_model: 50
 patience: 25
 num_epochs_train_model: 25
-dataset_size: 10000
+dataset_size: 100
 
 planning_horizon: ${overrides.env_config.action_per_day}
 cem_num_iters: 5

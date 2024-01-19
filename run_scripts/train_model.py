@@ -26,13 +26,14 @@ from src.util.common_overriden import (
     create_one_dim_tr_model_overriden,
     create_overriden_replay_buffer,
 )
+from src.util.util import get_base_dir_path
 
 
 # TODO: loading bar for dataset populating
 # TODO: run_name
 
 
-def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional = None):
+def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str] = None):
     # -------- Initialization --------
     obs_shape = env.observation_space.shape
     act_shape = env.action_space.shape
@@ -43,6 +44,7 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional = No
         torch_generator.manual_seed(cfg.seed)
 
     work_dir = work_dir or Path.cwd()
+    base_dir = get_base_dir_path()
     print(f"Results will be saved at {work_dir}.")
 
     env_is_bikes = False
@@ -68,6 +70,7 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional = No
     if station_dependencies is not None:
         station_dependencies = station_dependencies.split("/")[-1].split(".")[0]
     dataset_dir = Path(
+        base_dir,
         cfg.dataset_folder_name,
         f"{base_env.__class__.__name__}",
         f"{station_dependencies}",
@@ -85,7 +88,6 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional = No
         reward_type=dtype,
         load_dir=data_path,
     )
-    print("replay buffer", replay_buffer.capacity, replay_buffer.num_stored)
 
     # If dataset not full, populate it
     if replay_buffer.num_stored < replay_buffer.capacity:
@@ -197,6 +199,7 @@ def run(cfg: omegaconf.DictConfig):
             raise ValueError("Unsupported API")
 
     # create env and random seed
+    cfg.overrides.render_mode=None
     env, term_fn, reward_fn = HandMadeEnvHandler.make_env(cfg)
     np.random.seed(cfg.seed)
     torch.manual_seed(cfg.seed)

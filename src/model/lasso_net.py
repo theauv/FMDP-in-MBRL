@@ -652,7 +652,7 @@ class LassoSimple(Simple):
         assert target.shape[-1] == 1
 
         pred_out = lassonet.forward(model_in)
-        return F.mse_loss(pred_out, target, reduction="none").sum(-1).sum(), {}
+        return F.mse_loss(pred_out, target, reduction="none").mean(-1).mean(), {}
 
     def lassonet_eval_score(
         self,
@@ -670,7 +670,7 @@ class LassoSimple(Simple):
 
         with torch.no_grad():
             pred_out = lassonet.forward(model_in)
-            loss = F.mse_loss(pred_out, target, reduction="none").unsqueeze(0)
+            loss = F.mse_loss(pred_out, target, reduction="none")
             loss = (
                 loss  # .item()
                 + lambda_ * lassonet.l1_regularization_skip().item()
@@ -774,7 +774,7 @@ class LassoSimple(Simple):
         optimizers: List[torch.optim.Optimizer],
         target: Optional[torch.Tensor] = None,
         lambda_: float = None,
-        mode: str = "sum",
+        mode: str = "mean",
     ) -> Tuple[float, Dict[str, Any]]:
         assert model_in.ndim == 2 and target.ndim == 2
 
@@ -796,10 +796,8 @@ class LassoSimple(Simple):
 
         n_outputs = len(all_ans)
         assert n_outputs == self.out_size
-        if mode == "sum":
-            return sum(all_ans), {}
-        elif mode == "mean":
-            return sum(all_ans) / n_outputs, {}
+        if mode == "mean":
+            return np.mean(all_ans), {}
         elif mode == "separate":
             return all_ans, all_meta
         else:

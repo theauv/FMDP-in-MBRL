@@ -67,7 +67,7 @@ class Simple(Model):
     def loss(self, model_in: torch.Tensor, target: torch.Tensor = None) -> torch.Tensor:
         assert model_in.ndim == 2 and target.ndim == 2
         pred_out = self.forward(model_in)
-        return F.mse_loss(pred_out, target, reduction="none").sum(-1).sum(), {}
+        return F.mse_loss(pred_out, target, reduction="none").mean(-1).mean(), {}
 
     def eval_score(
         self, model_in: torch.Tensor, target: Optional[torch.Tensor] = None
@@ -75,7 +75,7 @@ class Simple(Model):
         assert model_in.ndim == 2 and target.ndim == 2
         with torch.no_grad():
             pred_output = self.forward(model_in)
-            return F.mse_loss(pred_output, target, reduction="none").unsqueeze(0), {}
+            return F.mse_loss(pred_output, target, reduction="none"), {}
 
     def save(self, save_dir: Union[str, pathlib.Path]):
         """Saves the model to the given directory."""
@@ -320,7 +320,7 @@ class FactoredSimple(Simple):
                     pred_reward += model.forward(sub_model_in)
 
             eval_score, meta = (
-                F.mse_loss(pred_reward, reward_target, reduction="none").unsqueeze(0),
+                F.mse_loss(pred_reward, reward_target, reduction="none"),
                 {},
             )
             eval_scores[0, :, -1] = eval_score
@@ -333,7 +333,7 @@ class FactoredSimple(Simple):
         model_in: ModelInput,
         optimizers: List[torch.optim.Optimizer],
         target: Optional[torch.Tensor] = None,
-        mode: str = "sum",
+        mode: str = "mean",
     ) -> Tuple[float, Dict[str, Any]]:
         assert model_in.ndim == 2 and target.ndim == 2
 
@@ -368,45 +368,11 @@ class FactoredSimple(Simple):
                 all_loss.append(loss)
                 all_meta.append(meta)
 
-        if mode == "sum":
-            return sum(all_loss), {}
+        if mode == "mean":
+            return np.mean(all_loss), {}
         elif mode == "separate":
             return all_loss, all_meta
         else:
             raise ValueError(
                 f"There is no {mode} mode for the SimpleLasso eval_score method"
             )
-
-
-class MultiModelsTrainer(ModelTrainer):
-    def __init__(
-        self,
-        model: Model,
-        optim_lr: float = 1e-4,
-        weight_decay: float = 1e-5,
-        optim_eps: float = 1e-8,
-        logger: Optional[Logger] = None,
-    ):
-        self.model = model
-        self._train_iteration = 0
-
-        self.logger = logger
-        if self.logger:
-            self.logger.register_group(
-                self._LOG_GROUP_NAME, MODEL_LOG_FORMAT, color="blue", dump_frequency=1
-            )
-
-        assert hasattr(
-            self.model.model, "models"
-        ), "This Model Trainer only works for models having multiple submodels \
-            in a list attribute 'models' e.g. FactoredSimple"
-
-        self.optimizer = []
-        for lassonet in self.model.model.models:
-            optimizer = optim.Adam(
-                lassonet.parameters(),
-                lr=optim_lr,
-                weight_decay=weight_decay,
-                eps=optim_eps,
-            )
-            self.optimizer.append(optimizer)
