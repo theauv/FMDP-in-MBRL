@@ -1,6 +1,6 @@
 # @package _group_
 model_trainer:
-  _target_: mbrl.models.ModelTrainer
+  _target_: src.util.model_trainer.ModelTrainerOverriden
 model:
   _target_: src.model.simple.GridFactoredSimple
   device: ${device}

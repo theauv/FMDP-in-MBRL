@@ -1,6 +1,6 @@
 # @package _group_
 model_trainer:
-  _target_: src.model.lasso_net.LassoModelTrainer
+  _target_: src.util.model_trainer.LassoModelTrainer
   lambda_start: 0.
   lambda_max: 50.
   lambda_step: 0.3

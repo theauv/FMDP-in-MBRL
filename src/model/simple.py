@@ -4,17 +4,14 @@ from typing import Union, Optional, Dict, Tuple, Any, List
 
 import hydra
 from mbrl.types import ModelInput
-from mbrl.util.logger import Logger
 import numpy as np
 import omegaconf
 import pathlib
 import torch
 from torch import nn
-from torch import optim
 from torch.functional import F
 
 from mbrl.models.model import Model
-from mbrl.models.model_trainer import ModelTrainer, MODEL_LOG_FORMAT
 from mbrl.models.util import truncated_normal_init
 
 

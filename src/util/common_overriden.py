@@ -11,7 +11,7 @@ import mbrl
 from mbrl.util.replay_buffer import ReplayBuffer
 from mbrl.planning import Agent
 
-from src.model.lasso_net import LassoModelTrainer
+from src.util.model_trainer import LassoModelTrainer
 from src.env.dict_spaces_env import DictSpacesEnv
 from src.util.replay_buffer import ReplayBufferOverriden
 from src.util.util import get_env_factors

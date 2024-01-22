@@ -1,5 +1,5 @@
 # @package _group_
-with_tracking: true #true
+with_tracking: false #true
 plot_local: false
 api_name: wandb
 run_configs:             

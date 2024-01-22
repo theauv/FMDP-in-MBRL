@@ -1,6 +1,6 @@
 # @package _group_
 model_trainer:
-  _target_: src.model.simple.MultiModelsTrainer
+  _target_: src.util.model_trainer.MultiModelsTrainer
 model:
   _target_: src.model.simple.FactoredSimple
   device: ${device}

@@ -1,19 +1,19 @@
 defaults:
   - action_optimizer: cem
   - algorithm: pets_adapted
-  - dynamics_model: simple
+  - dynamics_model: gaussian_mlp_ensemble
   - overrides: pets_bikes
   - experiment: wandb
 
 seed: 0
 device: "cpu" #"cuda:0"
 run_name: null
-debug_mode: false
+debug_mode: true
 silent: false
 
 dataset_folder_name: datasets
 dataset_size: ${overrides.dataset_size}
-model_batch_size: 256
+model_batch_size: 10 #256
 validation_ratio: 0.2
 num_epochs_train_model: 100000
 patience: ${num_epochs_train_model}
