@@ -108,11 +108,10 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
                 dtype=torch.double if normalize_double_precision else torch.float,
             )
 
-    def _get_next_obs(self, batch_next_obs):
+    def _get_next_obs(self, batch_next_obs: mbrl.types.TensorType):
         if len(batch_next_obs.shape) == 1:
             batch_next_obs = np.expand_dims(batch_next_obs, axis=0)
-
-        return batch_next_obs[:, self.model_output_mask]
+        return batch_next_obs[..., self.model_output_mask]
 
     def _get_model_input(
         self, obs: mbrl.types.TensorType, action: mbrl.types.TensorType
@@ -126,7 +125,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         model_in = torch.cat([obs, action], dim=obs.ndim - 1)
 
         model_in = model_in.float().to(self.device)
-        masked_model_in = model_in[:, self.model_input_mask]
+        masked_model_in = model_in[..., self.model_input_mask]
         return masked_model_in, obs
 
     def _process_batch(
@@ -225,7 +224,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
                 sub_output = self.output_normalizer.denormalize(sub_output)
 
             out = model_in
-            out[:, self.model_output_mask] = sub_output
+            out[..., self.model_output_mask] = sub_output
             out = self.obs_postprocess_fn(out)
 
             return out, target

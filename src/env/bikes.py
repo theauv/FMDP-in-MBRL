@@ -2,7 +2,7 @@
 Environments for the bikes experiments.
 """
 
-from typing import Optional, Dict, Tuple, List
+from typing import Optional, Dict, Tuple
 from random import uniform
 
 import geopy.distance
@@ -926,7 +926,7 @@ class Bikes(DictSpacesEnv):
     def reward_fn(self, actions: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
 
-    def obs_preprocess_fn(self, batch_obs, batch_action):
+    def obs_preprocess_fn(self, batch_obs: torch.Tensor, batch_action: torch.Tensor):
         """
         We only want the model to learn the bikes rentals dynamics.
         So we preprocess the observation to manually compute the new
@@ -935,31 +935,43 @@ class Bikes(DictSpacesEnv):
         :return: preprocessed observation
         """
 
-        if len(batch_obs.shape) == 1:
-            batch_obs = np.expand_dims(batch_obs, axis=0)
+        #TODO: Maybe get rid of this when not needed anymore
+        resize=False 
+        while batch_obs.ndim<3:
+            assert batch_action.ndim==batch_obs.ndim
+            batch_obs = batch_obs[None,...]
+            batch_action = batch_action[None,...]
+            resize=True
 
-        batch_size = batch_obs.shape[0]
-        distr_size = len(batch_obs[0, self.map_obs["bikes_distr"]])
+        ensemble_size = batch_obs.shape[0]
+        batch_size = batch_obs.shape[1]
+        distr_size = len(batch_obs[0,0,self.map_obs["bikes_distr"]])
 
         # Compute delta_bikes in a parallel way
-        delta_bikes = np.zeros((batch_size, distr_size), dtype=int)
-        truck_centroids = batch_action[:, self.map_act["truck_centroid"]]
-        truck_bikes = batch_action[:, self.map_act["truck_num_bikes"]]
+        delta_bikes = np.zeros((ensemble_size, batch_size, distr_size), dtype=int)
+        truck_centroids = batch_action[..., self.map_act["truck_centroid"]]
+        truck_bikes = batch_action[..., self.map_act["truck_num_bikes"]]
         n = distr_size
+        truck_centroids = np.reshape(truck_centroids, (truck_centroids.shape[0]*truck_centroids.shape[1], -1))
+        offset = np.arange(truck_centroids.shape[0])[..., None]
         truck_centroids_offset = (
-            truck_centroids + (np.arange(truck_centroids.shape[0])[:, None]) * n
+            truck_centroids + offset * n
         )
         unq, inv = np.unique(truck_centroids_offset.ravel(), return_inverse=True)
         unq = unq.astype(int)
         sol = np.bincount(inv, truck_bikes.ravel())
-        delta_bikes[unq // n, unq % n] = sol
+        delta_bikes[unq//(batch_size*n), (unq%(batch_size*n))// n, (unq%(batch_size*n)) % n] = sol
+        if resize:
+            delta_bikes=delta_bikes.squeeze()
+            batch_action=batch_action.squeeze()
+            batch_obs=batch_obs.squeeze()
 
         # Update obs
-        batch_obs[:, self.map_obs["bikes_distr"]] += delta_bikes
+        batch_obs[..., self.map_obs["bikes_distr"]] += delta_bikes
 
         return batch_obs
 
-    def obs_postprocess_fn(self, batch_new_obs):
+    def obs_postprocess_fn(self, batch_new_obs: torch.Tensor):
         """
         As we only want to learn the rentals dynamics, the learnable model
         will only return the new bike distribution but we need to return the whole
@@ -967,5 +979,5 @@ class Bikes(DictSpacesEnv):
         In our case, we only need to increment the time_counter
         :return: postprocessed new_observation
         """
-        batch_new_obs[:, self.map_obs["time_counter"]] += 1
+        batch_new_obs[..., self.map_obs["time_counter"]] += 1
         return batch_new_obs

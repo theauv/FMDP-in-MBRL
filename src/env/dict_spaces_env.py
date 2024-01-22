@@ -97,9 +97,9 @@ class DictSpacesEnv(ABC, gym.Env):
                     low = torch.tensor(low)
                     high = torch.tensor(high)
                 if scale:
-                    flat_obs[:, value] = (high - low) * flat_obs[:, value] + low
+                    flat_obs[..., value] = (high - low) * flat_obs[..., value] + low
                 else:
-                    flat_obs[:, value] = (flat_obs[:, value] - low) / (high - low)
+                    flat_obs[..., value] = (flat_obs[..., value] - low) / (high - low)
         return flat_obs
 
     def rescale_act(self, flat_act, scale=False, keys: Optional[List[str]] = None):
@@ -114,9 +114,9 @@ class DictSpacesEnv(ABC, gym.Env):
                     low = torch.tensor(low)
                     high = torch.tensor(high)
                 if scale:
-                    flat_act[:, value] = (high - low) * flat_act[:, value] + low
+                    flat_act[..., value] = (high - low) * flat_act[..., value] + low
                 else:
-                    flat_act[:, value] = (flat_act[:, value] - low) / (high - low)
+                    flat_act[..., value] = (flat_act[..., value] - low) / (high - low)
         return flat_act
 
     @abstractmethod
