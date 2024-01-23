@@ -10,6 +10,8 @@ env_config:
   action_dbn: [[0,2,3],[1,4,5]]
   size_end_box: 2. #1.0
   function: "sum"
+model_wrapper:
+  _target_: mbrl.models.OneDTransitionRewardModel
 learned_rewards: false #Not supported yet
 trial_length: 1000 #Max length episode
 num_steps: 500000 #Number of env steps before end of training

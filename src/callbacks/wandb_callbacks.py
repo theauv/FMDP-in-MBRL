@@ -249,7 +249,7 @@ class CallbackWandb:
         return net
 
     @staticmethod
-    def dbn_graph_pyvis(factors, centroid_coords):
+    def dbn_bikes_graph_pyvis(factors, centroid_coords):
         """
         Create a dbn graph visualization of the model factors
         with pyvis for a model that deals with Bikes environment
@@ -290,13 +290,13 @@ class CallbackWandb:
                 if self.centroid_coords is None:
                     net = self.dbn_graph_pyvis(factors)
                 else:
-                    net = self.dbn_graph_pyvis(factors, self.centroid_coords)
+                    net = self.dbn_bikes_graph_pyvis(factors, self.centroid_coords)
                 net.show(html_file, notebook=False)
             return
         if self.centroid_coords is None:
             net = self.dbn_graph_pyvis(factors)
         else:
-            net = self.dbn_graph_pyvis(factors, self.centroid_coords)
+            net = self.dbn_bikes_graph_pyvis(factors, self.centroid_coords)
         if self.plot_local:
             net.show(html_file, notebook=False)
         else:

@@ -61,6 +61,7 @@ class ModelTrainerOverriden(ModelTrainer):
         batch_callback: Optional[Callable] = None,
         evaluate: bool = True,
         silent: bool = False,
+        debug: bool = False,
     ) -> Tuple[List[float], List[float]]:
         """Trains the model for some number of epochs.
 
@@ -125,8 +126,12 @@ class ModelTrainerOverriden(ModelTrainer):
         # only enable tqdm if training for a single epoch,
         # otherwise it produces too much output
         disable_tqdm = silent or (num_epochs is None or num_epochs > 1)
+        if debug:
+            from time import time
 
         for epoch in epoch_iter:
+            if debug:
+                start = time()
             if batch_callback:
                 batch_callback_epoch = functools.partial(batch_callback, epoch)
             else:
@@ -158,6 +163,10 @@ class ModelTrainerOverriden(ModelTrainer):
                 else:
                     epochs_since_update += 1
                 model_val_score = eval_score.mean()
+            
+            if debug:
+                end = time()
+                print(f"Training epoch duration: {round(end-start, 2)}s")
 
             if self.logger and not silent:
                 self.logger.log_data(
@@ -196,7 +205,7 @@ class ModelTrainerOverriden(ModelTrainer):
         self._train_iteration += 1
         return training_losses, val_scores
 
-
+#TODO: Make sure it actually makes sense to have one optimizer by submodel or not
 class MultiModelsTrainer(ModelTrainerOverriden):
     def __init__(
         self,

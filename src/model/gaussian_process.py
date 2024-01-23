@@ -15,6 +15,8 @@ import pathlib
 
 from mbrl.models.model import Model
 
+from time import time
+
 
 class ExactGPModel(gpytorch.models.ExactGP):
     # TODO: Reecrire cette classe avec plus de choix de kernel etc

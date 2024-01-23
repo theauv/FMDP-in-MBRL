@@ -66,15 +66,22 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str]
     dtype = np.double if use_double_dtype else np.float32
 
     # Try to load potentially existing dataset
-    station_dependencies = cfg.overrides.env_config.get("station_dependencies", None)
-    if station_dependencies is not None:
-        station_dependencies = station_dependencies.split("/")[-1].split(".")[0]
-    dataset_dir = Path(
-        base_dir,
-        cfg.dataset_folder_name,
-        f"{base_env.__class__.__name__}",
-        f"{station_dependencies}",
-    )
+    if isinstance(base_env, Bikes):
+        station_dependencies = cfg.overrides.env_config.get("station_dependencies", None)
+        if station_dependencies is not None:
+            station_dependencies = station_dependencies.split("/")[-1].split(".")[0]
+        dataset_dir = Path(
+            base_dir,
+            cfg.dataset_folder_name,
+            f"{base_env.__class__.__name__}",
+            f"{station_dependencies}",
+        )
+    else:
+        dataset_dir = Path(
+            base_dir,
+            cfg.dataset_folder_name,
+            f"{base_env.__class__.__name__}",
+        )
     data_path = None
     if dataset_dir.exists() and dataset_dir.is_dir():
         data_path = dataset_dir
@@ -138,7 +145,7 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str]
         max_traj_iterations=cfg.overrides.cem_num_iters,
         model_out_size=dynamics_model.model.out_size,
         plot_local=cfg.experiment.plot_local,
-        centroid_coords=env.centroid_coords,
+        centroid_coords=getattr(env, "centroid_coords", None),
     )
     if hasattr(dynamics_model.model, "factors"):
         callbacks.model_dbn(dynamics_model.model.factors)
@@ -150,11 +157,12 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str]
     train_model_and_save_model_and_data_overriden(
         dynamics_model,
         model_trainer,
-        cfg,
+        cfg.overrides,
         replay_buffer,
         work_dir=work_dir,
         callback=callbacks.model_train_callback_per_epoch,
         callback_sparsity=callbacks.model_sparsity,
+        debug=cfg.debug_mode
     )
     print("Training end")
     if cfg.debug_mode:
@@ -198,8 +206,18 @@ def run(cfg: omegaconf.DictConfig):
         else:
             raise ValueError("Unsupported API")
 
+    #Overrides
+    if not cfg.debug_mode:
+        cfg.overrides.render_mode=None
+    cfg.overrides.learned_rewards = cfg.get("learned_rewards", cfg.overrides.learned_rewards)
+    cfg.overrides.model_batch_size = cfg.get("model_batch_size", cfg.overrides.model_batch_size)
+    cfg.overrides.validation_ratio = cfg.get("validation_ratio", cfg.overrides.validation_ratio)
+    cfg.overrides.num_epochs_train_model = cfg.get("num_epochs_train_model", cfg.overrides.num_epochs_train_model)
+    cfg.overrides.dataset_size = cfg.get("dataset_size", cfg.overrides.dataset_size)
+    cfg.algorithm.dataset_size = cfg.get("dataset_size", cfg.algorithm.dataset_size)
+    cfg.overrides.patience = cfg.get("patience", cfg.overrides.patience)
+
     # create env and random seed
-    cfg.overrides.render_mode=None
     env, term_fn, reward_fn = HandMadeEnvHandler.make_env(cfg)
     np.random.seed(cfg.seed)
     torch.manual_seed(cfg.seed)

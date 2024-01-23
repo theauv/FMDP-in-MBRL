@@ -25,11 +25,11 @@ def train_model_and_save_model_and_data_overriden(
     work_dir: Optional[Union[str, pathlib.Path]] = None,
     callback: Optional[Callable] = None,
     callback_sparsity: Optional[Callable] = None,
+    debug: bool = False,
 ):
     """
     Overwrite of function train_model_and_save_model_and_data in mbrl.util.common
     """
-
     dataset_train, dataset_val = mbrl.util.common.get_basic_buffer_iterators(
         replay_buffer,
         cfg.model_batch_size,
@@ -49,6 +49,7 @@ def train_model_and_save_model_and_data_overriden(
             improvement_threshold=cfg.get("improvement_threshold", 0.01),
             callback=callback,
             callback_sparsity=callback_sparsity,
+            debug=debug,
         )
     else:
         model_trainer.train(
@@ -58,6 +59,7 @@ def train_model_and_save_model_and_data_overriden(
             patience=cfg.get("patience", 1),
             improvement_threshold=cfg.get("improvement_threshold", 0.01),
             callback=callback,
+            debug=debug,
         )
     if work_dir is not None:
         model.save(str(work_dir))
@@ -114,7 +116,7 @@ def create_one_dim_tr_model_overriden(
     if isinstance(base_env, DictSpacesEnv):
         env_has_dict_spaces = True
 
-    model_cfg = cfg.dynamics_model.model  # Changed from the original function
+    model_cfg = cfg.dynamics_model.model
     if model_cfg._target_ == "mbrl.models.BasicEnsemble":
         model_cfg = model_cfg.member_cfg
     if model_cfg.get("in_size", None) is None:
@@ -213,6 +215,9 @@ def create_one_dim_tr_model_overriden(
         )
     if model_dir:
         dynamics_model.load(model_dir)
+
+    #Overrides
+    cfg.overrides.model_batch_size = cfg.dynamics_model.get("batch_size", cfg.overrides.model_batch_size)
 
     return dynamics_model
 

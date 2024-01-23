@@ -1,22 +1,23 @@
 defaults:
   - action_optimizer: cem
   - algorithm: pets_adapted
-  - dynamics_model: gaussian_mlp_ensemble
-  - overrides: pets_bikes
+  - dynamics_model: simple #gaussian_process|simple|gaussian_mlp_ensemble
+  - overrides: pets_hypergrid #pets_bikes
   - experiment: wandb
 
 seed: 0
 device: "cpu" #"cuda:0"
-run_name: null
-debug_mode: true
+run_name: hypergrid_test
+debug_mode: false
 silent: false
 
 dataset_folder_name: datasets
-dataset_size: ${overrides.dataset_size}
-model_batch_size: 10 #256
+dataset_size: 100000
+model_batch_size: 10
 validation_ratio: 0.2
 num_epochs_train_model: 100000
 patience: ${num_epochs_train_model}
+learned_rewards: False
 # bootstrap_permutes: 
 # improvement_threshold: null
 

@@ -1,7 +1,7 @@
 defaults:
   - algorithm: pets_adapted
   - dynamics_model: gaussian_mlp_ensemble #gaussian_mlp_ensemble
-  - overrides: pets_bikes
+  - overrides: pets_hypergrid
   - action_optimizer: cem
   - experiment: wandb
 

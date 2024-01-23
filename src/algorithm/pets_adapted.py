@@ -136,7 +136,7 @@ def train(
         max_traj_iterations=cfg.overrides.cem_num_iters,
         model_out_size=dynamics_model.model.out_size,
         plot_local=cfg.experiment.plot_local,
-        centroid_coords=env.centroid_coords,
+        centroid_coords=getattr(env, "centroid_coords", None),
     )
 
     callbacks.env_callback(env)

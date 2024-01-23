@@ -2,9 +2,11 @@
 model_trainer:
   _target_: src.util.model_trainer.ModelTrainerOverriden
 model:
-  _target_: src.model.simple.Simple
+  _target_: src.model.gaussian_process.MultiOutputGP
   device: ${device}
   in_size: ???
   out_size: ???
   mean: null
   kernel: null
+
+batch_size: ${overrides.dataset_size}
