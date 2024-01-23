@@ -50,6 +50,16 @@ class ModelTrainerOverriden(ModelTrainer):
         logger (:class:`mbrl.util.Logger`, optional): the logger to use.
     """
 
+    def __init__(
+        self,
+        model: Model,
+        optim_lr: float = 1e-4,
+        weight_decay: float = 1e-5,
+        optim_eps: float = 1e-8,
+        logger: Optional[Logger] = None,
+    ):
+        super().__init__(model, optim_lr, weight_decay, optim_eps, logger)
+
     def train(
         self,
         dataset_train: TransitionIterator,
@@ -163,7 +173,7 @@ class ModelTrainerOverriden(ModelTrainer):
                 else:
                     epochs_since_update += 1
                 model_val_score = eval_score.mean()
-            
+
             if debug:
                 end = time()
                 print(f"Training epoch duration: {round(end-start, 2)}s")

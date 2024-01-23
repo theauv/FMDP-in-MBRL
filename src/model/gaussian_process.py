@@ -6,6 +6,7 @@ from gpytorch.means import Mean
 from gpytorch.kernels import Kernel
 import torch
 from torch.functional import F
+from torcheval.metrics.functional import r2_score
 
 from mbrl.models.model import Model
 
@@ -117,7 +118,14 @@ class MultiOutputGP(Model):
         pred_mean = torch.cat(
             [pred.mean.unsqueeze(-1) for pred in pred_output], axis=-1
         )
-        return F.mse_loss(pred_mean, target, reduction="none"), {}
+        if self.eval_metric is None:
+            return F.mse_loss(pred_mean, target, reduction="none"), {}
+        elif self.eval_metric=="MSE":
+            return F.mse_loss(pred_mean, target, reduction="none"), {}
+        elif self.eval_metric=="R2":
+            return r2_score(pred_mean, target), {}
+        else:
+            raise ValueError(f"No metric called {self.metric} implemented (yet)")
 
     def save(self, save_dir: Union[str, pathlib.Path]):
         """Saves the model to the given directory."""

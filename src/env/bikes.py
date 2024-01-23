@@ -335,6 +335,7 @@ class Bikes(DictSpacesEnv):
         )
 
         self.state = None
+        self.data_looped = 0
         self.render_mode = render_mode
         self.viewer = None
         screen_ydim = 650
@@ -557,7 +558,7 @@ class Bikes(DictSpacesEnv):
                 f"Method {method} not available (available method: {available_methods})"
             )
 
-    def new_day(self):
+    def get_next_day(self):
         # TODO: only weekday ??
         if self.next_day_method == "random":
             random_trip = self.all_trips_data.sample()
@@ -569,6 +570,7 @@ class Bikes(DictSpacesEnv):
             )
             next_index = np.where(mask)[0][-1]
             if next_index + 1 >= self.all_trips_data.shape[0]:
+                self.data_looped+=1
                 next_index = 0
             next_trip = self.all_trips_data.iloc[next_index + 1]
             day = next_trip["Day"]
@@ -577,6 +579,8 @@ class Bikes(DictSpacesEnv):
             raise ValueError(
                 f"No sample method named {self.next_day_method} implemented"
             )
+        if self.data_looped>0:
+            warnings.warn(f"You are restarting the dataset (year) for the {self.data_looped}th time")
 
         return day, month
 
@@ -587,7 +591,7 @@ class Bikes(DictSpacesEnv):
             day = first_day["Day"]
             month = first_day["Month"]
         else:
-            day, month = self.new_day()
+            day, month = self.get_next_day()
         self.state = {
             "bikes_distr": self.get_initial_bikes_distribution(),
             "day": day,

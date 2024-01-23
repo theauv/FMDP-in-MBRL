@@ -1,8 +1,9 @@
-from typing import Dict, List, Optional, Tuple, Callable
+from typing import Any, Dict, List, Optional, Tuple, Callable
 import warnings
 
 import numpy as np
 import torch
+
 
 import mbrl.models.util as model_util
 import mbrl.types

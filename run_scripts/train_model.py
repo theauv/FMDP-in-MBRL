@@ -10,12 +10,10 @@ from pathlib import Path
 import shutil
 from time import time
 import torch
-from tqdm import tqdm
 import wandb
 
 import mbrl
 from mbrl.util.common import rollout_agent_trajectories
-from mbrl.util import Logger
 
 from src.callbacks.constants import RESULTS_LOG_NAME, EVAL_LOG_FORMAT
 from src.callbacks.wandb_callbacks import CallbackWandb

@@ -105,6 +105,8 @@ class HandMadeEnvHandler(EnvHandler):
             OmegaConf.set_struct(env_config, True)
             with open_dict(env_config):
                 env_config.base_dir = get_base_dir_path()
+            cfg.overrides.num_steps=cfg.overrides.num_episodes*env_config.action_per_day
+            cfg.overrides.dataset_size=cfg.overrides.num_steps
             env = Bikes(cfg.overrides.env_config, render_mode)
             term_fn = env.termination_fn
             reward_fn = env.reward_fn

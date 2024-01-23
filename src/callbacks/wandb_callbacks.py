@@ -60,6 +60,8 @@ class CallbackWandb:
             wandb.define_metric("total_avg_loss", step_metric="train_iteration")
             wandb.define_metric("eval_score", step_metric="train_iteration")
             wandb.define_metric("best_eval_score", step_metric="train_iteration")
+            wandb.define_metric("train_metric", step_metric="train_iteration")
+            wandb.define_metric("test_metric", step_metric="train_iteration")
 
             wandb.define_metric("trajectory_optimizer_iteration", hidden=True)
             wandb.define_metric(

@@ -10,6 +10,7 @@ import pathlib
 import torch
 from torch import nn
 from torch.functional import F
+from torcheval.metrics.functional import r2_score
 
 from mbrl.models.model import Model
 from mbrl.models.util import truncated_normal_init
@@ -28,11 +29,13 @@ class Simple(Model):
         num_layers: int = 4,
         hid_size: int = 200,
         activation_fn_cfg: Optional[Union[Dict, omegaconf.DictConfig]] = None,
+        eval_metric: Optional[str] = "MSE",
     ):
         super().__init__(device)
 
         self.in_size = in_size
         self.out_size = out_size
+        self.eval_metric = eval_metric
 
         def create_activation():
             if activation_fn_cfg is None:
@@ -58,6 +61,9 @@ class Simple(Model):
 
         self.factors = [np.arange(self.in_size) for output in range(self.out_size)]
 
+        print("AHHHHHHHHH")
+        print(self.out_size)
+
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         return self.hidden_layers(x)
 
@@ -72,7 +78,14 @@ class Simple(Model):
         assert model_in.ndim == 2 and target.ndim == 2
         with torch.no_grad():
             pred_output = self.forward(model_in)
-            return F.mse_loss(pred_output, target, reduction="none"), {}
+            if self.eval_metric is None:
+                return F.mse_loss(pred_output, target, reduction="none"), {}
+            elif self.eval_metric=="MSE":
+                return F.mse_loss(pred_output, target, reduction="none"), {}
+            elif self.eval_metric=="R2":
+                return r2_score(pred_output, target), {}
+            else:
+                raise ValueError(f"No metric called {self.metric} implemented (yet)")
 
     def save(self, save_dir: Union[str, pathlib.Path]):
         """Saves the model to the given directory."""
