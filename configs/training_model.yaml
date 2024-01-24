@@ -1,13 +1,13 @@
 defaults:
   - action_optimizer: cem
   - algorithm: pets_adapted
-  - dynamics_model: simple #gaussian_process|simple|gaussian_mlp_ensemble
-  - overrides: pets_bikes #pets_bikes
+  - dynamics_model: gaussian_process #gaussian_process|simple|gaussian_mlp_ensemble
+  - overrides: pets_hypergrid #pets_bikes
   - experiment: wandb
 
 seed: 0
 device: "cpu" #"cuda:0"
-run_name: ""
+run_name: hypergrid_test_gp
 debug_mode: true
 silent: false
 
