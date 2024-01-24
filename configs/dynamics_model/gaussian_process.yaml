@@ -9,6 +9,6 @@ model:
   mean: null
   kernel: Matern
   scale_kernel: true
-  eval_metric: MSE
+  eval_metric: MSE #TODO: Better if in model trainer
 
 batch_size: ${overrides.dataset_size}

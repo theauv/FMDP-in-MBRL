@@ -12,7 +12,7 @@ for model in "gaussian_process" "simple"
         for metric in MSE R2
             do
             run_name="test_${model}_LRew_${learned_reward}_${metric}"
-            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --mail-type=END --wrap="python3 run_scripts/train_model.py overrides=pets_bikes  learned_rewards=${learned_reward} dynamics_model=${model} dynamics_model.model.eval_metric=${metric} run_name=${run_name}"
+            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --mail-type=END --wrap="python3 run_scripts/train_model.py overrides=pets_bikes debug_mode=false learned_rewards=${learned_reward} dynamics_model=${model} dynamics_model.model.eval_metric=${metric} run_name=${run_name}"
         done
     done
 done
