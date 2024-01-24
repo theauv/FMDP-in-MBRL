@@ -35,6 +35,18 @@ class ExactGPModel(gpytorch.models.ExactGP):
         self.covar_module = (
             kernel if kernel is not None else gpytorch.kernels.RBFKernel()
         )
+        if isinstance(self.mean_module, str):
+            if self.mean_module=="Constant":
+                self.mean_module=gpytorch.means.ConstantMean()
+            else:
+                raise ValueError(f"No mean module named {self.mean_module}. You can added here if needed")
+        if isinstance(self.covar_module, str):
+            if self.covar_module=="RBF":
+                self.covar_module=gpytorch.kernels.RBFKernel()
+            if self.covar_module=="Matern":
+                self.covar_module=gpytorch.kernels.MaternKernel()
+            else:
+                ValueError(f"No kernel named {self.covar_module}. You can added here if needed")
         if scale_kernel:
             self.covar_module = gpytorch.kernels.ScaleKernel(self.covar_module)
 
@@ -54,11 +66,13 @@ class MultiOutputGP(Model):
         device,
         mean: Optional[Mean] = None,
         kernel: Optional[Kernel] = None,
+        eval_metric: Optional[str] = "MSE",
         *args,
         **kwargs
     ):
         super().__init__(device, *args, **kwargs)
 
+        self.eval_metric = eval_metric
         self.in_size = in_size
         self.out_size = out_size
         models = []
@@ -110,7 +124,7 @@ class MultiOutputGP(Model):
             return self.likelihood(*self.forward(model_in))
 
     def eval_score(
-        self, model_in: torch.Tensor, target: Optional[torch.Tensor]
+        self, model_in: torch.Tensor, target: Optional[torch.Tensor],
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         #if self.models.train_inputs ar all None -> None
         assert model_in.ndim == 2 and target.ndim == 2
@@ -118,12 +132,13 @@ class MultiOutputGP(Model):
         pred_mean = torch.cat(
             [pred.mean.unsqueeze(-1) for pred in pred_output], axis=-1
         )
-        if self.eval_metric is None:
-            return F.mse_loss(pred_mean, target, reduction="none"), {}
-        elif self.eval_metric=="MSE":
+        if self.eval_metric=="MSE":
             return F.mse_loss(pred_mean, target, reduction="none"), {}
         elif self.eval_metric=="R2":
-            return r2_score(pred_mean, target), {}
+            r2=r2_score(pred_mean, target, multioutput="raw_values")
+            while r2.ndim<target.ndim:
+                r2=torch.unsqueeze(r2, dim=0)
+            return -r2, {}
         else:
             raise ValueError(f"No metric called {self.metric} implemented (yet)")
 

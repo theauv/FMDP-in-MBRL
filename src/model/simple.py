@@ -61,9 +61,6 @@ class Simple(Model):
 
         self.factors = [np.arange(self.in_size) for output in range(self.out_size)]
 
-        print("AHHHHHHHHH")
-        print(self.out_size)
-
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         return self.hidden_layers(x)
 
@@ -73,17 +70,18 @@ class Simple(Model):
         return F.mse_loss(pred_out, target, reduction="none").mean(-1).mean(), {}
 
     def eval_score(
-        self, model_in: torch.Tensor, target: Optional[torch.Tensor] = None
+        self, model_in: torch.Tensor, target: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         assert model_in.ndim == 2 and target.ndim == 2
         with torch.no_grad():
             pred_output = self.forward(model_in)
-            if self.eval_metric is None:
-                return F.mse_loss(pred_output, target, reduction="none"), {}
-            elif self.eval_metric=="MSE":
+            if self.eval_metric=="MSE":
                 return F.mse_loss(pred_output, target, reduction="none"), {}
             elif self.eval_metric=="R2":
-                return r2_score(pred_output, target), {}
+                r2=r2_score(pred_output, target, multioutput="raw_values")
+                while r2.ndim<target.ndim:
+                    r2=torch.unsqueeze(r2, dim=0)
+                return -r2, {}
             else:
                 raise ValueError(f"No metric called {self.metric} implemented (yet)")
 

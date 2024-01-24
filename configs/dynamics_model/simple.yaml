@@ -8,5 +8,6 @@ model:
   in_size: ???
   out_size: ???
   hid_size: 200
+  eval_metric: MSE
   activation_fn_cfg: #null
     _target_: torch.nn.SiLU

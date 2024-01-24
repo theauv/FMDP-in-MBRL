@@ -7,6 +7,8 @@ model:
   in_size: ???
   out_size: ???
   mean: null
-  kernel: null
+  kernel: Matern
+  scale_kernel: true
+  eval_metric: MSE
 
 batch_size: ${overrides.dataset_size}
