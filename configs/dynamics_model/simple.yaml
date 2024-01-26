@@ -11,3 +11,6 @@ model:
   eval_metric: MSE #TODO: Better if in model trainer
   activation_fn_cfg: #null
     _target_: torch.nn.SiLU
+
+model_lr: 0.1
+model_wd: 0

@@ -76,10 +76,10 @@ class Simple(Model):
         with torch.no_grad():
             pred_output = self.forward(model_in)
             if self.eval_metric=="MSE":
-                return F.mse_loss(pred_output, target, reduction="none"), {}
+                return F.mse_loss(pred_output, target, reduction="none").unsqueeze(0), {}
             elif self.eval_metric=="R2":
                 r2=r2_score(pred_output, target, multioutput="raw_values")
-                while r2.ndim<target.ndim:
+                while r2.ndim<3:
                     r2=torch.unsqueeze(r2, dim=0)
                 return -r2, {}
             else:

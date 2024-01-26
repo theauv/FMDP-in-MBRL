@@ -7,15 +7,15 @@ defaults:
 
 seed: 0
 device: "cpu" #"cuda:0"
-run_name: hypergrid_test_gp
+run_name: hypergrid_test_GP
 debug_mode: true
 silent: false
 
 dataset_folder_name: datasets
-dataset_size: 10000
+dataset_size: 4000
 model_batch_size: 256
 validation_ratio: 0.2
-num_epochs_train_model: 10000
+num_epochs_train_model: 30
 patience: ${num_epochs_train_model}
 learned_rewards: False
 # bootstrap_permutes: 

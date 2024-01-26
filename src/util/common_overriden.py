@@ -86,7 +86,6 @@ def step_env_and_add_to_buffer_overriden(
             "env of type mbrl.env.MujocoGymPixelWrapper."
         )
     if agent_uses_low_dim_obs:
-        print("obs", obs)
         agent_obs = getattr(env, "get_last_low_dim_obs")()
     else:
         agent_obs = obs

@@ -189,6 +189,7 @@ class Bikes(DictSpacesEnv):
         # TODO: self.split_reward_by_centroid = env_config.split_reward_by_centroid # if true, we model the number of trips from each centroid individual, instead of the total number of trips
         # TODO: not especially optimal, could also decide for fix number of actions WHEN to take them during the day ??
         # TODO: "self strips" ?? Should we consider them or not (only influence is the trip_duration)
+        # TODO: Use a structured np.array instead of map_obs and map_act dictionaries
         super().__init__()
         self.num_trucks = env_config.num_trucks
         self.action_per_day = env_config.action_per_day

@@ -120,8 +120,8 @@ def train(
     model_trainer = hydra.utils.instantiate(
         cfg.dynamics_model.model_trainer,
         dynamics_model,
-        optim_lr=cfg.overrides.model_lr,
-        weight_decay=cfg.overrides.model_wd,
+        optim_lr=cfg.dynamics_model.model_lr,
+        weight_decay=cfg.dynamics_model.model_wd,
         logger=logger,
     )
 

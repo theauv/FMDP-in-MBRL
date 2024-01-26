@@ -132,8 +132,8 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str]
     model_trainer = hydra.utils.instantiate(
         cfg.dynamics_model.model_trainer,
         dynamics_model,
-        optim_lr=cfg.overrides.model_lr,
-        weight_decay=cfg.overrides.model_wd,
+        optim_lr=cfg.dynamics_model.model_lr,
+        weight_decay=cfg.dynamics_model.model_wd,
         logger=logger,
     )
 
@@ -166,6 +166,7 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str]
     if cfg.debug_mode:
         end = time()
         print(f"Training time: {end-start}")
+    dynamics_model.save
 
 
 @hydra.main(config_path="../configs", config_name="training_model")

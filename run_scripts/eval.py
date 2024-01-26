@@ -1,12 +1,14 @@
 import argparse
 import pathlib
-from typing import List, Optional, Tuple
+import hydra
+from typing import List, Optional, Tuple, Dict, Any
 from time import sleep
 import numpy as np
 import matplotlib
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import torch
+from torch.functional import F
 
 import mbrl
 from mbrl.diagnostics.visualize_model_preds import Visualizer
@@ -14,12 +16,75 @@ import mbrl.models
 import mbrl.planning
 import mbrl.util.common
 
+from src.env.hypergrid import ContinuousHyperGrid
 from src.env.env_handler import get_handler
 from src.env.constants import BLACK, GREEN, RED, WHITE
-from src.util.util import create_one_dim_tr_model_overriden, get_weights_model
-
+from src.util.util import get_weights_model
+from src.util.common_overriden import create_one_dim_tr_model_overriden, create_overriden_replay_buffer
+from src.model.gaussian_process import MultiOutputGP
 
 VisData = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+
+class PerfectHypergridModel(mbrl.models.Model):
+    def __init__(self, device, *args, **kwargs):
+        super().__init__(device, *args, **kwargs)
+        #HARD CODED !!!
+        self.in_size = 4
+        self.out_size = 2
+
+    def forward(self, x: torch.Tensor, *args, **kwargs) -> Tuple[torch.Tensor, ...]:
+        input_dim = x.shape[-1]
+        assert input_dim%2 == 0
+        return x[..., input_dim//2:] #x[..., :input_dim//2]+x[..., input_dim//2:]
+
+    def loss(
+        self,
+        model_in,
+        target: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
+        assert model_in.ndim == 2 and target.ndim == 2
+        pred_out = self.forward(model_in)
+        return F.mse_loss(pred_out, target, reduction="none").mean(-1).mean(), {}
+
+    def eval_score(
+        self, model_in, target: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
+        assert model_in.ndim == 2 and target.ndim == 2
+        with torch.no_grad():
+            pred_output = self.forward(model_in)
+            return F.mse_loss(pred_output, target, reduction="none").unsqueeze(0), {}
+
+    def update(
+        self,
+        model_in,
+        optimizer: torch.optim.Optimizer,
+        target: Optional[torch.Tensor] = None,
+    ) -> Tuple[float, Dict[str, Any]]:
+        loss, meta = self.loss(model_in, target)
+        return loss.item(), meta
+
+    def reset_1d(
+        self, obs: torch.Tensor, rng: Optional[torch.Generator] = None
+    ) -> Dict[str, torch.Tensor]:
+        assert rng is not None
+        propagation_indices = None
+        return {"obs": obs, "propagation_indices": propagation_indices}
+
+    def sample_1d(
+        self,
+        model_input: torch.Tensor,
+        model_state: Dict[str, torch.Tensor],
+        deterministic: bool = False,
+        rng: Optional[torch.Generator] = None,
+    ) -> Tuple[
+        torch.Tensor,
+        Optional[torch.Tensor],
+        Optional[torch.Tensor],
+        Optional[Dict[str, torch.Tensor]],
+    ]:
+        return (self.forward(model_input), model_state)
+
+
 
 
 def unit_vector(vector):
@@ -46,6 +111,7 @@ class AdaptedVisualizer(Visualizer):
         num_model_samples: int = 1,
         model_subdir: Optional[str] = None,
         render: bool = False,
+        use_perfect_hypergrid_model: bool = False,
     ):
         self.lookahead = lookahead
         self.results_path = pathlib.Path(results_dir)
@@ -76,12 +142,36 @@ class AdaptedVisualizer(Visualizer):
 
         self.reward_fn = reward_fn
 
-        self.dynamics_model = create_one_dim_tr_model_overriden(
-            self.cfg,
-            self.env.observation_space.shape,
-            self.env.action_space.shape,
-            model_dir=self.model_path,
-        )
+        if use_perfect_hypergrid_model:
+            model = PerfectHypergridModel(device="cpu")
+            name_obs_process_fn = self.cfg.overrides.get("obs_process_fn", None)
+            if name_obs_process_fn:
+                obs_process_fn = hydra.utils.get_method(self.cfg.overrides.obs_process_fn)
+            else:
+                obs_process_fn = None
+            self.dynamics_model = hydra.utils.instantiate(
+                self.cfg.overrides.model_wrapper,
+                model,
+                target_is_delta=self.cfg.algorithm.target_is_delta,
+                normalize=self.cfg.algorithm.normalize,
+                normalize_double_precision=self.cfg.algorithm.get(
+                    "normalize_double_precision", False
+                ),
+                learned_rewards=self.cfg.algorithm.learned_rewards,
+                obs_process_fn=obs_process_fn,
+                no_delta_list=self.cfg.overrides.get("no_delta_list", None),
+                num_elites=self.cfg.overrides.get("num_elites", None),
+            )
+            #Overrides
+            self.cfg.overrides.model_batch_size = self.cfg.dynamics_model.get("batch_size", self.cfg.overrides.model_batch_size)
+        else:
+            self.dynamics_model = create_one_dim_tr_model_overriden(
+                self.cfg,
+                self.env,
+                self.env.observation_space.shape,
+                self.env.action_space.shape,
+                model_dir=self.model_path,
+            )
         self.model_env = mbrl.models.ModelEnv(
             self.env,
             self.dynamics_model,
@@ -89,6 +179,41 @@ class AdaptedVisualizer(Visualizer):
             reward_fn,
             generator=torch.Generator(self.dynamics_model.device),
         )
+
+        rng = np.random.default_rng(seed=self.cfg.seed)
+        torch_generator = torch.Generator(device=self.cfg.device)
+        if self.cfg.seed is not None:
+            torch_generator.manual_seed(self.cfg.seed)
+        use_double_dtype = self.cfg.algorithm.get("normalize_double_precision", False)
+        dtype = np.double if use_double_dtype else np.float32
+        self.replay_buffer = create_overriden_replay_buffer(
+            self.cfg,
+            self.env.observation_space.shape,
+            self.env.action_space.shape,
+            rng=rng,
+            obs_type=dtype,
+            action_type=dtype,
+            reward_type=dtype,
+            load_dir=self.model_path,
+        )
+
+        self.dataset_train, _ = mbrl.util.common.get_basic_buffer_iterators(
+            self.replay_buffer,
+            self.replay_buffer.num_stored,
+            val_ratio=0,
+            ensemble_size=len(self.dynamics_model),
+            shuffle_each_epoch=True,
+            bootstrap_permutes=self.cfg.get("bootstrap_permutes", False),
+        )
+
+        if isinstance(self.dynamics_model.model, MultiOutputGP):
+            for batch in self.dataset_train:
+                obs, act, next_obs, rewards, _, _ = batch.astuple()
+                train_x = torch.cat([torch.tensor(obs, dtype=torch.float32), torch.tensor(act, dtype=torch.float32)], axis=-1)
+                target = torch.tensor(next_obs, dtype=torch.float32)
+                self.dynamics_model.model.train()
+                self.dynamics_model.model.set_train_data(train_x, target)
+                self.dynamics_model.model.forward()
 
         # Instanciate the agent
         self.agent: mbrl.planning.Agent
@@ -201,11 +326,12 @@ class AdaptedVisualizer(Visualizer):
             observation = new_obs
 
             # Model_env step
-            if env_step == 1 or np.all(model_observation["obs"][0] == observation):
-                model_action = action
-            else:
-                model_action = self.agent.act(model_observation["obs"][0])
-            model_action = np.expand_dims(model_action, axis=0)
+            # if env_step == 1 or np.all(model_observation["obs"][0] == observation):
+            #     model_action = action
+            # else:
+            #     model_action = self.agent.act(model_observation["obs"][0])
+            # model_action = np.expand_dims(model_action, axis=0)
+            model_action = np.expand_dims(action, axis=0)
 
             old_model_observation = model_observation["obs"][0].copy()
 
@@ -523,6 +649,65 @@ class AdaptedVisualizer(Visualizer):
                     f"Relevant action state inputs for next state {next_state}: {[i for i, param in enumerate(associated_weights) if abs(param)>next_mean]}, Max: {next_max}"
                 )
 
+    def test_model(self):
+
+        base_env = self.env
+        while hasattr(base_env, "env"):
+            base_env = base_env.env
+        assert isinstance(base_env, ContinuousHyperGrid)
+
+        dataset_train, dataset_val = mbrl.util.common.get_basic_buffer_iterators(
+            self.replay_buffer,
+            self.replay_buffer.num_stored,
+            val_ratio=0,
+            ensemble_size=len(self.dynamics_model),
+            shuffle_each_epoch=True,
+            bootstrap_permutes=self.cfg.get("bootstrap_permutes", False),
+        )
+
+        for batch in dataset_train:
+            obs, act, next_obs, rewards, _, _ = batch.astuple()
+            train_x = torch.cat([torch.tensor(obs, dtype=torch.float32), torch.tensor(act, dtype=torch.float32)], axis=-1)
+            target = torch.tensor(next_obs, dtype=torch.float32)
+
+        with torch.no_grad():
+            self.dynamics_model.eval()
+            x_dim = self.dynamics_model.model.in_size
+            # a = np.ones(x_dim)*self.env.observation_space.low[0]
+            # b = np.ones(x_dim)*self.env.observation_space.high[0]
+            # test_x = torch.tensor(np.linspace(a, b, 100), dtype=torch.float32)
+            test_x = train_x
+            observed_preds = self.dynamics_model.forward(test_x)
+
+        import matplotlib
+        matplotlib.use("TkAgg")
+        f, ax = plt.subplots(1, x_dim, figsize=(4, 3))
+        for i in range(x_dim):
+            # Plot training data as black stars
+            j = i%(x_dim//2)
+            ax[i].plot(train_x[:,i].numpy(), target[:,j].numpy(), 'k*')
+            if isinstance(self.dynamics_model.model, MultiOutputGP):
+                ax[i].plot(test_x[:,i].numpy(), observed_preds[j].mean.detach().numpy(), 'bo')
+                lower, upper = observed_preds[j].confidence_region()
+                ax[i].fill_between(test_x[:,i].numpy(), lower.detach().numpy(), upper.detach().numpy(), alpha=0.5)
+                ax[i].legend(['Observed Data', 'Mean', 'Confidence'])
+            else:
+                ax[i].plot(test_x[:,i].numpy(), observed_preds[:,j].numpy(), 'b')
+        plt.show()
+
+
+    def test(self):
+
+        inp = [1, 2, 0.5, 0.5]
+        inp = torch.tensor(inp, dtype=torch.float32).unsqueeze(0)
+
+        with torch.no_grad():
+            print(self.dynamics_model.forward(inp))
+
+            
+
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -561,6 +746,12 @@ if __name__ == "__main__":
         action=argparse.BooleanOptionalAction,
         help="Add it if you want to render the environment",
     )
+    parser.add_argument(
+        "--use_phm",
+        default=False,
+        action=argparse.BooleanOptionalAction,
+        help="Add it if you want to use a 'perfect' model to solve the hypergrid env",
+    )
     args = parser.parse_args()
 
     visualizer = AdaptedVisualizer(
@@ -571,15 +762,20 @@ if __name__ == "__main__":
         num_model_samples=args.num_model_samples,
         model_subdir=args.model_subdir,
         render=args.render,
+        use_perfect_hypergrid_model=args.use_phm
     )
 
     if args.function == "test_agent":
         visualizer.test_agent()
+    elif args.function == "test_model":
+        visualizer.test_model()
     elif args.function == "test_model_vs_env":
         visualizer.test_model_vs_env()
     elif args.function == "test_model_sparsity":
         visualizer.test_model_sparsity()
     elif args.function == "model_weights_dependencies":
         visualizer.model_weights_dependencies()
+    elif args.function == "test":
+        visualizer.test()
     else:
         raise ValueError("There is no such function implemented by the Visualizer")

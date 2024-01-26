@@ -12,7 +12,7 @@ agent:
 
 normalize: true
 normalize_double_precision: true
-target_is_delta: true
+target_is_delta: false
 initial_exploration_steps: ${overrides.trial_length}
 freq_train_model: ${overrides.freq_train_model}
 learned_rewards: ${overrides.learned_rewards}

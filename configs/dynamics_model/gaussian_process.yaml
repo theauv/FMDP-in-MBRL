@@ -7,8 +7,10 @@ model:
   in_size: ???
   out_size: ???
   mean: null
-  kernel: Matern
+  kernel: null #Matern
   scale_kernel: true
   eval_metric: MSE #TODO: Better if in model trainer
 
 batch_size: ${overrides.dataset_size}
+model_lr: 0.1
+model_wd: 0
