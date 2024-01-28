@@ -59,7 +59,7 @@ class ModelTrainerOverriden(ModelTrainer):
         logger: Optional[Logger] = None,
     ):
         super().__init__(model, optim_lr, weight_decay, optim_eps, logger)
-
+        
     def train(
         self,
         dataset_train: TransitionIterator,
@@ -152,6 +152,7 @@ class ModelTrainerOverriden(ModelTrainer):
                 batch_losses.append(loss)
                 if batch_callback_epoch:
                     batch_callback_epoch(loss, meta, "train")
+            print(len(batch_losses), len(batch))
             total_avg_loss = np.mean(batch_losses).mean().item()
             training_losses.append(total_avg_loss)
 
@@ -173,6 +174,8 @@ class ModelTrainerOverriden(ModelTrainer):
                 else:
                     epochs_since_update += 1
                 model_val_score = eval_score.mean()
+
+            print(f"Epoch: {epoch} Train loss {total_avg_loss:.3f}, Test loss {model_val_score:.3f}")
 
             if debug:
                 end = time()

@@ -160,7 +160,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         warnings.warn("Not used so far, make sure it works")
 
         if len(x.shape) == 1:
-            x = np.expand_dims(x, axis=0)
+            x = x[None, ...]
 
         obs = x[: self.obs_length]
         action = x[self.obs_length : self.obs_length + self.act_length]

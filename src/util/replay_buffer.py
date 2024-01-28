@@ -3,20 +3,20 @@
 
 import numpy as np
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 from mbrl.util.replay_buffer import ReplayBuffer
 
 
 class ReplayBufferOverriden(ReplayBuffer):
-    def load(self, load_dir: Union[Path, str]):
+    def load(self, load_dir: Union[Path, str], num_to_store: Optional[int] = None):
         """Loads transition data from a given directory.
         Args:
             load_dir (str): the directory where the buffer is stored.
         """
         path = Path(load_dir) / "replay_buffer.npz"
         data = np.load(path)
-        num_stored = min(len(data["obs"]), self.capacity)
+        num_stored = num_to_store if num_to_store is not None else min(len(data["obs"]), self.capacity)
         self.obs[:num_stored] = data["obs"][:num_stored]
         self.next_obs[:num_stored] = data["next_obs"][:num_stored]
         self.action[:num_stored] = data["action"][:num_stored]
