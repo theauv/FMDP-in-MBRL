@@ -111,9 +111,12 @@ class CallbackWandb:
             "eval_score": eval_score,
             "best_eval_score": best_eval_score,
             "train_iteration": train_iter,
-            "train_r2_score": train_r2_score,
-            "eval_r2_score": eval_r2_score,
         }
+
+        if train_r2_score is not None:
+            tracked_values.update({"train_r2_score": train_r2_score,})
+        if eval_r2_score is not None:
+            tracked_values.update({"eval_r2_score": eval_r2_score,})
 
         wandb.log(tracked_values)
 
@@ -141,9 +144,12 @@ class CallbackWandb:
             "total_avg_loss": total_avg_loss,
             "eval_score": eval_score,
             "best_eval_score": best_eval_score,
-            "train_r2_score": train_r2_score,
-            "eval_r2_score": eval_r2_score,
         }
+
+        if train_r2_score is not None:
+            tracked_values.update({"train_r2_score": train_r2_score,})
+        if eval_r2_score is not None:
+            tracked_values.update({"eval_r2_score": eval_r2_score,})
 
         wandb.log(tracked_values)
 
