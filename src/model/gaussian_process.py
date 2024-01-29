@@ -123,7 +123,16 @@ class MultiOutputGP(Model):
         self.set_train_data(model_in, target)
         pred_out = self.forward()
         # TODO Debug: Be sure target is well passed before in the GP as it is NOT USED
-        return -self.mll(pred_out, self.gp.train_targets), {}
+        with torch.no_grad(), gpytorch.settings.fast_pred_var():
+            pred_mean = self.likelihood(*pred_out)
+            pred_mean = torch.cat(
+                [pred.mean.unsqueeze(-1) for pred in pred_mean], axis=-1
+            )
+            meta = {
+                    "outputs": pred_mean,
+                    "targets": target,
+                }
+        return -self.mll(pred_out, self.gp.train_targets), meta
 
     def pred_distribution(
         self, model_in: torch.Tensor
@@ -137,19 +146,16 @@ class MultiOutputGP(Model):
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         #if self.models.train_inputs ar all None -> None
         assert model_in.ndim == 2 and target.ndim == 2
-        pred_output = self.pred_distribution(model_in)
-        pred_mean = torch.cat(
-            [pred.mean.unsqueeze(-1) for pred in pred_output], axis=-1
-        )
-        if self.eval_metric=="MSE":
-            return F.mse_loss(pred_mean, target, reduction="none").unsqueeze(0), {}
-        elif self.eval_metric=="R2":
-            r2=r2_score(pred_mean, target, multioutput="raw_values")
-            while r2.ndim<target.ndim:
-                r2=torch.unsqueeze(r2, dim=0)
-            return -r2, {}
-        else:
-            raise ValueError(f"No metric called {self.metric} implemented (yet)")
+        with torch.no_grad(), gpytorch.settings.fast_pred_var():
+            pred_output = self.pred_distribution(model_in)
+            pred_mean = torch.cat(
+                [pred.mean.unsqueeze(-1) for pred in pred_output], axis=-1
+            )
+            meta = {
+                    "outputs": pred_mean,
+                    "targets": target,
+                }
+        return F.mse_loss(pred_mean, target, reduction="none").unsqueeze(0), meta
 
     def save(self, save_dir: Union[str, pathlib.Path]):
         """Saves the model to the given directory."""

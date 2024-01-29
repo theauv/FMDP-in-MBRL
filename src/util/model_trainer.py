@@ -5,11 +5,11 @@ from math import ceil
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import warnings
 
-
 import numpy as np
 import tqdm
 import torch
 from torch import optim
+from torcheval.metrics.functional import r2_score
 from matplotlib import pyplot as plt
 
 import mbrl
@@ -39,6 +39,12 @@ SPARSITY_LOG_FORMAT = [
     ("num_factors", "F", "int"),
 ]
 
+ADD_MODEL_LOG_FORMAT = [
+    ("train_R2", "TR2", "float"),
+    ("eval_R2", "VR2", "float"),
+]
+
+MODEL_LOG_FORMAT += ADD_MODEL_LOG_FORMAT
 
 class ModelTrainerOverriden(ModelTrainer):
     """Trainer for dynamics models. Override of ModelTrainer from mbrl
@@ -128,11 +134,11 @@ class ModelTrainerOverriden(ModelTrainer):
         """
         eval_dataset = dataset_train if dataset_val is None else dataset_val
 
-        training_losses, val_scores = [], []
+        training_losses, val_scores, train_r2_scores, eval_r2_scores = [], [], [], []
         best_weights: Optional[Dict] = None
         epoch_iter = range(num_epochs) if num_epochs else itertools.count()
         epochs_since_update = 0
-        best_val_score = self.evaluate(eval_dataset) if evaluate else None
+        best_val_score, _ = self.evaluate(eval_dataset) if evaluate else None
         # only enable tqdm if training for a single epoch,
         # otherwise it produces too much output
         disable_tqdm = silent or (num_epochs is None or num_epochs > 1)
@@ -147,22 +153,28 @@ class ModelTrainerOverriden(ModelTrainer):
             else:
                 batch_callback_epoch = None
             batch_losses: List[float] = []
+            batch_r2_scores: List[float] = []
             for batch in tqdm.tqdm(dataset_train, disable=disable_tqdm):
                 loss, meta = self.model.update(batch, self.optimizer)
                 batch_losses.append(loss)
+                if "outputs" in meta and "targets" in meta:
+                    batch_r2_scores.append(r2_score(meta["outputs"], meta["targets"]))
                 if batch_callback_epoch:
                     batch_callback_epoch(loss, meta, "train")
-            print(len(batch_losses), len(batch))
             total_avg_loss = np.mean(batch_losses).mean().item()
             training_losses.append(total_avg_loss)
+            if batch_r2_scores:
+                train_r2_scores.append(np.mean(batch_r2_scores))
 
             eval_score = None
             model_val_score = 0
             if evaluate:
-                eval_score = self.evaluate(
+                eval_score, r2 = self.evaluate(
                     eval_dataset, batch_callback=batch_callback_epoch
                 )
                 val_scores.append(eval_score.mean().item())
+                if r2:
+                    eval_r2_scores.append(r2)
 
                 maybe_best_weights = self.maybe_get_best_weights(
                     best_val_score, eval_score, improvement_threshold
@@ -175,11 +187,18 @@ class ModelTrainerOverriden(ModelTrainer):
                     epochs_since_update += 1
                 model_val_score = eval_score.mean()
 
-            print(f"Epoch: {epoch} Train loss {total_avg_loss:.3f}, Test loss {model_val_score:.3f}")
-
             if debug:
                 end = time()
                 print(f"Training epoch duration: {round(end-start, 2)}s")
+                debug_log = (
+                    f"Epoch: {epoch} Train loss {total_avg_loss:.3f}, " 
+                    f"Test loss {model_val_score:.3f} "
+                )
+                if train_r2_scores:
+                    debug_log += f"Train R2 {train_r2_scores[-1]:.3f}, "
+                if eval_r2_scores:
+                    debug_log += f"Test R2 {eval_r2_scores[-1]:.3f} "
+                print(debug_log)
 
             if self.logger and not silent:
                 self.logger.log_data(
@@ -196,6 +215,8 @@ class ModelTrainerOverriden(ModelTrainer):
                         "model_best_val_score": best_val_score.mean()
                         if best_val_score is not None
                         else 0,
+                        "train_R2": train_r2_scores[-1] if train_r2_scores else None,
+                        "eval_R2": eval_r2_scores[-1] if eval_r2_scores else None,
                     },
                 )
             if callback:
@@ -206,6 +227,8 @@ class ModelTrainerOverriden(ModelTrainer):
                     total_avg_loss,
                     model_val_score,
                     best_val_score.mean(),
+                    train_r2_scores[-1] if train_r2_scores else None,
+                    eval_r2_scores[-1] if eval_r2_scores else None,
                 )
 
             if patience and epochs_since_update >= patience:
@@ -216,7 +239,61 @@ class ModelTrainerOverriden(ModelTrainer):
             self._maybe_set_best_weights_and_elite(best_weights, best_val_score)
 
         self._train_iteration += 1
-        return training_losses, val_scores
+        return training_losses, val_scores, train_r2_scores, eval_r2_scores
+    
+
+    def evaluate(
+        self, dataset: TransitionIterator, batch_callback: Optional[Callable] = None
+    ) -> torch.Tensor:
+        """Evaluates the model on the validation dataset.
+
+        Iterates over the dataset, one batch at a time, and calls
+        :meth:`mbrl.models.Model.eval_score` to compute the model score
+        over the batch. The method returns the average score over the whole dataset.
+
+        Args:
+            dataset (bool): the transition iterator to use.
+            batch_callback (callable, optional): if provided, this function will be called
+                for every batch with the output of ``model.eval_score()`` (the score will
+                be passed as a float, reduced using mean()). It will be called
+                with four arguments ``(epoch_index, loss/score, meta, mode)``, where
+                ``mode`` is the string ``"eval"``.
+
+        Returns:
+            (tensor): The average score of the model over the dataset (and for ensembles, per
+                ensemble member).
+        """
+        if isinstance(dataset, BootstrapIterator):
+            dataset.toggle_bootstrap()
+
+        batch_scores_list = []
+        batch_r2_scores = []
+        for batch in dataset:
+            batch_score, meta = self.model.eval_score(batch)
+            batch_scores_list.append(batch_score)
+            if "outputs" in meta and "targets" in meta:
+                batch_r2_scores.append(r2_score(meta["outputs"], meta["targets"]))
+            if batch_callback:
+                batch_callback(batch_score.mean(), meta, "eval")
+        try:
+            batch_scores = torch.cat(
+                batch_scores_list, dim=batch_scores_list[0].ndim - 2
+            )
+        except RuntimeError as e:
+            print(
+                f"There was an error calling ModelTrainer.evaluate(). "
+                f"Note that model.eval_score() should be non-reduced. Error was: {e}"
+            )
+            raise e
+        if isinstance(dataset, BootstrapIterator):
+            dataset.toggle_bootstrap()
+        
+        mean_axis = 1 if batch_scores.ndim == 2 else (1, 2)
+        batch_scores = batch_scores.mean(dim=mean_axis)
+
+        r2 = np.mean(batch_r2_scores) if batch_r2_scores else None
+
+        return batch_scores, r2
 
 #TODO: Make sure it actually makes sense to have one optimizer by submodel or not
 class MultiModelsTrainer(ModelTrainerOverriden):

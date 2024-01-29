@@ -60,6 +60,8 @@ class CallbackWandb:
             wandb.define_metric("total_avg_loss", step_metric="train_iteration")
             wandb.define_metric("eval_score", step_metric="train_iteration")
             wandb.define_metric("best_eval_score", step_metric="train_iteration")
+            wandb.define_metric("train_r2_score", step_metric="train_iteration")
+            wandb.define_metric("eval_r2_score", step_metric="train_iteration")
 
             wandb.define_metric("trajectory_optimizer_iteration", hidden=True)
             wandb.define_metric(
@@ -71,6 +73,8 @@ class CallbackWandb:
             wandb.define_metric("total_avg_loss", step_metric="train_epoch")
             wandb.define_metric("eval_score", step_metric="train_epoch")
             wandb.define_metric("best_eval_score", step_metric="train_epoch")
+            wandb.define_metric("train_r2_score", step_metric="train_epoch")
+            wandb.define_metric("eval_r2_score", step_metric="train_epoch")
 
     def env_callback(self, env):
         if not self.with_tracking:
@@ -91,6 +95,8 @@ class CallbackWandb:
         total_avg_loss: float,
         eval_score: float,
         best_eval_score: float,
+        train_r2_score: Optional[float] = None,
+        eval_r2_score: Optional[float] = None,
     ):
         """
         Plot the training scores of the model
@@ -105,6 +111,8 @@ class CallbackWandb:
             "eval_score": eval_score,
             "best_eval_score": best_eval_score,
             "train_iteration": train_iter,
+            "train_r2_score": train_r2_score,
+            "eval_r2_score": eval_r2_score,
         }
 
         wandb.log(tracked_values)
@@ -117,6 +125,8 @@ class CallbackWandb:
         total_avg_loss: float,
         eval_score: float,
         best_eval_score: float,
+        train_r2_score: Optional[float] = None,
+        eval_r2_score: Optional[float] = None,
     ):
         """
         Plot the training scores of the model
@@ -131,6 +141,8 @@ class CallbackWandb:
             "total_avg_loss": total_avg_loss,
             "eval_score": eval_score,
             "best_eval_score": best_eval_score,
+            "train_r2_score": train_r2_score,
+            "eval_r2_score": eval_r2_score,
         }
 
         wandb.log(tracked_values)

@@ -29,13 +29,11 @@ class Simple(Model):
         num_layers: int = 4,
         hid_size: int = 200,
         activation_fn_cfg: Optional[Union[Dict, omegaconf.DictConfig]] = None,
-        eval_metric: Optional[str] = "MSE",
     ):
         super().__init__(device)
 
         self.in_size = in_size
         self.out_size = out_size
-        self.eval_metric = eval_metric
 
         def create_activation():
             if activation_fn_cfg is None:
@@ -67,7 +65,11 @@ class Simple(Model):
     def loss(self, model_in: torch.Tensor, target: torch.Tensor = None) -> torch.Tensor:
         assert model_in.ndim == 2 and target.ndim == 2
         pred_out = self.forward(model_in)
-        return F.mse_loss(pred_out, target, reduction="none").mean(-1).mean(), {}
+        meta = {
+            "outputs": pred_out,
+            "targets": target,
+        }
+        return F.mse_loss(pred_out, target, reduction="none").mean(-1).mean(), meta
 
     def eval_score(
         self, model_in: torch.Tensor, target: Optional[torch.Tensor] = None,
@@ -75,15 +77,11 @@ class Simple(Model):
         assert model_in.ndim == 2 and target.ndim == 2
         with torch.no_grad():
             pred_output = self.forward(model_in)
-            if self.eval_metric=="MSE":
-                return F.mse_loss(pred_output, target, reduction="none").unsqueeze(0), {}
-            elif self.eval_metric=="R2":
-                r2=r2_score(pred_output, target, multioutput="raw_values")
-                while r2.ndim<3:
-                    r2=torch.unsqueeze(r2, dim=0)
-                return -r2, {}
-            else:
-                raise ValueError(f"No metric called {self.metric} implemented (yet)")
+            meta = {
+                "outputs": pred_output,
+                "targets": target,
+            }
+            return F.mse_loss(pred_output, target, reduction="none").unsqueeze(0), meta
 
     def save(self, save_dir: Union[str, pathlib.Path]):
         """Saves the model to the given directory."""

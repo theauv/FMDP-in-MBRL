@@ -940,7 +940,7 @@ class Bikes(DictSpacesEnv):
         :return: preprocessed observation
         """
 
-        # TODO: Maybe get rid of this when not needed anymore
+        batch_action = np.round(batch_action)
         resize = False
         while batch_obs.ndim < 3:
             assert batch_action.ndim == batch_obs.ndim

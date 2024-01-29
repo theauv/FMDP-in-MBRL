@@ -3,6 +3,7 @@ import warnings
 
 import numpy as np
 import torch
+from torcheval.metrics.functional import r2_score
 
 
 import mbrl.models.util as model_util
@@ -21,6 +22,9 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
     but we want to learn how the trips will occur during a given period after adding the bikes.
     Then the dynamics of stepping day, month and timeshift is also known.
     """
+
+    #TODO: Deal with normalize and rescaling (for now none it used as either bad implemented
+    # or harder to train on..)
 
     def __init__(
         self,
@@ -121,8 +125,8 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
             obs = self.obs_process_fn(obs, action)
         obs = model_util.to_tensor(obs).to(self.device)
         action = model_util.to_tensor(action).to(self.device)
-        obs = self.rescale_obs(obs)
-        action = self.rescale_act(action)
+        # obs = self.rescale_obs(obs)
+        # action = self.rescale_act(action)
         model_in = torch.cat([obs, action], dim=obs.ndim - 1)
 
         model_in = model_in.float().to(self.device)

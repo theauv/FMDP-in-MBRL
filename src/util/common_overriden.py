@@ -196,7 +196,7 @@ def create_one_dim_tr_model_overriden(
             ),
             learned_rewards=cfg.algorithm.learned_rewards,
             no_delta_list=cfg.overrides.get("no_delta_list", None),
-            num_elites=cfg.overrides.get("num_elites", None),
+            num_elites=cfg.dynamics_model.get("num_elites", None),
         )
     else:
         dynamics_model = hydra.utils.instantiate(
@@ -210,7 +210,7 @@ def create_one_dim_tr_model_overriden(
             learned_rewards=cfg.algorithm.learned_rewards,
             obs_process_fn=obs_process_fn,
             no_delta_list=cfg.overrides.get("no_delta_list", None),
-            num_elites=cfg.overrides.get("num_elites", None),
+            num_elites=cfg.dynamics_model.get("num_elites", None),
         )
     if model_dir:
         dynamics_model.load(model_dir)
