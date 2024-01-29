@@ -35,7 +35,7 @@ for station_dependencies in "src/env/bikes_data/factors_radius_0-4.npy" "src/env
     do
     for model in "linear_regression" "simple"
         do
-        radius=${radius##*/}
+        radius=${station_dependencies##*/}
         radius=${radius%%.*}
         run_name="${model}_${radius}"
         sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py overrides=pets_bikes overrides.env_config.station_dependencies=${station_dependencies} dynamics_model=${model} experiment.with_tracking=true experiment.run_configs.group=${group_name} experiment.run_configs.name=${run_name}"
