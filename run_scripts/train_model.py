@@ -73,6 +73,7 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str]
             cfg.dataset_folder_name,
             f"{base_env.__class__.__name__}",
             f"{station_dependencies}",
+            f"{base_env.action_per_day}"
         )
     else:
         dataset_dir = Path(
@@ -80,8 +81,15 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str]
             cfg.dataset_folder_name,
             f"{base_env.__class__.__name__}",
         )
+    # dataset_dir = Path(
+    #     base_dir,
+    #     cfg.dataset_folder_name,
+    #     f"{base_env.__class__.__name__}",
+    #     "temporary"
+    # )
     data_path = None
     if dataset_dir.exists() and dataset_dir.is_dir():
+        print(f"Load dataset from {dataset_dir}")
         data_path = dataset_dir
     replay_buffer = create_overriden_replay_buffer(
         cfg,

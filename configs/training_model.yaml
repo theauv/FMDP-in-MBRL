@@ -12,7 +12,7 @@ debug_mode: true
 silent: false
 
 dataset_folder_name: datasets
-dataset_size: 10000
+dataset_size: 1000
 model_batch_size: 256
 validation_ratio: 0.2
 num_epochs_train_model: 10000

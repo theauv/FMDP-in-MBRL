@@ -16,7 +16,11 @@ class ReplayBufferOverriden(ReplayBuffer):
         """
         path = Path(load_dir) / "replay_buffer.npz"
         data = np.load(path)
-        num_stored = num_to_store if num_to_store is not None else min(len(data["obs"]), self.capacity)
+        num_stored = (
+            num_to_store
+            if num_to_store is not None
+            else min(len(data["obs"]), self.capacity)
+        )
         self.obs[:num_stored] = data["obs"][:num_stored]
         self.next_obs[:num_stored] = data["next_obs"][:num_stored]
         self.action[:num_stored] = data["action"][:num_stored]

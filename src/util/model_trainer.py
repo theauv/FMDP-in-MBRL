@@ -46,6 +46,7 @@ ADD_MODEL_LOG_FORMAT = [
 
 MODEL_LOG_FORMAT += ADD_MODEL_LOG_FORMAT
 
+
 class ModelTrainerOverriden(ModelTrainer):
     """Trainer for dynamics models. Override of ModelTrainer from mbrl
 
@@ -65,7 +66,7 @@ class ModelTrainerOverriden(ModelTrainer):
         logger: Optional[Logger] = None,
     ):
         super().__init__(model, optim_lr, weight_decay, optim_eps, logger)
-        
+
     def train(
         self,
         dataset_train: TransitionIterator,
@@ -191,7 +192,7 @@ class ModelTrainerOverriden(ModelTrainer):
                 end = time()
                 print(f"Training epoch duration: {round(end-start, 2)}s")
                 debug_log = (
-                    f"Epoch: {epoch} Train loss {total_avg_loss:.3f}, " 
+                    f"Epoch: {epoch} Train loss {total_avg_loss:.3f}, "
                     f"Test loss {model_val_score:.3f} "
                 )
                 if train_r2_scores:
@@ -240,7 +241,6 @@ class ModelTrainerOverriden(ModelTrainer):
 
         self._train_iteration += 1
         return training_losses, val_scores, train_r2_scores, eval_r2_scores
-    
 
     def evaluate(
         self, dataset: TransitionIterator, batch_callback: Optional[Callable] = None
@@ -287,7 +287,7 @@ class ModelTrainerOverriden(ModelTrainer):
             raise e
         if isinstance(dataset, BootstrapIterator):
             dataset.toggle_bootstrap()
-        
+
         mean_axis = 1 if batch_scores.ndim == 2 else (1, 2)
         batch_scores = batch_scores.mean(dim=mean_axis)
 
@@ -295,7 +295,8 @@ class ModelTrainerOverriden(ModelTrainer):
 
         return batch_scores, r2
 
-#TODO: Make sure it actually makes sense to have one optimizer by submodel or not
+
+# TODO: Make sure it actually makes sense to have one optimizer by submodel or not
 class MultiModelsTrainer(ModelTrainerOverriden):
     def __init__(
         self,

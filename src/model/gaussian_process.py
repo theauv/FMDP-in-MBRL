@@ -40,23 +40,27 @@ class ExactGPModel(gpytorch.models.ExactGP):
             kernel if kernel is not None else gpytorch.kernels.RBFKernel()
         )
         if isinstance(self.mean_module, str):
-            if self.mean_module=="Constant":
-                self.mean_module=gpytorch.means.ConstantMean()
-            elif self.mean_module=="Linear":
+            if self.mean_module == "Constant":
+                self.mean_module = gpytorch.means.ConstantMean()
+            elif self.mean_module == "Linear":
                 if in_size is None:
                     raise ValueError("You chose a linear mean but the in_size is None")
-                self.mean_module=gpytorch.means.LinearMean(in_size)
+                self.mean_module = gpytorch.means.LinearMean(in_size)
             else:
-                raise ValueError(f"No mean module named {self.mean_module}. You can added here if needed")
+                raise ValueError(
+                    f"No mean module named {self.mean_module}. You can added here if needed"
+                )
         if isinstance(self.covar_module, str):
-            if self.covar_module=="RBF":
-                self.covar_module=gpytorch.kernels.RBFKernel()
-            elif self.covar_module=="Matern":
-                self.covar_module=gpytorch.kernels.MaternKernel()
-            elif self.covar_module=="Linear":
-                self.covar_module=gpytorch.kernels.LinearKernel()
+            if self.covar_module == "RBF":
+                self.covar_module = gpytorch.kernels.RBFKernel()
+            elif self.covar_module == "Matern":
+                self.covar_module = gpytorch.kernels.MaternKernel()
+            elif self.covar_module == "Linear":
+                self.covar_module = gpytorch.kernels.LinearKernel()
             else:
-                ValueError(f"No kernel named {self.covar_module}. You can added here if needed")
+                ValueError(
+                    f"No kernel named {self.covar_module}. You can added here if needed"
+                )
         if scale_kernel:
             self.covar_module = gpytorch.kernels.ScaleKernel(self.covar_module)
 
@@ -79,7 +83,7 @@ class MultiOutputGP(Model):
         scale_kernel: bool = True,
         eval_metric: Optional[str] = "MSE",
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(device, *args, **kwargs)
 
@@ -90,7 +94,13 @@ class MultiOutputGP(Model):
         for i in range(out_size):
             models.append(
                 ExactGPModel(
-                    None, None, gpytorch.likelihoods.GaussianLikelihood(), mean, kernel, scale_kernel, in_size
+                    None,
+                    None,
+                    gpytorch.likelihoods.GaussianLikelihood(),
+                    mean,
+                    kernel,
+                    scale_kernel,
+                    in_size,
                 )
             )
 
@@ -129,9 +139,9 @@ class MultiOutputGP(Model):
                 [pred.mean.unsqueeze(-1) for pred in pred_mean], axis=-1
             )
             meta = {
-                    "outputs": pred_mean,
-                    "targets": target,
-                }
+                "outputs": pred_mean,
+                "targets": target,
+            }
         return -self.mll(pred_out, self.gp.train_targets), meta
 
     def pred_distribution(
@@ -142,9 +152,11 @@ class MultiOutputGP(Model):
             return self.likelihood(*self.forward(model_in))
 
     def eval_score(
-        self, model_in: torch.Tensor, target: Optional[torch.Tensor],
+        self,
+        model_in: torch.Tensor,
+        target: Optional[torch.Tensor],
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
-        #if self.models.train_inputs ar all None -> None
+        # if self.models.train_inputs ar all None -> None
         assert model_in.ndim == 2 and target.ndim == 2
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
             pred_output = self.pred_distribution(model_in)
@@ -152,9 +164,9 @@ class MultiOutputGP(Model):
                 [pred.mean.unsqueeze(-1) for pred in pred_output], axis=-1
             )
             meta = {
-                    "outputs": pred_mean,
-                    "targets": target,
-                }
+                "outputs": pred_mean,
+                "targets": target,
+            }
         return F.mse_loss(pred_mean, target, reduction="none").unsqueeze(0), meta
 
     def save(self, save_dir: Union[str, pathlib.Path]):

@@ -164,7 +164,7 @@ class ContinuousHyperGrid(gym.Env):
 
         # Update state
         old_state = self.state
-        self.state = (old_state + action + self.grid_size/2) % (
+        self.state = (old_state + action + self.grid_size / 2) % (
             self.grid_size
         ) - self.grid_size / 2  # High dim box is a closed world
         if self.obstacles:

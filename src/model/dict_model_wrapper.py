@@ -23,7 +23,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
     Then the dynamics of stepping day, month and timeshift is also known.
     """
 
-    #TODO: Deal with normalize and rescaling (for now none it used as either bad implemented
+    # TODO: Deal with normalize and rescaling (for now none it used as either bad implemented
     # or harder to train on..)
 
     def __init__(
@@ -116,7 +116,10 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
     def _get_next_obs(self, batch_next_obs: mbrl.types.TensorType):
         if len(batch_next_obs.shape) == 1:
             batch_next_obs = np.expand_dims(batch_next_obs, axis=0)
-        return batch_next_obs[..., self.model_output_mask]
+        if not np.all(self.model_output_mask):
+            return None
+        else:
+            return batch_next_obs[..., self.model_output_mask]
 
     def _get_model_input(
         self, obs: mbrl.types.TensorType, action: mbrl.types.TensorType
@@ -144,14 +147,21 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         else:
             target_obs = next_obs
         target_obs = self._get_next_obs(target_obs)  # Only change in this function
-        target_obs = model_util.to_tensor(target_obs).to(self.device)
+        if target_obs is not None:
+            target_obs = model_util.to_tensor(target_obs).to(self.device)
 
         model_in, _ = self._get_model_input(obs, action)
         if self.learned_rewards:
             reward = model_util.to_tensor(reward).to(self.device).unsqueeze(reward.ndim)
-            target = torch.cat([target_obs, reward], dim=obs.ndim - 1)
+            if target_obs is not None:
+                target = torch.cat([target_obs, reward], dim=obs.ndim - 1)
+            else:
+                target = reward
         else:
             target = target_obs
+
+        if target is None:
+            raise ValueError("You try to predict nothing")
 
         if self.output_normalizer:
             target = self.output_normalizer.normalize(target)
@@ -275,7 +285,8 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         next_observs = preds[:, :-1] if self.learned_rewards else preds
 
         next_obs = preprocessed_obs
-        next_obs[:, self.model_output_mask] = next_observs
+        if next_observs.shape[-1]>0:
+            next_obs[:, self.model_output_mask] = next_observs
         next_obs = self.obs_postprocess_fn(next_obs)
 
         if self.target_is_delta:

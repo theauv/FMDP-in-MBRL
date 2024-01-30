@@ -6,24 +6,30 @@ from torch.functional import F
 
 from mbrl.models import Model
 
+
 class LinearRegression(Model):
     def __init__(
-            self,
-            in_size: int,
-            out_size: int,
-            device: Union[str, torch.device],   
-        ):
+        self,
+        in_size: int,
+        out_size: int,
+        device: Union[str, torch.device],
+    ):
         super().__init__(device)
         self.linear = torch.nn.Linear(in_size, out_size)
         self.criterion = torch.nn.MSELoss()
         self.in_size = in_size
         self.out_size = out_size
 
-    def forward(self, x):
+    def forward(self, x, proba=True):
         out = self.linear(x)
-        return out
+        if proba:
+            return torch.sigmoid(out)
+        else:
+            out
 
-    def loss(self, model_in: torch.Tensor, target: torch.Tensor = None) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def loss(
+        self, model_in: torch.Tensor, target: torch.Tensor = None
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         assert model_in.ndim == 2 and target.ndim == 2
         pred_out = self.forward(model_in)
         meta = {
@@ -33,7 +39,9 @@ class LinearRegression(Model):
         return self.criterion(pred_out, target), meta
 
     def eval_score(
-        self, model_in: torch.Tensor, target: Optional[torch.Tensor] = None,
+        self,
+        model_in: torch.Tensor,
+        target: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         assert model_in.ndim == 2 and target.ndim == 2
         with torch.no_grad():

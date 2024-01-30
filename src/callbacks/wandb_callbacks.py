@@ -114,9 +114,17 @@ class CallbackWandb:
         }
 
         if train_r2_score is not None:
-            tracked_values.update({"train_r2_score": train_r2_score,})
+            tracked_values.update(
+                {
+                    "train_r2_score": train_r2_score,
+                }
+            )
         if eval_r2_score is not None:
-            tracked_values.update({"eval_r2_score": eval_r2_score,})
+            tracked_values.update(
+                {
+                    "eval_r2_score": eval_r2_score,
+                }
+            )
 
         wandb.log(tracked_values)
 
@@ -147,9 +155,17 @@ class CallbackWandb:
         }
 
         if train_r2_score is not None:
-            tracked_values.update({"train_r2_score": train_r2_score,})
+            tracked_values.update(
+                {
+                    "train_r2_score": train_r2_score,
+                }
+            )
         if eval_r2_score is not None:
-            tracked_values.update({"eval_r2_score": eval_r2_score,})
+            tracked_values.update(
+                {
+                    "eval_r2_score": eval_r2_score,
+                }
+            )
 
         wandb.log(tracked_values)
 

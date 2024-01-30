@@ -29,9 +29,9 @@ pip install -e .
 #     done
 # done
 
-group_name="euler_bikes_test"
+group_name="reward_only_1step"
 
-for station_dependencies in "src/env/bikes_data/factors_radius_0-4.npy" "src/env/bikes_data/factors_radius_1-2.npy" "src/env/bikes_data/factors_radius_2.npy" "src/env/bikes_data/factors_radius_3.npy"
+for station_dependencies in "src/env/bikes_data/factors_radius_1-2.npy" "src/env/bikes_data/factors_radius_3.npy" "src/env/bikes_data/factors_radius_3.npy"
     do
     for model in "linear_regression" "simple"
         do

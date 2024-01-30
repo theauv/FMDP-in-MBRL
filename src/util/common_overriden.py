@@ -215,8 +215,10 @@ def create_one_dim_tr_model_overriden(
     if model_dir:
         dynamics_model.load(model_dir)
 
-    #Overrides
-    cfg.overrides.model_batch_size = cfg.dynamics_model.get("batch_size", cfg.overrides.model_batch_size)
+    # Overrides
+    cfg.overrides.model_batch_size = cfg.dynamics_model.get(
+        "batch_size", cfg.overrides.model_batch_size
+    )
 
     return dynamics_model
 

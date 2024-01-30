@@ -72,7 +72,9 @@ class Simple(Model):
         return F.mse_loss(pred_out, target, reduction="none").mean(-1).mean(), meta
 
     def eval_score(
-        self, model_in: torch.Tensor, target: Optional[torch.Tensor] = None,
+        self,
+        model_in: torch.Tensor,
+        target: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         assert model_in.ndim == 2 and target.ndim == 2
         with torch.no_grad():
@@ -303,7 +305,7 @@ class FactoredSimple(Simple):
 
         batch_size = model_in.shape[0]
         eval_scores = torch.zeros((1, batch_size, self.out_size))
-        metas = []
+        metas = {}
         # Compute the loss for each single output and its associated lassonet model
         for i, model in enumerate(self.models):
             sub_model_in = model_in.index_select(
@@ -312,8 +314,15 @@ class FactoredSimple(Simple):
             sub_target = target.index_select(-1, torch.tensor(self.model_factors[i][1]))
             eval_score, meta = model.eval_score(sub_model_in, sub_target)
             eval_scores[0, :, self.model_factors[i][1]] = eval_score
-            metas.append(meta)
+            if i == 0:
+                metas = meta
+            else:
+                metas = {
+                    key: torch.cat([value, meta[key]], dim=-1)
+                    for key, value in metas.items()
+                }
 
+        # TODO: not implemented yet
         if self.learn_reward and self.reward_factors is not None:
             pred_reward = 0
             reward_target = target[:, -1]
@@ -332,7 +341,7 @@ class FactoredSimple(Simple):
             eval_scores[0, :, -1] = eval_score
             metas.append(meta)
 
-        return eval_scores, {}
+        return eval_scores, metas
 
     def update(
         self,
@@ -346,7 +355,7 @@ class FactoredSimple(Simple):
         self.train()
 
         all_loss = []
-        all_meta = []
+        metas = {}
         for i, model in enumerate(self.models):
             sub_model_in = model_in.index_select(
                 -1, torch.tensor(self.model_factors[i][0])
@@ -357,7 +366,15 @@ class FactoredSimple(Simple):
                 sub_model_in, optimizer=optimizers[i], target=sub_target
             )
             all_loss.append(loss)
-            all_meta.append(meta)
+            if i == 0:
+                metas = meta
+            else:
+                metas = {
+                    key: torch.cat([value, meta[key]], dim=-1)
+                    if hasattr(value, "__len__")
+                    else value + meta[key]
+                    for key, value in metas.items()
+                }
 
         if self.learn_reward and self.reward_factors is not None:
             # TODO: Does not work either here
@@ -375,9 +392,9 @@ class FactoredSimple(Simple):
                 all_meta.append(meta)
 
         if mode == "mean":
-            return np.mean(all_loss), {}
+            return np.mean(all_loss), metas
         elif mode == "separate":
-            return all_loss, all_meta
+            return all_loss, metas
         else:
             raise ValueError(
                 f"There is no {mode} mode for the SimpleLasso eval_score method"
