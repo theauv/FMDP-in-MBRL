@@ -20,6 +20,7 @@ import mbrl.util
 import mbrl.util.common
 import mbrl.util.math
 
+from src.agent.heuristic import GoodBikesHeuristic
 from src.env.bikes import Bikes
 from src.callbacks.wandb_callbacks import CallbackWandb
 from src.callbacks.constants import RESULTS_LOG_NAME, EVAL_LOG_FORMAT
@@ -98,8 +99,15 @@ def train(
         initial_exploration_steps = cfg.algorithm.initial_exploration_steps
     mbrl.util.common.rollout_agent_trajectories(
         env,
-        initial_exploration_steps,
+        initial_exploration_steps//2,
         mbrl.planning.RandomAgent(env),
+        {},
+        replay_buffer=replay_buffer,
+    )
+    mbrl.util.common.rollout_agent_trajectories(
+        env,
+        initial_exploration_steps//2,
+        GoodBikesHeuristic(cfg.overrides.env_config, env),
         {},
         replay_buffer=replay_buffer,
     )

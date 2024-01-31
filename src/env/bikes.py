@@ -770,7 +770,7 @@ class Bikes(DictSpacesEnv):
         font = pygame.font.SysFont("Arial", font_size)
         shift = self.get_timeshift()
         title = font.render(
-            f"Shift {shift} Day {self.state['day'] (self.state['DayOfWeek']/7)} Month {self.state['month']}",
+            f"Shift {shift} Day {self.state['day']} ({self.state['day_of_week']}/7) Month {self.state['month']}",
             True,
             BLACK,
         )
