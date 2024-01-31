@@ -42,7 +42,7 @@ group_name="reward_only_1step"
 #     done
 # done
 
-group_name="reward_only_1step"
+group_name="reward_only_1step_NN"
 
 for cem_num_iters in 20 40 60
     do
