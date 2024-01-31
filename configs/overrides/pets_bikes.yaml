@@ -32,7 +32,7 @@ model_batch_size: 256
 validation_ratio: 0
 freq_train_model: 10
 patience: ${overrides.num_epochs_train_model}
-num_epochs_train_model: 50
+num_epochs_train_model: 500
 dataset_size: 100000
 
 planning_horizon: ${overrides.env_config.action_per_day}
