@@ -64,29 +64,29 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str]
     dtype = np.double if use_double_dtype else np.float32
 
     # Try to load potentially existing dataset
-    if isinstance(base_env, Bikes):
-        station_dependencies = cfg.overrides.env_config.get("station_dependencies", None)
-        if station_dependencies is not None:
-            station_dependencies = station_dependencies.split("/")[-1].split(".")[0]
-        dataset_dir = Path(
-            base_dir,
-            cfg.dataset_folder_name,
-            f"{base_env.__class__.__name__}",
-            f"{station_dependencies}",
-            f"{base_env.action_per_day}"
-        )
-    else:
-        dataset_dir = Path(
-            base_dir,
-            cfg.dataset_folder_name,
-            f"{base_env.__class__.__name__}",
-        )
-    # dataset_dir = Path(
-    #     base_dir,
-    #     cfg.dataset_folder_name,
-    #     f"{base_env.__class__.__name__}",
-    #     "temporary"
-    # )
+    # if isinstance(base_env, Bikes):
+    #     station_dependencies = cfg.overrides.env_config.get("station_dependencies", None)
+    #     if station_dependencies is not None:
+    #         station_dependencies = station_dependencies.split("/")[-1].split(".")[0]
+    #     dataset_dir = Path(
+    #         base_dir,
+    #         cfg.dataset_folder_name,
+    #         f"{base_env.__class__.__name__}",
+    #         f"{station_dependencies}",
+    #         f"{base_env.action_per_day}"
+    #     )
+    # else:
+    #     dataset_dir = Path(
+    #         base_dir,
+    #         cfg.dataset_folder_name,
+    #         f"{base_env.__class__.__name__}",
+    #     )
+    dataset_dir = Path(
+        base_dir,
+        cfg.dataset_folder_name,
+        f"{base_env.__class__.__name__}",
+        "temporary"
+    )
     data_path = None
     if dataset_dir.exists() and dataset_dir.is_dir():
         print(f"Load dataset from {dataset_dir}")
