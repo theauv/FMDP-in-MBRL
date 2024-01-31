@@ -16,12 +16,12 @@ env_config:
   station_dependencies: src/env/bikes_data/factors_radius_1-2.npy
 model_wrapper:
   _target_: src.model.dict_model_wrapper.OneDTransitionRewardModelDictSpace
-  model_input_obs_key: ["bikes_distr", "time_counter"] #["bikes_distr", "day", "month", "time_counter"]
+  model_input_obs_key: ["bikes_distr", "month", "time_counter"] #["bikes_distr", "day", "month", "time_counter"]
   model_input_act_key: []
   model_output_key: []
 learned_rewards: true
 trial_length: ${overrides.env_config.action_per_day} #Max length episode
-initial_exploration_steps: 2 #500
+initial_exploration_steps: 500
 num_steps: 100000000 #Number of env steps before end of training
 num_episodes: 365 #Number of env episodes before end of training
 render_mode: human #null|rgb_array|human
