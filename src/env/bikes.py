@@ -246,6 +246,7 @@ class Bikes(DictSpacesEnv):
                     dtype=np.float32,
                 ),
                 "day": spaces.Box(low=1, high=31, shape=(1,), dtype=np.float32),
+                "day_of_week": spaces.Box(low=1, high=7, shape=(1,), dtype=np.float32),
                 "month": spaces.Box(low=1, high=12, shape=(1,), dtype=np.float32),
                 "time_counter": spaces.Box(
                     low=0, high=self.action_per_day + 1, shape=(1,), dtype=np.float32
@@ -566,6 +567,7 @@ class Bikes(DictSpacesEnv):
             random_trip = self.all_trips_data.sample()
             day = random_trip["Day"].iloc[0]
             month = random_trip["Month"].iloc[0]
+            day_of_week = random_trip["DayOfWeek"].iloc[0]
         elif self.next_day_method == "sequential":
             mask = (self.all_trips_data["Day"] == self.state["day"]) & (
                 self.all_trips_data["Month"] == self.state["month"]
@@ -577,6 +579,7 @@ class Bikes(DictSpacesEnv):
             next_trip = self.all_trips_data.iloc[next_index + 1]
             day = next_trip["Day"]
             month = next_trip["Month"]
+            day_of_week = random_trip["DayOfWeek"]
         else:
             raise ValueError(
                 f"No sample method named {self.next_day_method} implemented"
@@ -586,7 +589,7 @@ class Bikes(DictSpacesEnv):
                 f"You are restarting the dataset (year) for the {self.data_looped}th time"
             )
 
-        return day, month
+        return day, month, day_of_week
 
     def reset(self, seed: Optional[int] = None) -> Tuple[np.ndarray, Dict]:
         super().reset(seed=seed)
@@ -594,11 +597,13 @@ class Bikes(DictSpacesEnv):
             first_day = self.all_trips_data.iloc[0]
             day = first_day["Day"]
             month = first_day["Month"]
+            day_of_week = first_day["DayOfWeek"]
         else:
-            day, month = self.get_next_day()
+            day, month, day_of_week = self.get_next_day()
         self.state = {
             "bikes_distr": self.get_initial_bikes_distribution(),
             "day": day,
+            "day_of_week": day_of_week,
             "month": month,
             "time_counter": 0,
         }
@@ -765,7 +770,7 @@ class Bikes(DictSpacesEnv):
         font = pygame.font.SysFont("Arial", font_size)
         shift = self.get_timeshift()
         title = font.render(
-            f"Shift {shift} Day {self.state['day']} Month {self.state['month']}",
+            f"Shift {shift} Day {self.state['day'] (self.state['DayOfWeek']/7)} Month {self.state['month']}",
             True,
             BLACK,
         )

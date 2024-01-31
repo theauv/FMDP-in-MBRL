@@ -16,7 +16,7 @@ env_config:
   station_dependencies: src/env/bikes_data/factors_radius_1-2.npy
 model_wrapper:
   _target_: src.model.dict_model_wrapper.OneDTransitionRewardModelDictSpace
-  model_input_obs_key: ["bikes_distr", "month", "time_counter"] #["bikes_distr", "day", "month", "time_counter"]
+  model_input_obs_key: ["bikes_distr","day_of_week", "month", "time_counter"] #["bikes_distr", "day", "month", "time_counter"]
   model_input_act_key: []
   model_output_key: []
 learned_rewards: true
@@ -36,8 +36,8 @@ num_epochs_train_model: 500
 dataset_size: 100000
 
 planning_horizon: ${overrides.env_config.action_per_day}
-cem_num_iters: 5
+cem_num_iters: 20
 cem_elite_ratio: 0.1
 cem_population_size: 350
-cem_alpha: 0.1
+cem_alpha: 0.01 #0.1 ??
 cem_clipped_normal: false
