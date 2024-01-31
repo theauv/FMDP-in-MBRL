@@ -23,15 +23,15 @@ learned_rewards: true
 trial_length: ${overrides.env_config.action_per_day} #Max length episode
 initial_exploration_steps: 500
 num_steps: 100000000 #Number of env steps before end of training
-num_episodes: 365 #Number of env episodes before end of training
+num_episodes: 10000 #Number of env episodes before end of training
 render_mode: human #null|rgb_array|human
 model_path: null #/mnt/c/Users/theau/OneDrive/Documents/theau_epfl/12.PDM/code/HUCRL_for_FMDP/exp/pets_adapted/wandb/hypergrid/2023.10.06/154944
 
 #num_elites: 5
 model_batch_size: 256
 validation_ratio: 0
-freq_train_model: 50
-patience: 25
+freq_train_model: 30
+patience: ${overrides.num_epochs_train_model}
 num_epochs_train_model: 50
 dataset_size: 100000
 

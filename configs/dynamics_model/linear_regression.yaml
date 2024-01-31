@@ -8,5 +8,5 @@ model:
   out_size: ???
 
 batch_size: ${overrides.dataset_size}
-model_lr: 0.01
+model_lr: 0.001
 model_wd: 0.

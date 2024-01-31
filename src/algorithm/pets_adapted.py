@@ -136,10 +136,11 @@ def train(
         max_traj_iterations=cfg.overrides.cem_num_iters,
         model_out_size=dynamics_model.model.out_size,
         plot_local=cfg.experiment.plot_local,
-        centroid_coords=getattr(env, "centroid_coords", None),
+        centroid_coords=getattr(base_env, "centroid_coords", None),
+        num_epochs_train_model=cfg.overrides.get("num_epochs_train_model", None),
     )
 
-    callbacks.env_callback(env)
+    callbacks.env_callback(base_env)
 
     # ---------------------------------------------------------
     # --------------------- Training Loop ---------------------

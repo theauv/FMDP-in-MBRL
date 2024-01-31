@@ -24,6 +24,7 @@ class CallbackWandb:
         model_out_size: int = None,
         plot_local: bool = False,
         centroid_coords: Optional[List] = None,
+        num_epochs_train_model: Optional[int] = None,
     ) -> None:
         """
         Define the different metrics usseful to track and plot
@@ -31,6 +32,7 @@ class CallbackWandb:
         :param with_tracking: if we don't want to track and plot in wandb, default is True
         """
 
+        self.num_epochs_train_model = num_epochs_train_model
         self.max_traj_iterations = max_traj_iterations
         self.with_tracking = with_tracking
         self.env_step = 0
@@ -123,6 +125,13 @@ class CallbackWandb:
             tracked_values.update(
                 {
                     "eval_r2_score": eval_r2_score,
+                }
+            )
+
+        if self.num_epochs_train_model is not None:
+            tracked_values.update(
+                {
+                    "train_epoch": epoch+int(train_iter*self.num_epochs_train_model),
                 }
             )
 
