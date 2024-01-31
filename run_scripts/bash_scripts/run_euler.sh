@@ -44,14 +44,11 @@ group_name="reward_only_1step"
 
 group_name="reward_only_1step"
 
-for cem_num_iters in 5 20
+for cem_num_iters in 20 40 60
     do
-    for cem_population_size in 350 700
+    for cem_alpha in 0.001 0.1
         do
-        for cem_alpha in 0.001 0.1
-            do
-            run_name="iters_${cem_num_iters}_pop_size_${cem_population_size}_alpha_${cem_alpha}"
-            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py overrides=pets_bikes overrides.cem_num_iters=${cem_num_iters} overrides.cem_population_size=${cem_population_size} overrides.cem_alpha=${cem_alpha} experiment.with_tracking=true experiment.run_configs.group=${group_name} experiment.run_configs.name=${run_name}"
-        done
+        run_name="iters_${cem_num_iters}_alpha_${cem_alpha}"
+        sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py overrides=pets_bikes overrides.cem_num_iters=${cem_num_iters} overrides.cem_alpha=${cem_alpha} experiment.with_tracking=true experiment.run_configs.group=${group_name} experiment.run_configs.name=${run_name}"
     done
 done

@@ -2,7 +2,7 @@
 with_tracking: false #true
 plot_local: false
 api_name: wandb
-run_configs:             
+run_configs:
   project: hucrl_fmdp
   group:  null #correct_bikes_test #null
   name: test_model_benchmark #n_bikes_2_large
