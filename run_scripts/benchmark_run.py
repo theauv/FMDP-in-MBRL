@@ -30,6 +30,9 @@ def run_agent_in_env(
         observation, reward, terminated, truncated, info = env.step(action)
         callbacks.env_callback(env)
 
+    # create env and random seed
+    observation, info = env.reset(seed=42)
+
     all_n_steps = []
     all_rewards = []
     # Debug
@@ -42,8 +45,8 @@ def run_agent_in_env(
         action = agent.act(observation)
         observation, reward, terminated, truncated, info = env.step(action)
         print(
-            f"Total env step: {env_step} Episode: {len(all_n_steps)} Current episode step: {n_steps}"
-            f"Rward: {reward}"
+            f"Total env step: {env_step} Episode: {len(all_n_steps)} Current episode step: {n_steps} "
+            f"Reward: {reward}"
         )
         n_steps += 1
         rewards += reward
@@ -57,8 +60,8 @@ def run_agent_in_env(
         if terminated or truncated:
             all_n_steps.append(n_steps)
             all_rewards.append(rewards)
-            if callbacks is not None:
-                callbacks.agent_callback(len(all_n_steps), n_steps, rewards)
+            # if callbacks is not None:
+            #     callbacks.agent_callback(len(all_n_steps), n_steps, rewards)
             observation, info = env.reset()
             n_steps = 0
             rewards = 0

@@ -83,9 +83,7 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str]
     #     )
     dataset_dir = Path(
         base_dir,
-        cfg.dataset_folder_name,
         f"{base_env.__class__.__name__}",
-        "temporary"
     )
     data_path = None
     if dataset_dir.exists() and dataset_dir.is_dir():

@@ -116,7 +116,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
     def _get_next_obs(self, batch_next_obs: mbrl.types.TensorType):
         if len(batch_next_obs.shape) == 1:
             batch_next_obs = np.expand_dims(batch_next_obs, axis=0)
-        if not np.all(self.model_output_mask):
+        if not np.any(self.model_output_mask):
             return None
         else:
             return batch_next_obs[..., self.model_output_mask]

@@ -2,8 +2,8 @@
 
 group_name=""
 
-python -m run_scripts.benchmark_run agent="random" overrides.env_config.next_day_method='sequential' additional_run_name="longrun_sequential"
-python -m run_scripts.benchmark_run agent="good_heuristic" overrides.env_config.next_day_method='sequential' additional_run_name="longrun_sequential"
+python3 run_scripts/benchmark_run.py agent="random" additional_run_name="1step"
+python3 run_scripts/benchmark_run.py agent="good_heuristic" additional_run_name="1step"
 
 #python -m run_scripts.benchmark_run agent="random" overrides.env_config.num_trucks=5 overrides.env_config.initial_distribution='zeros' overrides.env_config.next_day_method='random' overrides.env_config.bikes_per_truck=5 overrides.env_config.start_walk_dist_max=1 additional_run_name="trucks_5_bikes_5_walk_1_trip05"
 #python -m run_scripts.benchmark_run agent="random" overrides.env_config.num_trucks=5 overrides.env_config.initial_distribution='zeros' overrides.env_config.next_day_method='random' overrides.env_config.bikes_per_truck=10 overrides.env_config.start_walk_dist_max=1 additional_run_name="trucks_5_bikes_10_walk_1_trip05"

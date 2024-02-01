@@ -14,6 +14,7 @@ from mbrl.models import Model
 
 class CallbackWandb:
     """
+    TODO: Split into diferent classes
     Class dealing with the generated callbacks during a training run
     """
 
