@@ -12,7 +12,7 @@ env_config:
   trip_duration: 0.5
   past_trip_data: src/env/bikes_data/all_trips_LouVelo_merged.csv
   weather_data: src/env/bikes_data/weather_data.csv
-  centroids_coord: src/env/bikes_data/LouVelo_centroids_coords.npy #src/env/bikes_data/acbo_centroids_coords.npy #src/env/bikes_data/LouVelo_centroids_coords.npy
+  centroids_coord: src/env/bikes_data/acbo_centroids/acbo_centroids_coords.npy #src/env/bikes_data/acbo_centroids_coords.npy #src/env/bikes_data/LouVelo_centroids_coords.npy
   #centroids_idx: #[93,83,80,98,6,84,87,99,56,97] #Number of centroids or list of indices
   station_dependencies: null #src/env/bikes_data/factors_radius_1-2.npy
 model_wrapper:

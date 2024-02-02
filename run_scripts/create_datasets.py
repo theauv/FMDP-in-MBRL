@@ -72,7 +72,7 @@ def create_dataset(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[s
             base_dir,
             cfg.dataset_folder_name,
             f"{base_env.__class__.__name__}",
-            f"n_centroids_{base_env.num_centroids}"
+            f"n_centroids_{base_env.num_centroids}",
             f"{station_dependencies}",
             f"{base_env.action_per_day}"
         )
