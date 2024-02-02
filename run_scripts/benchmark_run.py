@@ -24,7 +24,6 @@ def run_agent_in_env(
 ):
     # create env and random seed
     observation, info = env.reset(seed=42)
-
     if callbacks is not None:
         action = env.action_space.sample()
         observation, reward, terminated, truncated, info = env.step(action)
@@ -54,8 +53,8 @@ def run_agent_in_env(
         if callbacks is not None:
             callbacks.track_each_step(env_step, reward)
         elif env.render_mode == "human":
-            # input()
-            sleep(1)
+            input()
+            #sleep(1)
 
         if terminated or truncated:
             all_n_steps.append(n_steps)

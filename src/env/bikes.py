@@ -207,8 +207,8 @@ class Bikes(DictSpacesEnv):
         self.initial_distribution = env_config.initial_distribution
 
         hour_max = 24
-        self.latitudes = [38.2, 38.28]
-        self.longitudes = [-85.8, -85.7]
+        self.latitudes = [38.15, 38.35] #[38.2, 38.28]
+        self.longitudes = [-85.9, -85.55] #[-85.8, -85.7]
 
         # TODO: rewrite this in a modulable way
         self.base_dir = env_config.get("base_dir", "")
@@ -258,9 +258,6 @@ class Bikes(DictSpacesEnv):
                 ],
             )
 
-            # self.period = (
-            #     "Month > 0 & Month < 13 & Year == 19 & DayOfWeek >=0 and DayOfWeek <=8"
-            # )
             #TODO: Keep week-end ?
             period = "Month > 0 & Month < 13 & Year == 2019 & DayOfWeek >1 and DayOfWeek <=8"
             area = (
@@ -287,6 +284,8 @@ class Bikes(DictSpacesEnv):
             if self.station_dependencies_file is not None
             else None
         )
+        if self.station_dependencies_file is not None and len(station_dependencies) != self.num_centroids:
+            raise ValueError("Given station dependencies file does not match the number of centroids")
 
         #Rentals simulator
         if self.all_trips_data is None:
@@ -313,7 +312,7 @@ class Bikes(DictSpacesEnv):
         obs_space = {
             "bikes_distr": spaces.Box(
                 low=0,
-                high=self.n_bikes,
+                high=self.n_bikes*self.action_per_day,
                 shape=(self.num_centroids,),
                 dtype=np.float32,
             ),
@@ -442,14 +441,14 @@ class Bikes(DictSpacesEnv):
         )
         current_trips = self.all_trips_data[mask]
 
-        for j in range(1, self.action_per_day+1):
-            timeshift = self.action_timeshifts[j-1:j+1]
+        for j in range(0, self.action_per_day):
+            timeshift = self.action_timeshifts[j:j+2]
             start_time = timeshift[0]
             end_time = timeshift[1]
             time_mask = [
                 float(time.replace(":", ".").split(".")[0]) >= start_time
                 and float(time.replace(":", ".").split(".")[0]) <= end_time
-                for time in self.all_trips_data["StartTime"].values
+                for time in current_trips["StartTime"].values
             ]
             demands[j] = len(current_trips[time_mask])
 
@@ -676,7 +675,7 @@ class Bikes(DictSpacesEnv):
 
         return day, month, day_of_week
 
-    def reset(self, seed: Optional[int] = None, fix_day: bool = True) -> Tuple[np.ndarray, Dict]:
+    def reset(self, seed: Optional[int] = None, fix_day: bool = False) -> Tuple[np.ndarray, Dict]:
         super().reset(seed=seed)
         if self.all_trips_data is not None:
             if self.state is None:
@@ -866,7 +865,10 @@ class Bikes(DictSpacesEnv):
         font = pygame.font.SysFont("Arial", font_size)
         shift = self.get_timeshift()
         title = font.render(
-            f"Shift {shift} Day {self.state['day']} ({self.state['day_of_week']}/7) Month {self.state['month']}",
+            (
+                f"Shift {shift[0]}:{shift[1]} Day: {int(self.state['day'])} "
+                f"({int(self.state['day_of_week'])}/7) Month: {int(self.state['month'])}"
+            ),
             True,
             BLACK,
         )

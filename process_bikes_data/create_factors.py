@@ -42,7 +42,7 @@ def draw_map_factors(centroid_coords, adjacency):
             x=centroid_coord[0] * graph_size**2,
             y=(graph_size - centroid_coord[1]) * graph_size**2,
             color="blue",
-            size=100,
+            size=200,
         )
     for centroid_i, factor_i in enumerate(adjacency):
         for centroid_j, scope_j in enumerate(factor_i):
