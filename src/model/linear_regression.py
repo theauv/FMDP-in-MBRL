@@ -15,13 +15,15 @@ class LinearRegression(Model):
         device: Union[str, torch.device],
     ):
         super().__init__(device)
-        self.linear = torch.nn.Linear(in_size, out_size)
+        self.linear1 = torch.nn.Linear(in_size, in_size)
+        self.linear2 = torch.nn.Linear(in_size, out_size)
         self.criterion = torch.nn.MSELoss()
         self.in_size = in_size
         self.out_size = out_size
 
     def forward(self, x, proba=True):
-        out = self.linear(x)
+        x = self.linear1(x)
+        out = self.linear2(x)
         if proba:
             return torch.sigmoid(out)
         else:

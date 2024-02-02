@@ -184,6 +184,7 @@ class Bikes(DictSpacesEnv):
         self,
         env_config: Optional[omegaconf.DictConfig],
         render_mode: Optional[str] = None,
+        print_info: bool = True,
     ) -> None:
         # TODO: self.split_reward_by_centroid = env_config.split_reward_by_centroid # if true, we model the number of trips from each centroid individual, instead of the total number of trips
         # TODO: not especially optimal, could also decide for fix number of actions WHEN to take them during the day ??
@@ -191,6 +192,11 @@ class Bikes(DictSpacesEnv):
         # TODO: Use a structured np.array instead of map_obs and map_act dictionaries
         super().__init__()
         self.num_trucks = env_config.num_trucks
+        self.bikes_per_truck = env_config.bikes_per_truck
+        self.n_bikes = self.num_trucks * self.bikes_per_truck
+        self.state = None
+        self.data_looped = 0
+        self.steps_beyond_terminated = None
         self.action_per_day = env_config.action_per_day
         self.day_start = 0.0
         self.day_end = 24.0
@@ -206,6 +212,8 @@ class Bikes(DictSpacesEnv):
 
         # TODO: rewrite this in a modulable way
         self.base_dir = env_config.get("base_dir", "")
+
+        #Centroids data
         # _, _, _, _, _, _, centroid_coords = pickle.load(
         #     open(self.base_dir + "src/env/bikes_data/training_data_5_40.pckl", "rb")
         # )
@@ -229,113 +237,119 @@ class Bikes(DictSpacesEnv):
             else:
                 self.centroid_coords = self.centroid_coords[:centroids_idx]
 
-        R = len(self.centroid_coords)
-        self.num_centroids = R
+        self.num_centroids = len(self.centroid_coords)
 
-        self.bikes_per_truck = env_config.bikes_per_truck
-        self.n_bikes = self.num_trucks * self.bikes_per_truck
+        #Trips (and weather) data
+        if env_config.past_trip_data is not None:
+            self.all_trips_data = pd.read_csv(
+                self.base_dir + env_config.past_trip_data,
+                usecols=lambda x: x not in ["TripID", "StartDate", "EndDate", "EndTime"],
+            )
+            self.all_weather_data = pd.read_csv(
+                self.base_dir + env_config.weather_data,
+                usecols=[
+                    "Year",
+                    "Month",
+                    "Day",
+                    "DayOfWeek",
+                    "Temp_Avg",
+                    "Precip",
+                    "Holiday",
+                ],
+            )
 
-        self.dict_observation_space = spaces.Dict(
-            {
-                "bikes_distr": spaces.Box(
-                    low=0,
-                    high=self.n_bikes,
-                    shape=(self.num_centroids,),
-                    dtype=np.float32,
-                ),
-                "day": spaces.Box(low=1, high=31, shape=(1,), dtype=np.float32),
-                "day_of_week": spaces.Box(low=1, high=7, shape=(1,), dtype=np.float32),
-                "month": spaces.Box(low=1, high=12, shape=(1,), dtype=np.float32),
-                "time_counter": spaces.Box(
-                    low=0, high=self.action_per_day + 1, shape=(1,), dtype=np.float32
-                ),
-            }
+            # self.period = (
+            #     "Month > 0 & Month < 13 & Year == 19 & DayOfWeek >=0 and DayOfWeek <=8"
+            # )
+            #TODO: Keep week-end ?
+            period = "Month > 0 & Month < 13 & Year == 2019 & DayOfWeek >1 and DayOfWeek <=8"
+            area = (
+                f"StartLatitude < {self.latitudes[1]} & StartLatitude > {self.latitudes[0]} & StartLongitude < {self.longitudes[1]} & StartLongitude > {self.longitudes[0]} "
+                f"& EndLatitude < {self.latitudes[1]} & EndLatitude > {self.latitudes[0]} & EndLongitude < {self.longitudes[1]} & EndLongitude > {self.longitudes[0]} "
+            )
+            query = (
+                "TripDuration < 60 & TripDuration > 0 & HourNum <= " + str(hour_max) + ""
+                "&" + area + " & " + period
+            )
+            self.all_trips_data = self.all_trips_data.query(query)
+            self.all_weather_data = self.all_weather_data.query(period + "& Holiday == 0")
+            assert len(self.all_trips_data)>0
+            assert len(self.all_weather_data)>0
+            self.max_demands = self.get_max_demands()
+        else:
+            self.all_trips_data = None
+            self.all_weather_data = None
+
+        #Station dependencies data (induced sparsity)
+        self.station_dependencies_file = env_config.get("station_dependencies", None)
+        station_dependencies = (
+            np.load(self.base_dir + self.station_dependencies_file)
+            if self.station_dependencies_file is not None
+            else None
         )
+
+        #Rentals simulator
+        if self.all_trips_data is None:
+            self.sim = ArtificialRentals_Simulator(
+                self.centroid_coords,
+                start_walk_dist_max=env_config.start_walk_dist_max,
+                end_walk_dist_max=env_config.end_walk_dist_max,
+                station_dependencies=station_dependencies,
+                trip_duration=env_config.trip_duration,
+            )
+        else:
+            self.sim = Rentals_Simulator(
+                self.centroid_coords,
+                start_walk_dist_max=env_config.start_walk_dist_max,
+                end_walk_dist_max=env_config.end_walk_dist_max,
+                station_dependencies=station_dependencies,
+                trip_duration=env_config.trip_duration,
+                # TODO: Not sure if good idea to give shift_duration but induce more sparsity
+            )
+
+
+        #State-Action space    
+        # TODO: temperature, precipitation and demand in obs space ??    
+        obs_space = {
+            "bikes_distr": spaces.Box(
+                low=0,
+                high=self.n_bikes,
+                shape=(self.num_centroids,),
+                dtype=np.float32,
+            ),
+            "day": spaces.Box(low=1, high=31, shape=(1,), dtype=np.float32),
+            "day_of_week": spaces.Box(low=1, high=7, shape=(1,), dtype=np.float32),
+            "month": spaces.Box(low=1, high=12, shape=(1,), dtype=np.float32),
+            "time_counter": spaces.Box(
+                low=1, high=self.action_per_day + 1, shape=(1,), dtype=np.float32
+            ),
+        }
+        if self.all_trips_data is not None:
+            obs_space["demands"]=spaces.Box(low=0, high=1, shape=(self.action_per_day,), dtype=np.float32)
+        self.dict_observation_space = spaces.Dict(obs_space)
         # TODO: At least time_counter would really make sense to be discrete (one-hot)
         # Explore possibility to handle heterogeneous spaces as input state
 
-        self.dict_action_space = spaces.Dict(
-            {
-                "truck_num_bikes": spaces.Box(
-                    low=0,
-                    high=self.bikes_per_truck,
-                    shape=(self.num_trucks,),
-                    dtype=np.float32,
-                ),
-                "truck_centroid": spaces.Box(
+        action_space = {
+            "truck_centroid": spaces.Box(
                     low=0,
                     high=self.num_centroids - 1,
                     shape=(self.num_trucks,),
                     dtype=np.float32,
                 ),
-            }
-        )
-
+        }
+        if not env_config.fix_bikes_per_truck:
+            action_space["truck_num_bikes"]=spaces.Box(
+                    low=0,
+                    high=self.bikes_per_truck,
+                    shape=(self.num_trucks,),
+                    dtype=np.float32,
+                ),
+        self.dict_action_space = spaces.Dict(action_space)
         # TODO: could have a negative number of bikes meaning that we remove some bikes
         # in reward the more we have unused bikes the worst it is
-        self.all_trips_data = pd.read_csv(
-            self.base_dir + env_config.past_trip_data,
-            usecols=lambda x: x not in ["TripID", "StartDate", "EndDate", "EndTime"],
-        )
-        self.all_weather_data = pd.read_csv(
-            self.base_dir + env_config.weather_data,
-            usecols=[
-                "Year",
-                "Month",
-                "Day",
-                "DayOfWeek",
-                "Temp_Avg",
-                "Precip",
-                "Holiday",
-            ],
-        )
 
-        # self.period = (
-        #     "Month > 0 & Month < 13 & Year == 19 & DayOfWeek >=0 and DayOfWeek <=8"
-        # )
-        period = "Month > 0 & Month < 13 & Year == 2019 & DayOfWeek >0 and DayOfWeek <8"
-        area = (
-            f"StartLatitude < {self.latitudes[1]} & StartLatitude > {self.latitudes[0]} & StartLongitude < {self.longitudes[1]} & StartLongitude > {self.longitudes[0]} "
-            f"& EndLatitude < {self.latitudes[1]} & EndLatitude > {self.latitudes[0]} & EndLongitude < {self.longitudes[1]} & EndLongitude > {self.longitudes[0]} "
-        )
-        query = (
-            "TripDuration < 60 & TripDuration > 0 & HourNum <= " + str(hour_max) + ""
-            "&" + area + " & " + period
-        )
-        self.all_trips_data = self.all_trips_data.query(query)
-        self.all_weather_data = self.all_weather_data.query(period + "& Holiday == 0")
-
-        # TODO: weather and demand do somehting with it later on !!!!!
-        # take out all weather data that corresponds to a weekend. 1.0 is a sunday and 7.0 is a saturday in the dataset
-        # self.weekdays = [2,3,4,5,6]
-        # self.weather_data = weather_data.query('DayOfWeek in @weekdays')
-
-        # self.weather_data = weather_data
-        # size of the inputs not controlled by the truck (weather, demand)
-        # self.z_shape = 3
-        # if self.chunk_demand:
-        #     self.z_shape = self.z_shape + self.depth +1
-
-        # self.z_max = None
-        # self.z_max = self.get_z_max()
-
-        station_dependencies_file = env_config.get("station_dependencies", None)
-        station_dependencies = (
-            np.load(self.base_dir + station_dependencies_file)
-            if station_dependencies_file is not None
-            else None
-        )
-        self.sim = Rentals_Simulator(
-            self.centroid_coords,
-            start_walk_dist_max=env_config.start_walk_dist_max,
-            end_walk_dist_max=env_config.end_walk_dist_max,
-            station_dependencies=station_dependencies,
-            trip_duration=env_config.trip_duration,
-            # TODO: Not sure if good idea to give shift_duration but induce more sparsity
-        )
-
-        self.state = None
-        self.data_looped = 0
+        #Rendering
         self.render_mode = render_mode
         self.viewer = None
         screen_ydim = 650
@@ -361,7 +375,9 @@ class Bikes(DictSpacesEnv):
         self.clock = None
         self.isopen = True
 
-        self.steps_beyond_terminated = None
+        #Env info
+        if print_info:
+            self.get_env_info()
 
     def flatten_obs(self, obs=None):
         return super().flatten_obs(obs)
@@ -373,43 +389,115 @@ class Bikes(DictSpacesEnv):
         if state is None:
             state = self.state
         counter = int(state["time_counter"])
-        if counter < len(self.action_timeshifts) - 1:
-            return self.action_timeshifts[counter : counter + 2]
-        elif counter >= len(self.action_timeshifts) - 1:
+        if counter < len(self.action_timeshifts) :
+            return self.action_timeshifts[counter-1:counter+1]
+        elif counter >= len(self.action_timeshifts):
             return None
+
+    def get_env_info(self):
+        print("-------------ENV INFO-------------")
+        print(f"Observation space keys: {self.dict_observation_space.keys()}")
+        print(f"Action space keys: {self.dict_action_space.keys()}")
+        print(f"Total number of used days in the year 2019: {len(self.all_weather_data)}")
+        print(f"Total number of trips: {len(self.all_trips_data)}")
+        print(f"Max demand for each time shift: {self.max_demands}")
+        print(f"Number of centroids: {self.num_centroids}")
+        print(f"Centroid induced dependencies file: {self.station_dependencies_file}")
+
+    def get_max_demands(self):
+        assert self.all_trips_data is not None, "Makes sense only using trips data"
+
+        max_demands = np.zeros((self.action_per_day,))
+
+        for i in range(self.all_weather_data.shape[0]):
+
+            day = self.all_weather_data.iloc[i].Day
+            month = self.all_weather_data.iloc[i].Month
+            mask = (self.all_trips_data["Day"] == day) & (
+                self.all_trips_data["Month"] == month
+            )
+            current_trips = self.all_trips_data[mask]
+
+            for j in range(0, self.action_per_day):
+                timeshift = self.action_timeshifts[j:j+2]
+                start_time = timeshift[0]
+                end_time = timeshift[1]
+                time_mask = [
+                    float(time.replace(":", ".").split(".")[0]) >= start_time
+                    and float(time.replace(":", ".").split(".")[0]) <= end_time
+                    for time in current_trips["StartTime"].values
+                ]
+                demand = len(current_trips[time_mask])
+                max_demands[j] = max(max_demands[j], demand)
+
+        assert not np.any(max_demands<=0)
+        return max_demands
+
+    def get_demands(self, day, month):
+
+        demands = np.zeros((self.action_per_day,))
+
+        mask = (self.all_trips_data["Day"] == day) & (
+            self.all_trips_data["Month"] == month
+        )
+        current_trips = self.all_trips_data[mask]
+
+        for j in range(1, self.action_per_day+1):
+            timeshift = self.action_timeshifts[j-1:j+1]
+            start_time = timeshift[0]
+            end_time = timeshift[1]
+            time_mask = [
+                float(time.replace(":", ".").split(".")[0]) >= start_time
+                and float(time.replace(":", ".").split(".")[0]) <= end_time
+                for time in self.all_trips_data["StartTime"].values
+            ]
+            demands[j] = len(current_trips[time_mask])
+
+        return demands/self.max_demands
+        
+
 
     def trips_steps(self, x=None):
         if x is None:
             x = self.state
 
-        mask = (self.all_trips_data["Day"] == x["day"]) & (
-            self.all_trips_data["Month"] == x["month"]
-        )
-        current_trips = self.all_trips_data[mask]
-
-        # Keep only the trip at times we care:
         timeshift = self.get_timeshift(x)
         start_time = timeshift[0]
         end_time = timeshift[1]
 
-        time_mask = [
-            float(time.replace(":", ".").split(".")[0]) >= start_time
-            and float(time.replace(":", ".").split(".")[0]) <= end_time
-            for time in current_trips["StartTime"].values
-        ]
+        if self.all_trips_data is not None:
+            mask = (self.all_trips_data["Day"] == x["day"]) & (
+                self.all_trips_data["Month"] == x["month"]
+            )
+            current_trips = self.all_trips_data[mask]
+            time_mask = [
+                float(time.replace(":", ".").split(".")[0]) >= start_time
+                and float(time.replace(":", ".").split(".")[0]) <= end_time
+                for time in current_trips["StartTime"].values
+            ]
+            current_trips = current_trips[time_mask]
 
-        current_trips = current_trips[time_mask]
+            # Compute the new state and all relevant informations about trips occuring during this timeshift
+            (
+                new_bikes_dist_after_shift,
+                self.tot_num_trips,
+                self.feasible_trips,
+                self.num_met_trips,
+                self.tot_demand_per_centroid,
+                self.met_trips_per_centroid,
+                self.adjacency,
+            ) = self.sim.simulate_rentals(current_trips, x["bikes_distr"])
 
-        # Compute the new state and all relevant informations about trips occuring during this timeshift
-        (
-            new_bikes_dist_after_shift,
-            self.tot_num_trips,
-            self.feasible_trips,
-            self.num_met_trips,
-            self.tot_demand_per_centroid,
-            self.met_trips_per_centroid,
-            self.adjacency,
-        ) = self.sim.simulate_rentals(current_trips, x["bikes_distr"])
+        else:
+            (
+                new_bikes_dist_after_shift,
+                self.tot_num_trips,
+                self.feasible_trips,
+                self.num_met_trips,
+                self.tot_demand_per_centroid,
+                self.met_trips_per_centroid,
+                self.adjacency,
+            ) = self.sim.simulate_rentals(x["bikes_distr"], start_time, end_time)
 
         # TODO: Here we have an incremental reward computed at each time-step, but might make sense
         # to have just a final one (more accurate by harder for the RL agent to interpret)
@@ -426,10 +514,10 @@ class Bikes(DictSpacesEnv):
         # warning if too_far_from_centroid > 0
         # Remark, adding the possibility to get add or remove bikes is somewhat equivalent to rebalancing
 
-        if self.tot_num_trips - self.feasible_trips > 0:
-            warnings.warn(
-                f"We have {self.tot_num_trips - self.feasible_trips} trips that could not met because there was no centroid close enough"
-            )
+        # if self.tot_num_trips - self.feasible_trips > 0:
+        #     warnings.warn(
+        #         f"We have {self.tot_num_trips - self.feasible_trips} trips that could not met because there was no centroid close enough"
+        #     )
 
         # SIMPLIEST REWARD
         reward = self.num_met_trips / max(1, self.feasible_trips)
@@ -489,7 +577,7 @@ class Bikes(DictSpacesEnv):
         old_state = self.state.copy()
         self.delta_bikes = np.zeros(self.num_centroids, dtype=int)
         truck_centroid = act["truck_centroid"]
-        truck_num_bikes = act["truck_num_bikes"]
+        truck_num_bikes = act.get("truck_num_bikes", np.ones(self.num_centroids)*self.bikes_per_truck)
         for truck in range(self.num_trucks):
             self.delta_bikes[int(truck_centroid[int(truck)])] += truck_num_bikes[
                 int(truck)
@@ -561,19 +649,19 @@ class Bikes(DictSpacesEnv):
     def get_next_day(self):
         # TODO: only weekday ??
         if self.next_day_method == "random":
-            random_trip = self.all_trips_data.sample()
+            random_trip = self.all_weather_data.sample()
             day = random_trip["Day"].iloc[0]
             month = random_trip["Month"].iloc[0]
             day_of_week = random_trip["DayOfWeek"].iloc[0]
         elif self.next_day_method == "sequential":
-            mask = (self.all_trips_data["Day"] == self.state["day"]) & (
-                self.all_trips_data["Month"] == self.state["month"]
+            mask = (self.all_weather_data["Day"] == self.state["day"]) & (
+                self.all_weather_data["Month"] == self.state["month"]
             )
             next_index = np.where(mask)[0][-1]
-            if next_index + 1 >= self.all_trips_data.shape[0]:
+            if next_index + 1 >= self.all_weather_data.shape[0]:
                 self.data_looped += 1
                 next_index = 0
-            next_trip = self.all_trips_data.iloc[next_index + 1]
+            next_trip = self.all_weather_data.iloc[next_index + 1]
             day = next_trip["Day"]
             month = next_trip["Month"]
             day_of_week = next_trip["DayOfWeek"]
@@ -588,21 +676,32 @@ class Bikes(DictSpacesEnv):
 
         return day, month, day_of_week
 
-    def reset(self, seed: Optional[int] = None) -> Tuple[np.ndarray, Dict]:
+    def reset(self, seed: Optional[int] = None, fix_day: bool = True) -> Tuple[np.ndarray, Dict]:
         super().reset(seed=seed)
-        if self.state is None:
-            first_day = self.all_trips_data.iloc[0]
-            day = first_day["Day"]
-            month = first_day["Month"]
-            day_of_week = first_day["DayOfWeek"]
+        if self.all_trips_data is not None:
+            if self.state is None:
+                first_day = self.all_weather_data.iloc[0]
+                day = first_day["Day"]
+                month = first_day["Month"]
+                day_of_week = first_day["DayOfWeek"]
+            elif fix_day:
+                day = self.state["day"]
+                month = self.state["month"]
+                day_of_week = self.state["day_of_week"]
+            else:
+                day, month, day_of_week = self.get_next_day()
         else:
-            day, month, day_of_week = self.get_next_day()
+            day = self.state["day"]+1 if self.state["day"]<31 else 1
+            month = self.state["month"] if self.state["day"]<31 else self.state["month"]+1
+            day_of_week = self.state["day_of_week"]+1 if self.state["day_of_week"]<7 else 1
+
         self.state = {
             "bikes_distr": self.get_initial_bikes_distribution(),
             "day": day,
             "day_of_week": day_of_week,
             "month": month,
-            "time_counter": 0,
+            "time_counter": 1,
+            "demands": self.get_demands(day, month),
         }
 
         self.tot_num_trips = None
@@ -929,7 +1028,8 @@ class Bikes(DictSpacesEnv):
     def termination_fn(
         self, action: torch.Tensor, next_obs: torch.Tensor
     ) -> torch.Tensor:
-        done = next_obs[:, self.map_obs["time_counter"]] >= self.action_per_day
+        #Check that
+        done = next_obs[:, self.map_obs["time_counter"]] > self.action_per_day
         return done
 
     # TODO: Unused, but is it actually useful ????
@@ -960,7 +1060,10 @@ class Bikes(DictSpacesEnv):
         # Compute delta_bikes in a parallel way
         delta_bikes = np.zeros((ensemble_size, batch_size, distr_size), dtype=int)
         truck_centroids = batch_action[..., self.map_act["truck_centroid"]]
-        truck_bikes = batch_action[..., self.map_act["truck_num_bikes"]]
+        if self.map_act.get("truck_num_bikes", None) is not None:
+            truck_bikes = batch_action[..., self.map_act["truck_num_bikes"]]
+        else:
+            truck_bikes = np.ones_like(truck_centroids)*self.bikes_per_truck
         n = distr_size
         truck_centroids = np.reshape(
             truck_centroids, (truck_centroids.shape[0] * truck_centroids.shape[1], -1)
