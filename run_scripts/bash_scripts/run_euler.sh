@@ -35,13 +35,13 @@ model="gaussian_process"
 for lr in 0.1 0.01 0.001
     do
     run_name="test_${model}_lr_${lr}"
-    python3 run_scripts/train.py experiment.with_tracking=true dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}
+    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --mail-type=END --wrap="python3 run_scripts/train.py experiment.with_tracking=true dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
 done
 model="simple"
 for lr in 0.001 0.0001 0.00001
     do
     run_name="test_${model}_lr_${lr}"
-    python3 run_scripts/train.py experiment.with_tracking=true dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}
+    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --mail-type=END --wrap="python3 run_scripts/train.py experiment.with_tracking=true dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
 done
 
 # for station_dependencies in "src/env/bikes_data/factors_radius_1-2.npy" "src/env/bikes_data/factors_radius_3.npy"
