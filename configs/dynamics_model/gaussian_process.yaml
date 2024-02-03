@@ -6,10 +6,10 @@ model:
   device: ${device}
   in_size: ???
   out_size: ???
-  mean: null
-  kernel: null #Matern
-  scale_kernel: trues
+  mean: Linear
+  kernel: Matern
+  scale_kernel: true
 
 batch_size: ${overrides.dataset_size}
-model_lr: 0.1
+model_lr: 0.01
 model_wd: 0.

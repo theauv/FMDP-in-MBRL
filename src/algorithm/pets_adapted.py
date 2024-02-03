@@ -99,18 +99,18 @@ def train(
         initial_exploration_steps = cfg.algorithm.initial_exploration_steps
     mbrl.util.common.rollout_agent_trajectories(
         env,
-        initial_exploration_steps//2,
+        initial_exploration_steps,
         mbrl.planning.RandomAgent(env),
         {},
         replay_buffer=replay_buffer,
     )
-    mbrl.util.common.rollout_agent_trajectories(
-        env,
-        initial_exploration_steps//2,
-        GoodBikesHeuristic(cfg.overrides.env_config, env),
-        {},
-        replay_buffer=replay_buffer,
-    )
+    # mbrl.util.common.rollout_agent_trajectories(
+    #     env,
+    #     initial_exploration_steps//2,
+    #     GoodBikesHeuristic(cfg.overrides.env_config, env),
+    #     {},
+    #     replay_buffer=replay_buffer,
+    # )
     replay_buffer.save(work_dir)
     if env_is_bikes:
         base_env.set_next_day_method(cfg.overrides.env_config.next_day_method)

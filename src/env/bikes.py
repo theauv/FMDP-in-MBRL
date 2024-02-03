@@ -864,14 +864,14 @@ class Bikes(DictSpacesEnv):
         font_size = 15
         font = pygame.font.SysFont("Arial", font_size)
         shift = self.get_timeshift()
-        title = font.render(
-            (
-                f"Shift {shift[0]}:{shift[1]} Day: {int(self.state['day'])} "
-                f"({int(self.state['day_of_week'])}/7) Month: {int(self.state['month'])}"
-            ),
-            True,
-            BLACK,
+        title_str = (
+            f"Shift {shift[0]}:{shift[1]} Day: {int(self.state['day'])} "
+            f"({int(self.state['day_of_week'])}/7) Month: {int(self.state['month'])}"
+        ) if shift is not None else (
+            f"Shift: {shift} Day: {int(self.state['day'])} "
+            f"({int(self.state['day_of_week'])}/7) Month: {int(self.state['month'])}"
         )
+        title = font.render(title_str, True, BLACK)
         self.surf.blit(title, (self.screen_dim[0] // 2, 0))
         pygame.draw.circle(self.surf, PRETTY_GREEN, (30, 20), offset_bikes_render)
         font_size = 10

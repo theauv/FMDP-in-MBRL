@@ -29,7 +29,20 @@ pip install -e .
 #     done
 # done
 
-group_name="reward_only_1step"
+group_name="reward_only_1step_acbo"
+
+model="gaussian_process"
+for lr in 0.1 0.01 0.001
+    do
+    run_name="test_${model}_lr_${lr}"
+    python3 run_scripts/train.py experiment.with_tracking=true dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}
+done
+model="simple"
+for lr in 0.001 0.0001 0.00001
+    do
+    run_name="test_${model}_lr_${lr}"
+    python3 run_scripts/train.py experiment.with_tracking=true dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}
+done
 
 # for station_dependencies in "src/env/bikes_data/factors_radius_1-2.npy" "src/env/bikes_data/factors_radius_3.npy"
 #     do
@@ -42,16 +55,16 @@ group_name="reward_only_1step"
 #     done
 # done
 
-group_name="reward_only_1step_tests"
+# group_name="reward_only_1step_tests"
 
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="linear_regression" experiment.run_configs.name=${run_name}"
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="linear_regression" overrides.freq_train_model=20 experiment.run_configs.name=${run_name}"
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="linear_regression" overrides.num_epochs_train_model=100 experiment.run_configs.name=${run_name}"
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="linear_regression" overrides.freq_train_model=20 overrides.num_epochs_train_model=100 experiment.run_configs.name=${run_name}"
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="simple" experiment.run_configs.name=${run_name}"
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="simple" overrides.freq_train_model=20 experiment.run_configs.name=${run_name}"
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="simple" overrides.num_epochs_train_model=100 experiment.run_configs.name=${run_name}"
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="simple" overrides.freq_train_model=20 overrides.num_epochs_train_model=100 experiment.run_configs.name=${run_name}"
+# sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="linear_regression" experiment.run_configs.name=${run_name}"
+# sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="linear_regression" overrides.freq_train_model=20 experiment.run_configs.name=${run_name}"
+# sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="linear_regression" overrides.num_epochs_train_model=100 experiment.run_configs.name=${run_name}"
+# sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="linear_regression" overrides.freq_train_model=20 overrides.num_epochs_train_model=100 experiment.run_configs.name=${run_name}"
+# sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="simple" experiment.run_configs.name=${run_name}"
+# sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="simple" overrides.freq_train_model=20 experiment.run_configs.name=${run_name}"
+# sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="simple" overrides.num_epochs_train_model=100 experiment.run_configs.name=${run_name}"
+# sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=pets_bikes experiment.run_configs.group=${group_name} dynamics_model="simple" overrides.freq_train_model=20 overrides.num_epochs_train_model=100 experiment.run_configs.name=${run_name}"
 
 
 # for cem_num_iters in 20 40 60
