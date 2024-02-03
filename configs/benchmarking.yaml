@@ -2,7 +2,7 @@ defaults:
   - overrides: pets_bikes
 
 env_name: ${overrides.env}
-agent: random #random
+agent: good_heuristic #random
 num_steps: 365 #(~2months with 8 action_per_day)
 with_tracking: false
 env_config: ${overrides.env_config}

@@ -68,9 +68,9 @@ class GoodBikesHeuristic(Agent):
         number of actions per day is fixed we can find the timeshift from it.
         :return: current timeshift
         """
-        if counter < len(self.action_timeshifts) - 1:
-            return self.action_timeshifts[counter : counter + 2]
-        elif counter >= len(self.action_timeshifts) - 1:
+        if counter < len(self.action_timeshifts) :
+            return self.action_timeshifts[counter-1:counter+1]
+        elif counter >= len(self.action_timeshifts):
             return None
 
     def get_current_trips_data(self, month, day, time_counter):
@@ -151,7 +151,8 @@ class GoodBikesHeuristic(Agent):
 
         action = np.zeros(self.action_shape)
         action[self.map_act["truck_centroid"]] = best_centroids_idx
-        action[self.map_act["truck_num_bikes"]] = self.bikes_per_truck
+        if "truck_num_bikes" in self.map_act.keys():
+            action[self.map_act["truck_num_bikes"]] = self.bikes_per_truck
 
         return action
 

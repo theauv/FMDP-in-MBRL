@@ -45,7 +45,7 @@ def run_agent_in_env(
         observation, reward, terminated, truncated, info = env.step(action)
         print(
             f"Total env step: {env_step} Episode: {len(all_n_steps)} Current episode step: {n_steps} "
-            f"Reward: {reward}"
+            f"Reward: {reward} Done: {terminated}"
         )
         n_steps += 1
         rewards += reward
