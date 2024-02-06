@@ -190,6 +190,7 @@ def create_one_dim_tr_model_overriden(
             obs_preprocess_fn=base_env.obs_preprocess_fn,
             obs_postprocess_fn=base_env.obs_postprocess_fn,
             target_is_delta=cfg.algorithm.target_is_delta,
+            rescale_input=cfg.algorithm.rescale_input,
             normalize=cfg.algorithm.normalize,
             normalize_double_precision=cfg.algorithm.get(
                 "normalize_double_precision", False

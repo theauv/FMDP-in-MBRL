@@ -15,7 +15,6 @@ from torcheval.metrics.functional import r2_score
 from mbrl.models.model import Model
 from mbrl.models.util import truncated_normal_init
 
-
 class Simple(Model):
     """
     Simplest model supported by mbrl-lib

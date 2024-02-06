@@ -1,26 +1,15 @@
 import pathlib
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union, List
+from copy import deepcopy
 
 import gpytorch
 from gpytorch.means import Mean
 from gpytorch.kernels import Kernel
-from mbrl.types import ModelInput
 import torch
-from torch._tensor import Tensor
 from torch.functional import F
 from torch.optim.optimizer import Optimizer as Optimizer
-from torcheval.metrics.functional import r2_score
 
 from mbrl.models.model import Model
-
-from typing import Any, Dict, Optional, Tuple, Union
-from torch.functional import F
-import pathlib
-
-from mbrl.models.model import Model
-
-from time import time
-
 
 class ExactGPModel(gpytorch.models.ExactGP):
     # TODO: Reecrire cette classe avec plus de choix de kernel etc
@@ -81,13 +70,11 @@ class MultiOutputGP(Model):
         mean: Optional[Mean] = None,
         kernel: Optional[Kernel] = None,
         scale_kernel: bool = True,
-        eval_metric: Optional[str] = "MSE",
         *args,
         **kwargs,
     ):
         super().__init__(device, *args, **kwargs)
 
-        self.eval_metric = eval_metric
         self.in_size = in_size
         self.out_size = out_size
         models = []
@@ -201,3 +188,122 @@ class MultiOutputGP(Model):
             [pred.mean.unsqueeze(-1) for pred in pred_output], axis=-1
         )
         return (pred_mean, model_state)
+
+class FactoredMultiOutputGP(MultiOutputGP):
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+        device: Union[str, torch.device],
+        factors: List,
+        mean: Optional[Mean] = None,
+        kernel: Optional[Kernel] = None,
+        scale_kernel: bool = True,
+        reward_factors: Optional[List] = None,
+    ):
+        """
+        :param raw_factors: Adjacency list for which each entry i is a tuple or a List of the inputs the output i
+        depends on
+        """
+
+        Model.__init__(self, device)
+
+        self.mean = mean
+        self.kernel = kernel
+        self.scale_kernel = scale_kernel
+
+        self.in_size = in_size
+        self.out_size = out_size
+
+        self.factors = factors
+        self.reward_factors = reward_factors
+
+        self.learn_reward = True if self.out_size == len(self.factors) + 1 else False
+        if self.learn_reward:
+            if self.reward_factors is None:
+                self.factors.append([i for i in range(self.in_size)])
+            else:  # TODO: DOES NOT WORK FOR NOW
+                raise ValueError("Factored reward not supported yet")
+                self.reward_model_factors = self.get_model_factors(reward_factors)
+                self.reward_models = self.get_factored_models(
+                    hid_size=hid_size,
+                    num_layers=num_layers,
+                    activation_fn_cfg=activation_fn_cfg,
+                    model_factors=self.reward_model_factors,
+                )
+
+        print(self.factors)
+        self.model_factors = self.get_model_factors(self.factors)
+        print(self.model_factors)
+        self.models = self.get_factored_models()
+
+        self.gp = gpytorch.models.IndependentModelList(*self.models)
+        self.likelihood = gpytorch.likelihoods.LikelihoodList(
+            *[submodel.likelihood for submodel in self.models]
+        )
+        self.mll = gpytorch.mlls.SumMarginalLogLikelihood(self.likelihood, self.gp)
+
+    @staticmethod
+    def get_model_factors(raw_factors_):
+        """Compute the scope (input) for each single factor (output)
+        """
+        raw_factors = deepcopy(raw_factors_)
+        factors = []
+        for output, inputs in enumerate(raw_factors):
+            inputs = list(inputs)
+            out = [output]
+            factors.append((inputs, out))
+        return factors
+        
+
+    def get_factored_models(self,):
+        models = []
+        total_out_size = 0
+        for model_factor in self.model_factors:
+            assert len(model_factor) == 2
+            in_size = len(model_factor[0])
+            total_out_size += 1
+
+            model = ExactGPModel(
+                None,
+                None,
+                gpytorch.likelihoods.GaussianLikelihood(),
+                self.mean,
+                self.kernel,
+                self.scale_kernel,
+                in_size,
+            )
+            models.append(model)
+
+        print(total_out_size, self.out_size)
+        assert total_out_size == self.out_size
+        return models
+    
+    def set_train_data(self, train_x=None, train_y=None, strict=False):
+        for i, model in enumerate(self.gp.models):
+            input_idx, output_idx = self.model_factors[i]
+            train_y_i = train_y[:, i]
+            train_x_i = train_x.index_select(
+                    -1, torch.tensor(self.model_factors[i][0])
+                )
+            if model.train_inputs is not None:
+                # TODO: Those assertions might not even be useful if we have a
+                # model that updates its factors over time... (So not useful in general)
+                assert train_x_i.shape[-1] == model.train_inputs[0].shape[-1]
+                assert train_y_i.ndim == model.train_targets.ndim == 1
+            model.set_train_data(train_x_i, train_y_i, strict=strict)
+
+    def forward(
+        self, x: torch.Tensor = None
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        if x is None:
+            return self.gp(*self.gp.train_inputs)
+        else:
+            assert len(self.gp.models)==len(self.model_factors)
+            out = []
+            for i, model in enumerate(self.gp.models):
+                sub_x = x.index_select(
+                    -1, torch.tensor(self.model_factors[i][0])
+                )
+                out.append(model(sub_x))
+            return out

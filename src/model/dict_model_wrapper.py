@@ -38,6 +38,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         model_output_key: List = None,
         target_is_delta: bool = True,
         normalize: bool = False,
+        rescale_input: bool = False,
         normalize_double_precision: bool = False,
         learned_rewards: bool = True,
         obs_preprocess_fn: Optional[mbrl.types.ObsProcessFnType] = None,
@@ -57,8 +58,6 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         )
         self.map_obs = map_obs
         self.map_act = map_act
-        self.rescale_obs = rescale_obs
-        self.rescale_act = rescale_act
         self.obs_length = self.map_obs["length"]
         self.act_length = self.map_act["length"]
         self.obs_process_fn = obs_preprocess_fn
@@ -104,8 +103,11 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
             model_output_length += 1
 
         # TODO: remove this line
-        normalize = False
         self.output_normalizer = None
+        self.rescale_input = rescale_input
+        if self.rescale_input:
+            self.rescale_obs = rescale_obs
+            self.rescale_act = rescale_act
         if normalize:
             self.output_normalizer = mbrl.util.math.Normalizer(
                 model_output_length,
@@ -128,8 +130,9 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
             obs = self.obs_process_fn(obs, action)
         obs = model_util.to_tensor(obs).to(self.device)
         action = model_util.to_tensor(action).to(self.device)
-        # obs = self.rescale_obs(obs)
-        # action = self.rescale_act(action)
+        if self.rescale_input:
+            obs = self.rescale_obs(obs)
+            action = self.rescale_act(action)
         model_in = torch.cat([obs, action], dim=obs.ndim - 1)
 
         model_in = model_in.float().to(self.device)
@@ -206,14 +209,17 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         else:
             target_obs = next_obs
         target_obs = self._get_next_obs(target_obs)
-        if target_obs.ndim == 1:
-            target_obs = np.expand_dims(target_obs, axis=-1)
         if reward.ndim == 1:
             reward = np.expand_dims(reward, axis=-1)
-        if self.learned_rewards:
-            target = np.concatenate([target_obs, reward], axis=obs.ndim - 1)
+        if target_obs is None:
+            target = reward
         else:
-            target = target_obs
+            if target_obs.ndim == 1:
+                target_obs = np.expand_dims(target_obs, axis=-1)
+            if self.learned_rewards:
+                target = np.concatenate([target_obs, reward], axis=obs.ndim - 1)
+            else:
+                target = target_obs
         self.output_normalizer.update_stats(target)
 
     def get_output_and_targets(

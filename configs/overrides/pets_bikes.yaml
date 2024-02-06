@@ -2,10 +2,10 @@
 env: bikes
 env_config:
   num_trucks: 5 #10
-  action_per_day: 1
+  action_per_day: 2
   next_day_method: random #sequential
   initial_distribution: zeros
-  bikes_per_truck: 8
+  bikes_per_truck: 5
   fix_bikes_per_truck: true
   start_walk_dist_max: 0.2
   end_walk_dist_max: 1000.
@@ -14,7 +14,7 @@ env_config:
   weather_data: src/env/bikes_data/weather_data.csv
   centroids_coord: src/env/bikes_data/acbo_centroids/acbo_centroids_coords.npy #src/env/bikes_data/acbo_centroids_coords.npy #src/env/bikes_data/LouVelo_centroids_coords.npy
   #centroids_idx: #[93,83,80,98,6,84,87,99,56,97] #Number of centroids or list of indices
-  station_dependencies: null #src/env/bikes_data/factors_radius_1-2.npy
+  station_dependencies: src/env/bikes_data/acbo_centroids/factors_radius_3.npy #src/env/bikes_data/factors_radius_1-2.npy
 model_wrapper:
   _target_: src.model.dict_model_wrapper.OneDTransitionRewardModelDictSpace
   model_input_obs_key: ["bikes_distr", "demands", "time_counter"] #["bikes_distr","day_of_week", "demands", "month", "time_counter"]
