@@ -1,0 +1,16 @@
+# @package _group_
+model_trainer:
+  _target_: src.util.model_trainer.ModelTrainerOverriden
+model:
+  _target_: src.model.gaussian_process.MultiOutputGP
+  device: ${device}
+  in_size: ???
+  out_size: ???
+  mean: Linear
+  kernel: Matern
+  scale_kernel: true
+  reward_factors: null
+
+batch_size: ${overrides.dataset_size}
+model_lr: 0.01
+model_wd: 0.

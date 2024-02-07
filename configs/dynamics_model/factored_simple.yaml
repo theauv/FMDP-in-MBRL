@@ -4,11 +4,14 @@ model_trainer:
 model:
   _target_: src.model.simple.FactoredSimple
   device: ${device}
-  num_layers: 2 #4
+  num_layers: 2
   in_size: ???
   out_size: ???
-  hid_size: 100 #200
+  hid_size: 200
   activation_fn_cfg: #null
     _target_: torch.nn.SiLU
   factors: ???
   reward_factors: null
+
+model_lr: 0.0001
+model_wd: 0.0001

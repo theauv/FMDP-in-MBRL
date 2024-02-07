@@ -6,8 +6,6 @@ import matplotlib
 from matplotlib import pyplot as plt
 import numpy as np
 import omegaconf
-from pathlib import Path
-import shutil
 from time import sleep
 import wandb
 
@@ -16,7 +14,7 @@ from mbrl.planning.core import Agent, RandomAgent
 from src.env.bikes import Bikes
 from src.env.hypergrid import ContinuousHyperGrid
 from src.callbacks.wandb_callbacks import CallbackWandb
-from src.agent.heuristic import StubbornAgent, GoodBikesHeuristic
+from src.agent.heuristic import StubbornAgent, GoodBikesHeuristic, ArtificialGoodBikesHeuristic
 
 
 def run_agent_in_env(
@@ -101,9 +99,12 @@ def run(cfg: omegaconf.DictConfig):
         agent = RandomAgent(env)
     elif cfg.agent == "stubborn":
         # TODO: add a action parameter for stubborn in configs
-        agent = StubbornAgent(env, action=None)
+        agent = StubbornAgent(env, action=0)
     elif cfg.agent == "good_heuristic":
-        agent = GoodBikesHeuristic(cfg.env_config, env)
+        if env.all_trips_data is None:
+            agent = ArtificialGoodBikesHeuristic(env)
+        else:
+            agent = GoodBikesHeuristic(cfg.env_config, env)
     else:
         raise ValueError(f"No benchmark agent called {cfg.agent} implemented (yet)")
 

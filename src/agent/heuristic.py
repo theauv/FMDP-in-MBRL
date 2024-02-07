@@ -156,6 +156,61 @@ class GoodBikesHeuristic(Agent):
 
         return action
 
+class ArtificialGoodBikesHeuristic(Agent):
+    """
+    TODO: Does not take into account taken_bikes
+    TODO: Greedily solve each timeshift but not the whole day
+    TODO: Does not take into account demand of a centroid being > bikes_per_truck
+    TODO: Put as much as bikes as possible each time (does not try to minimize the number
+    of bikes)
+    """
+
+    def __init__(self, env) -> None:
+
+        self.get_demand = env.sim.trip_bikes
+        self.time_step = env.sim.timestep
+        self.action_timeshifts = env.action_timeshifts
+        self.num_trucks = env.num_trucks
+        self.bikes_per_truck = env.bikes_per_truck
+        self.map_obs = env.map_obs
+        self.map_act = env.map_act
+        self.action_shape = env.action_space.shape
+        self.num_centroids = env.num_centroids
+
+    def get_timeshift(self, counter):
+        """
+        get the current timeshift, namely the time between
+        2 actions (the one we take now and the next one).
+
+        :param counter: number of actions took so far. As the total
+        number of actions per day is fixed we can find the timeshift from it.
+        :return: current timeshift
+        """
+        if counter < len(self.action_timeshifts) :
+            return self.action_timeshifts[counter-1:counter+1]
+        elif counter >= len(self.action_timeshifts):
+            return None
+
+    def act(self, obs: np.ndarray, **_kwargs) -> np.ndarray:
+        timeshift = self.get_timeshift(int(obs[self.map_obs["time_counter"]][0]))
+        time_chunks = np.arange(timeshift[0], timeshift[1], self.time_step)
+        demands = np.zeros(self.num_centroids)
+        for time in time_chunks:
+            demand = self.get_demand(time)[0]
+            demands[demand] += 1
+
+        best_centroids_idx = np.argpartition(demands, -self.num_trucks)[
+            -self.num_trucks :
+        ]
+
+        action = np.zeros(self.action_shape)
+        action[self.map_act["truck_centroid"]] = best_centroids_idx
+        if "truck_num_bikes" in self.map_act.keys():
+            action[self.map_act["truck_num_bikes"]] = self.bikes_per_truck
+
+        return action
+
+
 
 class CEMAgent(Agent):
     def __init__(self) -> None:

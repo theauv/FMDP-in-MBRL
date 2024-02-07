@@ -6,12 +6,20 @@ module load gcc/8.2.0 python/3.9.9
 source euler-pdm-env/bin/activate
 pip install -e .
 
-# batch
-# for i in {1..5}
-#     do
+group_name='multistep_artificial'
 
-# done
-
+model="factored_simple"
+for lr in 0.001 0.0001
+    do
+    run_name="test_${model}_lr_${lr}"
+    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+done
+model="factored_gp"
+for lr in 0.1 0.01
+    do
+    run_name="test_${model}_lr_${lr}"
+    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+done
 
 # group_name="euler_bikes_test"
 
@@ -28,14 +36,6 @@ pip install -e .
 #         done
 #     done
 # done
-
-group_name="2step_acbo"
-
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --mail-type=END --wrap="python3 run_scripts/train.py experiment.with_tracking=true dynamics_model='factored_simple' dynamics_model.model_lr=0.0001 experiment.run_configs.name='simplefactored' experiment.run_configs.group=${group_name}"
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --mail-type=END --wrap="python3 run_scripts/train.py experiment.with_tracking=true dynamics_model='factored_gp' dynamics_model.model_lr=0.01 experiment.run_configs.name='gpfactored' experiment.run_configs.group=${group_name}"
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --mail-type=END --wrap="python3 run_scripts/train.py experiment.with_tracking=true dynamics_model='factored_simple' dynamics_model.model_lr=0.0001 experiment.run_configs.name='simplefactored' overrides.weather_data=null overrides.past_trip_data=null experiment.run_configs.group=${group_name}"
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --mail-type=END --wrap="python3 run_scripts/train.py experiment.with_tracking=true dynamics_model='factored_gp' dynamics_model.model_lr=0.01 experiment.run_configs.name='gpfactored' overrides.weather_data=null overrides.past_trip_data=null experiment.run_configs.group=${group_name}"
-
 
 # model="gaussian_process"
 # for lr in 0.1 0.01 0.001

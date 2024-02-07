@@ -205,10 +205,7 @@ class Bikes(DictSpacesEnv):
         )
         self.next_day_method = env_config.next_day_method
         self.initial_distribution = env_config.initial_distribution
-
         hour_max = 24
-        self.latitudes = [38.15, 38.35] #[38.2, 38.28]
-        self.longitudes = [-85.9, -85.55] #[-85.8, -85.7]
 
         # TODO: rewrite this in a modulable way
         self.base_dir = env_config.get("base_dir", "")
@@ -239,8 +236,17 @@ class Bikes(DictSpacesEnv):
 
         self.num_centroids = len(self.centroid_coords)
 
+        if self.num_centroids>100 or centroids_idx is not None:
+            self.latitudes = [38.15, 38.35] 
+            self.longitudes = [-85.9, -85.55]
+        else:
+            self.latitudes = [38.2, 38.28]
+            self.longitudes = [-85.8, -85.7]
+
         #Trips (and weather) data
         if env_config.past_trip_data is not None:
+            assert env_config.weather_data is not None, \
+                "If using past_trip_data you must use a weather data too"
             self.all_trips_data = pd.read_csv(
                 self.base_dir + env_config.past_trip_data,
                 usecols=lambda x: x not in ["TripID", "StartDate", "EndDate", "EndTime"],
@@ -343,7 +349,7 @@ class Bikes(DictSpacesEnv):
                     high=self.bikes_per_truck,
                     shape=(self.num_trucks,),
                     dtype=np.float32,
-                ),
+                )
         self.dict_action_space = spaces.Dict(action_space)
         # TODO: could have a negative number of bikes meaning that we remove some bikes
         # in reward the more we have unused bikes the worst it is
@@ -397,9 +403,12 @@ class Bikes(DictSpacesEnv):
         print("-------------ENV INFO-------------")
         print(f"Observation space keys: {self.dict_observation_space.keys()}")
         print(f"Action space keys: {self.dict_action_space.keys()}")
-        print(f"Total number of used days in the year 2019: {len(self.all_weather_data)}")
-        print(f"Total number of trips: {len(self.all_trips_data)}")
-        print(f"Max demand for each time shift: {self.max_demands}")
+        if self.all_trips_data is not None:
+            print(f"Total number of used days in the year 2019: {len(self.all_weather_data)}")
+            print(f"Total number of trips: {len(self.all_trips_data)}")
+            print(f"Max demand for each time shift: {self.max_demands}")
+        else:
+            print("Using artificial rentals dynamics")
         print(f"Number of centroids: {self.num_centroids}")
         print(f"Centroid induced dependencies file: {self.station_dependencies_file}")
 
@@ -689,19 +698,34 @@ class Bikes(DictSpacesEnv):
                 day_of_week = self.state["day_of_week"]
             else:
                 day, month, day_of_week = self.get_next_day()
-        else:
-            day = self.state["day"]+1 if self.state["day"]<31 else 1
-            month = self.state["month"] if self.state["day"]<31 else self.state["month"]+1
-            day_of_week = self.state["day_of_week"]+1 if self.state["day_of_week"]<7 else 1
 
-        self.state = {
-            "bikes_distr": self.get_initial_bikes_distribution(),
-            "day": day,
-            "day_of_week": day_of_week,
-            "month": month,
-            "time_counter": 1,
-            "demands": self.get_demands(day, month),
-        }
+            self.state = {
+                "bikes_distr": self.get_initial_bikes_distribution(),
+                "day": day,
+                "day_of_week": day_of_week,
+                "month": month,
+                "time_counter": 1,
+                "demands": self.get_demands(day, month),
+            }
+
+        else:
+            if self.state is None:
+                #arbitrary
+                day = 1
+                month = 1
+                day_of_week = 3
+            else:
+                day = self.state["day"]+1 if self.state["day"]<31 else 1
+                month = self.state["month"] if self.state["day"]<31 else self.state["month"]+1
+                day_of_week = self.state["day_of_week"]+1 if self.state["day_of_week"]<7 else 1
+
+            self.state = {
+                "bikes_distr": self.get_initial_bikes_distribution(),
+                "day": day,
+                "day_of_week": day_of_week,
+                "month": month,
+                "time_counter": 1,
+            }
 
         self.tot_num_trips = None
         self.num_met_trips = None
@@ -1123,6 +1147,8 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         end_walk_dist_max=1,
         station_dependencies: Optional[np.array] = None,
         trip_duration: Optional[float] = None,
+        time_step: Optional[float] = 1,
+        seed: Optional[int] = 0
     ):
         super().__init__(
             centroids,
@@ -1131,37 +1157,55 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
             station_dependencies,
             trip_duration,
         )
-        self.mu = self.compute_mu_ij()
-        self.sigma = self.compute_sigma_ij()
-        self.threshold = 0.5
-        self.timestep = 0.5 #hours
+        np.random.seed(seed)
+        self.std = 0.08 #Factor of random noise in the bike distribution
+        self.threshold = 0.6
+        self.timestep = time_step #hours
         if self.station_dependencies is None:
             self.station_dependencies = np.ones((self.num_centroids,self.num_centroids))
+        self.mu = self.compute_mu_ij() #Fixed
+        self.sigma = self.compute_sigma_ij() #Fixed
+        self.intensity = self.compute_intensity() #Fixed
 
     @staticmethod
-    def gaussian(x, mu, sig):
-        return np.exp(-np.power((x - mu)/sig, 2.)/2) #1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((x - mu)/sig, 2.)/2)
+    def gaussian(t, mu, sig, intensity):
+        """
+        Gives the mean probability that a bike is send at time x,
+        knowing the rush hour distribution of each centroid (defined by mu and sigma)
 
+        :param t: current time
+        :param mu: mean rush hour for each connection centroid_i -> centroid_j (2d array)
+        :param sig: standard deviation of the rush hour (2d array)
+        :param intensity: intensity of the connection centroid_i -> centroid_j
+        """
+        return intensity*np.exp(-np.power((t - mu)/sig, 2.)/2) 
+    
     def trip_bikes(self, time):
-        mean = self.gaussian(time, self.mu, self.sigma) 
-        random = np.random.normal(mean, 0.1) #A checker
+        mean = self.gaussian(time, self.mu, self.sigma, self.intensity)
+        random = np.random.normal(mean, self.std) #A checker
         demand = random > self.threshold
         demand = np.multiply(demand, self.station_dependencies)
         return np.nonzero(demand)
-
-    def compute_max_bikes(self):
-        """return a n_centroids x n_centroids based on the month
-        compute at each new month
-        """
-        pass
-
+    
     def compute_mu_ij(self,):
-        """return mu_ij n_centroids x n_centroids with each entry is random among [8, 12, 16, 20]
-        compute one time only
         """
-        #mu = np.random.randint(2, 6, (self.num_centroids,self.num_centroids))*4
-        mu = np.random.randint(1, 24, (self.num_centroids, self.num_centroids))
-        #print(mu)
+        Gives the mean rush hour of each connection centroid_i -> crntroid_j
+        mu_ij = normal(rush_hour, 1) and the rush_hour is randomly assigned for each
+        receiving centroid.
+        return: 2d array
+        """
+        rush_hours = [4, 8, 10, 12, 16, 18, 22]
+
+        dim = self.num_centroids
+        a = np.empty((dim, dim))
+        indices = np.arange(dim)
+        split_size = dim//len(rush_hours)+1
+        np.random.shuffle(indices)
+        for i in range(len(rush_hours)):
+            idx = indices[int(split_size*i):int(split_size*(i+1))]
+            a[idx] = rush_hours[i] #np.random.normal(rush_hours[i], 1, (len(idx), dim))
+        #mu = np.round(a).T
+        mu = np.round(a)
         return mu
 
     def compute_sigma_ij(self):
@@ -1169,40 +1213,34 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         for this connection could depend on day of week but start with constant one
         """
         #sigma = np.random.uniform(0.1, 1, (self.num_centroids, self.num_centroids))
-        sigma = np.ones((self.num_centroids, self.num_centroids))*5
-        #print(sigma)
+        sigma = np.ones((self.num_centroids, self.num_centroids))
         return sigma
-
-    def compute_n_bikes(self):
+    
+    def compute_intensity(self):
+        """Each centroid has an intensity value defining how much likely it is to 
+        send a bike to its connections.
         """
-        n_bikes = F(time |mu_ij, sigma_ij) x max_bikes + noise(could also depend on somehting)
-        """
-        pass
-
-
-    def define_dynamics(
-        self,
-        mean_n_bikes=3,
-
-    ):
-        """
-        dynamics:
-        - step taken bikes
-        - for time in [start, end, timestep=30min for instance]:
-        - compute exchange of bikes
-        - random order of exchange bikes
-        - run equivalent simulator: like "if bikes, increment taken bikes"
-        """
-        self.wheres = []
-        for i, centroid in enumerate(self.centroids):
-            n_neigh = len(self.station_dependencies_ll[i])
-            where = np.random.randint(
-                0,
-                n_neigh,
-                n_neigh,
-            )
-            self.wheres.append(where)
-            n_bikes = np.random.normal(mean_n_bikes, 1, n_neigh)
+        dim = self.num_centroids
+        n_big_hubs = int(0.1*dim)
+        n_medium_hubs = int(0.4*dim)
+        n_small_hubs = int(0.5*dim)
+        n_not_used = dim - n_big_hubs - n_medium_hubs - n_small_hubs
+        intensity_big = np.random.normal(0.6, 0.1, dim) #np.random.uniform(0.5, 1., size=n_big_hubs)
+        intensity_medium = np.random.normal(0.5, 0.1, dim) #np.random.uniform(0.5, 0.8, size=n_medium_hubs)
+        intensity_small = np.random.normal(0.3, 0.1, dim) #np.random.uniform(0.1, 0.4, size=n_small_hubs)
+        intensity_not_used = np.zeros(n_not_used)
+        intensity = np.concatenate([intensity_big, intensity_medium, intensity_small, intensity_not_used])
+        #intensity = np.random.normal(0.5, 0.1, dim)
+        if not np.all(self.station_dependencies==1):
+            best_hubs = np.sum(self.station_dependencies, axis=0)
+            best_hubs_idx = np.argsort(-best_hubs)
+            intensity = intensity[best_hubs_idx]
+        else:
+            np.random.shuffle(intensity)
+        intensity=np.random.normal(intensity, 0.1, (dim, dim))#.T
+        #intensity = np.repeat(intensity[...,None], dim, axis=-1)
+        #intensity = np.repeat(intensity[None, ...], dim, axis=0)
+        return intensity
 
     def simulate_rentals(self, bikes_distr, start, end):
         """
@@ -1234,6 +1272,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
             demands = self.trip_bikes(time)
             tot_num_trips += len(demands[0])
             for idx_start_centroid, idx_end_centroid in zip(demands[0], demands[1]):
+                #for debug only
                 if new_bikes_ditr[idx_start_centroid] > 0:
                     new_bikes_ditr[idx_start_centroid] -= 1
 
@@ -1258,6 +1297,9 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
                     met_trips_per_centroid[idx_start_centroid] += 1       
                 else:
                     tot_demand_per_centroid[idx_start_centroid] += 1
+
+        # print("tot_num_trips", tot_num_trips)
+        # print("num_met_trips", num_met_trips)
 
         return (
             new_bikes_ditr,
