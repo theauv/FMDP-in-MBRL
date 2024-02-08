@@ -26,13 +26,13 @@ model="gaussian_process"
 for lr in 0.1 0.01
     do
     run_name="test_${model}_lr_${lr}"
-    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides.initial_exploration_steps=100 overrides.num_epochs_train_model=50 dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides.num_epochs_train_model=10 dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
 done
 model="factored_gp"
 for lr in 0.1 0.01
     do
     run_name="test_${model}_lr_${lr}"
-    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides.initial_exploration_steps=100 overrides.num_epochs_train_model=50 dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides.num_epochs_train_model=10 dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
 done
 
 

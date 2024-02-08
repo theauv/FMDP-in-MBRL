@@ -113,7 +113,7 @@ def run(cfg: omegaconf.DictConfig):
     if cfg.with_tracking:
         repo = git.Repo(search_parent_directories=True)
         sha = repo.head.object.hexsha
-        group_name = cfg.get("group_name", f"Benchmarking_{cfg.env_name}")
+        group_name = f"{cfg.get('group_name', f'Benchmarking_{cfg.env_name}')}_{sha}"
         run_name = f"{cfg.agent}"
         if cfg.additional_run_name:
             run_name += f"_{cfg.additional_run_name}"
