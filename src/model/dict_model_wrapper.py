@@ -115,6 +115,16 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
                 dtype=torch.double if normalize_double_precision else torch.float,
             )
 
+        print("--------------MODEL INFO----------------")    
+        print(f"Model obs input keys: {model_input_obs_key}")
+        print(f"Model action input keys: {model_input_act_key}")
+        print(f"Model output keys: {model_output_key}")
+        print(f"Normalize output: {normalize}")
+        print(f"Rescale input: {rescale_input}")
+        print(f"Target is delta: {target_is_delta}")
+        print(f"Learne rewards: {learned_rewards}")
+        print(f"Num elites: {num_elites}")
+
     def _get_next_obs(self, batch_next_obs: mbrl.types.TensorType):
         if len(batch_next_obs.shape) == 1:
             batch_next_obs = np.expand_dims(batch_next_obs, axis=0)

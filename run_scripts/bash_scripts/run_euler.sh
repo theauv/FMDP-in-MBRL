@@ -6,33 +6,55 @@ module load gcc/8.2.0 python/3.9.9
 source euler-pdm-env/bin/activate
 pip install -e .
 
-group_name='euler_multistep_artificial_5centroid'
+# model="simple"
+# for lr in 0.001 0.0001
+#     do
+#     run_name="test_${model}_lr_${lr}"
+#     sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+# done
+# model="factored_simple"
+# for lr in 0.001 0.0001
+#     do
+#     run_name="test_${model}_lr_${lr}"
+#     sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+# done
 
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true agent='random' additional_run_name='multistep_artificial' group_name=${group_name}"
-sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true agent='good_heuristic' additional_run_name='multistep_artificial' group_name=${group_name}"
-model="simple"
-for lr in 0.001 0.0001
-    do
-    run_name="test_${model}_lr_${lr}"
-    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
-done
-model="factored_simple"
-for lr in 0.001 0.0001
-    do
-    run_name="test_${model}_lr_${lr}"
-    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
-done
+group_name='euler_multistep_real_5centroid'
+
+trips_data="src/env/bikes_data/all_trips_LouVelo_merged.csv"
+weather_data="src/env/bikes_data/weather_data.csv"
+sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true agent='random' overrides.env_config.past_trip_data=${trips_data} overrides.env_config.weather_data=${weather_data} group_name=${group_name}"
+sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true agent='good_heuristic' overrides.env_config.past_trip_data=${trips_data} overrides.env_config.weather_data=${weather_data} group_name=${group_name}"
 model="gaussian_process"
 for lr in 0.1 0.01
     do
     run_name="test_${model}_lr_${lr}"
-    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides.num_epochs_train_model=10 dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides.num_epochs_train_model=10 dynamics_model=${model} dynamics_model.model_lr=${lr} overrides.env_config.past_trip_data=${trips_data} overrides.env_config.weather_data=${weather_data} overrides.model_wrapper.model_input_obs_key='['bikes_distr','demands','time_counter']' experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
 done
 model="factored_gp"
 for lr in 0.1 0.01
     do
     run_name="test_${model}_lr_${lr}"
-    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides.num_epochs_train_model=10 dynamics_model=${model} dynamics_model.model_lr=${lr} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides.num_epochs_train_model=10 dynamics_model=${model} dynamics_model.model_lr=${lr} overrides.env_config.past_trip_data=${trips_data} overrides.env_config.weather_data=${weather_data} overrides.model_wrapper.model_input_obs_key='['bikes_distr','demands','time_counter']' experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+done
+
+group_name='euler_multistep_artificial_43centroid'
+
+centroids="src/env/bikes_data/LouVelo_centroids/LouVelo_centroids_coords.npy"
+station_dependencies="src/env/bikes_data/LouVelo_centroids/factors_radius_1-2.npy"
+sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true agent='random' overrides.env_config.centroids_coord=${centroids} overrides.env_config.station_dependencies=${station_dependencies} group_name=${group_name}"
+sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true agent='good_heuristic' overrides.env_config.centroids_coord=${centroids} overrides.env_config.station_dependencies=${station_dependencies} group_name=${group_name}"
+model="gaussian_process"
+for lr in 0.1 0.01
+    do
+    run_name="test_${model}_lr_${lr}"
+    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides.num_epochs_train_model=10 dynamics_model=${model} dynamics_model.model_lr=${lr} overrides.env_config.centroids_coord=${centroids} overrides.env_config.station_dependencies=${station_dependencies} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+done
+model="factored_gp"
+for lr in 0.1 0.01
+    do
+    run_name="test_${model}_lr_${lr}"
+    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides.num_epochs_train_model=10 dynamics_model=${model} dynamics_model.model_lr=${lr} overrides.env_config.centroids_coord=${centroids} overrides.env_config.station_dependencies=${station_dependencies} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
 done
 
 
