@@ -11,6 +11,7 @@ from torch.optim.optimizer import Optimizer as Optimizer
 
 from mbrl.models.model import Model
 
+
 class ExactGPModel(gpytorch.models.ExactGP):
     # TODO: Reecrire cette classe avec plus de choix de kernel etc
     def __init__(
@@ -189,6 +190,7 @@ class MultiOutputGP(Model):
         )
         return (pred_mean, model_state)
 
+
 class FactoredMultiOutputGP(MultiOutputGP):
     def __init__(
         self,
@@ -245,8 +247,7 @@ class FactoredMultiOutputGP(MultiOutputGP):
 
     @staticmethod
     def get_model_factors(raw_factors_):
-        """Compute the scope (input) for each single factor (output)
-        """
+        """Compute the scope (input) for each single factor (output)"""
         raw_factors = deepcopy(raw_factors_)
         factors = []
         for output, inputs in enumerate(raw_factors):
@@ -254,9 +255,10 @@ class FactoredMultiOutputGP(MultiOutputGP):
             out = [output]
             factors.append((inputs, out))
         return factors
-        
 
-    def get_factored_models(self,):
+    def get_factored_models(
+        self,
+    ):
         models = []
         total_out_size = 0
         for model_factor in self.model_factors:
@@ -278,14 +280,12 @@ class FactoredMultiOutputGP(MultiOutputGP):
         print(total_out_size, self.out_size)
         assert total_out_size == self.out_size
         return models
-    
+
     def set_train_data(self, train_x=None, train_y=None, strict=False):
         for i, model in enumerate(self.gp.models):
             input_idx, output_idx = self.model_factors[i]
             train_y_i = train_y[:, i]
-            train_x_i = train_x.index_select(
-                    -1, torch.tensor(self.model_factors[i][0])
-                )
+            train_x_i = train_x.index_select(-1, torch.tensor(self.model_factors[i][0]))
             if model.train_inputs is not None:
                 # TODO: Those assertions might not even be useful if we have a
                 # model that updates its factors over time... (So not useful in general)
@@ -299,11 +299,9 @@ class FactoredMultiOutputGP(MultiOutputGP):
         if x is None:
             return self.gp(*self.gp.train_inputs)
         else:
-            assert len(self.gp.models)==len(self.model_factors)
+            assert len(self.gp.models) == len(self.model_factors)
             out = []
             for i, model in enumerate(self.gp.models):
-                sub_x = x.index_select(
-                    -1, torch.tensor(self.model_factors[i][0])
-                )
+                sub_x = x.index_select(-1, torch.tensor(self.model_factors[i][0]))
                 out.append(model(sub_x))
             return out

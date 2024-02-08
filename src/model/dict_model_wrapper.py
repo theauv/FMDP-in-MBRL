@@ -291,7 +291,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         next_observs = preds[:, :-1] if self.learned_rewards else preds
 
         next_obs = preprocessed_obs
-        if next_observs.shape[-1]>0:
+        if next_observs.shape[-1] > 0:
             next_obs[:, self.model_output_mask] = next_observs
         next_obs = self.obs_postprocess_fn(next_obs)
 

@@ -132,7 +132,8 @@ class CallbackWandb:
         if self.num_epochs_train_model is not None:
             tracked_values.update(
                 {
-                    "train_epoch": epoch+int(train_iter*self.num_epochs_train_model),
+                    "train_epoch": epoch
+                    + int(train_iter * self.num_epochs_train_model),
                 }
             )
 

@@ -68,8 +68,8 @@ class GoodBikesHeuristic(Agent):
         number of actions per day is fixed we can find the timeshift from it.
         :return: current timeshift
         """
-        if counter < len(self.action_timeshifts) :
-            return self.action_timeshifts[counter-1:counter+1]
+        if counter < len(self.action_timeshifts):
+            return self.action_timeshifts[counter - 1 : counter + 1]
         elif counter >= len(self.action_timeshifts):
             return None
 
@@ -156,6 +156,7 @@ class GoodBikesHeuristic(Agent):
 
         return action
 
+
 class ArtificialGoodBikesHeuristic(Agent):
     """
     TODO: Does not take into account taken_bikes
@@ -166,7 +167,6 @@ class ArtificialGoodBikesHeuristic(Agent):
     """
 
     def __init__(self, env) -> None:
-
         self.get_demand = env.sim.trip_bikes
         self.time_step = env.sim.timestep
         self.action_timeshifts = env.action_timeshifts
@@ -186,8 +186,8 @@ class ArtificialGoodBikesHeuristic(Agent):
         number of actions per day is fixed we can find the timeshift from it.
         :return: current timeshift
         """
-        if counter < len(self.action_timeshifts) :
-            return self.action_timeshifts[counter-1:counter+1]
+        if counter < len(self.action_timeshifts):
+            return self.action_timeshifts[counter - 1 : counter + 1]
         elif counter >= len(self.action_timeshifts):
             return None
 
@@ -209,7 +209,6 @@ class ArtificialGoodBikesHeuristic(Agent):
             action[self.map_act["truck_num_bikes"]] = self.bikes_per_truck
 
         return action
-
 
 
 class CEMAgent(Agent):
