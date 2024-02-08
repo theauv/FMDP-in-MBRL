@@ -9,7 +9,7 @@ pip install -e .
 
 centroids="src/env/bikes_data/5_centroids/5_centroids.npy"
 for sparsity in null "src/env/bikes_data/5_centroids/factors_radius_4.npy"
-    # do
+    do
     # for n_actions in 1 2 8
     #     do
     #     if (($n_actions == 1)) ; then
