@@ -2,6 +2,7 @@
 Environments for the bikes experiments.
 """
 
+import math
 from typing import Optional, Dict, Tuple
 from random import uniform
 
@@ -1198,8 +1199,8 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         self.std = 0.1  # Factor of random noise in the bike distribution
         self.threshold = 0.5
         self.timestep = time_step  # hours
-        self.rush_hours = [2, 4, 8, 10, 12, 16, 18, 22]
-        self.n_hubs_per_rushhour = 2
+        self.rush_hours = [4, 8, 12, 16, 20] #[2, 4, 8, 10, 12, 16, 18, 22]
+        self.n_hubs_per_rushhour = 1 #2
         self.n_edge_per_hub = 5
 
         if self.station_dependencies is None:
@@ -1243,7 +1244,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         a = np.empty((dim, dim))
         intensity = np.random.normal(0.3, 0.1, (dim, dim))
         indices = np.arange(dim)
-        split_size = dim // len(self.rush_hours) + 1
+        split_size = math.ceil(dim // len(self.rush_hours))
         np.random.shuffle(indices)
         for i in range(len(self.rush_hours)):
             idx = indices[int(split_size * i) : int(split_size * (i + 1))]
@@ -1302,7 +1303,6 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
             intensity = intensity[best_hubs_idx]
         else:
             np.random.shuffle(intensity)
-        print(intensity.shape)
         intensity = np.random.normal(intensity, 0.1, (dim, dim))  # .T
         # intensity = np.repeat(intensity[...,None], dim, axis=-1)
         # intensity = np.repeat(intensity[None, ...], dim, axis=0)

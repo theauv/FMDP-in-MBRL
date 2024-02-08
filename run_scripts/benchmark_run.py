@@ -49,16 +49,17 @@ def run_agent_in_env(
         rewards += reward
 
         if callbacks is not None:
-            callbacks.track_each_step(env_step, reward)
+            pass
+            #callbacks.track_each_step(env_step, reward)
         elif env.render_mode == "human":
-            #input()
-            sleep(1)
+            input()
+            #sleep(1)
 
         if terminated or truncated:
             all_n_steps.append(n_steps)
             all_rewards.append(rewards)
-            # if callbacks is not None:
-            #     callbacks.agent_callback(len(all_n_steps), n_steps, rewards)
+            if callbacks is not None:
+                callbacks.agent_callback(len(all_n_steps), n_steps, rewards)
             observation, info = env.reset()
             n_steps = 0
             rewards = 0

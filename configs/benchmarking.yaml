@@ -2,12 +2,13 @@ defaults:
   - overrides: pets_bikes
 
 env_name: ${overrides.env}
-agent: random #good_heuristic #random
-num_steps: 1000 #(~2months with 8 action_per_day)
+agent: good_heuristic #good_heuristic #random
+num_steps: 10000 #(~2months with 8 action_per_day)
 with_tracking: false
 env_config: ${overrides.env_config}
 render_mode: human
 additional_run_name: null
+group_name: null
 
 hydra:
   output_subdir: null
