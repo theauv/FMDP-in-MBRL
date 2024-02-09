@@ -1,0 +1,134 @@
+hydra:
+  run:
+    dir: ${root_dir}/${experiment_dir}/${overrides.env}/${algorithm.name}/${now:%Y.%m.%d}/${now:%H%M%S}_${experiment.run_configs.name}
+  sweep:
+    dir: ${root_dir}/${experiment_dir}/${overrides.env}/${algorithm.name}/${now:%Y.%m.%d}/${now:%H%M%S}_${experiment.run_configs.name}
+    subdir: ${hydra.job.num}
+  hydra_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][HYDRA] %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+    root:
+      level: INFO
+      handlers:
+      - console
+    loggers:
+      logging_example:
+        level: DEBUG
+    disable_existing_loggers: false
+  job_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+      file:
+        class: logging.FileHandler
+        formatter: simple
+        filename: ${hydra.job.name}.log
+    root:
+      level: INFO
+      handlers:
+      - console
+      - file
+    disable_existing_loggers: false
+  sweeper:
+    _target_: hydra._internal.core_plugins.basic_sweeper.BasicSweeper
+    max_batch_size: null
+  launcher:
+    _target_: hydra._internal.core_plugins.basic_launcher.BasicLauncher
+  help:
+    app_name: ${hydra.job.name}
+    header: '${hydra.help.app_name} is powered by Hydra.
+
+      '
+    footer: 'Powered by Hydra (https://hydra.cc)
+
+      Use --hydra-help to view Hydra specific help
+
+      '
+    template: '${hydra.help.header}
+
+      == Configuration groups ==
+
+      Compose your configuration from those groups (group=option)
+
+
+      $APP_CONFIG_GROUPS
+
+
+      == Config ==
+
+      Override anything in the config (foo.bar=value)
+
+
+      $CONFIG
+
+
+      ${hydra.help.footer}
+
+      '
+  hydra_help:
+    hydra_help: ???
+    template: 'Hydra (${hydra.runtime.version})
+
+      See https://hydra.cc for more info.
+
+
+      == Flags ==
+
+      $FLAGS_HELP
+
+
+      == Configuration groups ==
+
+      Compose your configuration from those groups (For example, append hydra/job_logging=disabled
+      to command line)
+
+
+      $HYDRA_CONFIG_GROUPS
+
+
+      Use ''--cfg hydra'' to Show the Hydra config.
+
+      '
+  output_subdir: .hydra
+  overrides:
+    hydra: []
+    task:
+    - experiment.with_tracking=true
+    - overrides.num_epochs_train_model=10
+    - dynamics_model=gaussian_process
+    - dynamics_model.model_lr=0.01
+    - overrides.env_config.past_trip_data=src/env/bikes_data/all_trips_LouVelo_merged.csv
+    - overrides.env_config.weather_data=src/env/bikes_data/weather_data.csv
+    - overrides.model_wrapper.model_input_obs_key=[bikes_distr,demands,time_counter]
+    - experiment.run_configs.name=test_gaussian_process_lr_0.01
+    - experiment.run_configs.group=euler_multistep_real_5centroid
+  job:
+    name: train
+    override_dirname: dynamics_model.model_lr=0.01,dynamics_model=gaussian_process,experiment.run_configs.group=euler_multistep_real_5centroid,experiment.run_configs.name=test_gaussian_process_lr_0.01,experiment.with_tracking=true,overrides.env_config.past_trip_data=src/env/bikes_data/all_trips_LouVelo_merged.csv,overrides.env_config.weather_data=src/env/bikes_data/weather_data.csv,overrides.model_wrapper.model_input_obs_key=[bikes_distr,demands,time_counter],overrides.num_epochs_train_model=10
+    id: ???
+    num: ???
+    config_name: main
+    env_set: {}
+    env_copy: []
+    config:
+      override_dirname:
+        kv_sep: '='
+        item_sep: ','
+        exclude_keys: []
+  runtime:
+    version: 1.0.3
+    cwd: /cluster/home/tvannier/HUCRL_for_FMDP
+  verbose: false
