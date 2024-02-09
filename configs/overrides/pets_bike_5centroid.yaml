@@ -12,9 +12,8 @@ env_config:
   trip_duration: 0.5
   past_trip_data: null #src/env/bikes_data/all_trips_LouVelo_merged.csv
   weather_data: null #src/env/bikes_data/weather_data.csv
-  centroids_coord: src/env/bikes_data/5_centroids/5_centroids.npy #src/env/bikes_data/acbo_centroids/acbo_centroids_coords.npy #src/env/bikes_data/LouVelo_centroids/LouVelo_centroids_coords.npy
-  #centroids_idx: [93,83,80,98,6,84,87,99,56,97] #Number of centroids or list of indices
-  station_dependencies: src/env/bikes_data/5_centroids/factors_radius_4.npy #src/env/bikes_data/acbo_centroids/factors_radius_3.npy #src/env/bikes_data/LouVelo_centroids/factors_radius_1-2.npy
+  centroids_coord: src/env/bikes_data/5_centroids/5_centroids.npy
+  station_dependencies: src/env/bikes_data/5_centroids/factors_radius_4.npy #4/4-2
 model_wrapper:
   _target_: src.model.dict_model_wrapper.OneDTransitionRewardModelDictSpace
   model_input_obs_key: ["bikes_distr", "time_counter"] #["bikes_distr","day_of_week", "demands", "month", "time_counter"]
@@ -33,8 +32,8 @@ model_batch_size: 256
 validation_ratio: 0
 freq_train_model: 20
 patience: ${overrides.num_epochs_train_model}
-num_epochs_train_model: 50
-dataset_size: 10000
+num_epochs_train_model: 10 #Generally need more if using NN instead of GP
+dataset_size: 100000
 
 planning_horizon: ${overrides.env_config.action_per_day}
 cem_num_iters: 20

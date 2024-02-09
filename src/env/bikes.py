@@ -315,6 +315,9 @@ class Bikes(DictSpacesEnv):
                 end_walk_dist_max=env_config.end_walk_dist_max,
                 station_dependencies=station_dependencies,
                 trip_duration=env_config.trip_duration,
+                n_hubs_per_rushhour=env_config.get("n_hubs_per_rushhour", 1),
+                n_edge_per_hub=env_config.get("n_edge_per_hub", 5),
+                rushhour_std=env_config.get("rushhour_std", 1),
             )
         else:
             self.sim = Rentals_Simulator(
@@ -1186,6 +1189,9 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         station_dependencies: Optional[np.array] = None,
         trip_duration: Optional[float] = None,
         time_step: Optional[float] = 1,
+        n_hubs_per_rushhour: Optional[int] = 1,
+        n_edge_per_hub: Optional[int] = 5,
+        rushhour_std: Optional[float] = 1,
         seed: Optional[int] = 0,
     ):
         super().__init__(
@@ -1200,8 +1206,9 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         self.threshold = 0.5
         self.timestep = time_step  # hours
         self.rush_hours = [4, 8, 12, 16, 20] #[2, 4, 8, 10, 12, 16, 18, 22]
-        self.n_hubs_per_rushhour = 1 #2
-        self.n_edge_per_hub = 5
+        self.n_hubs_per_rushhour = n_hubs_per_rushhour
+        self.n_edge_per_hub = n_edge_per_hub
+        self.rushhour_std = rushhour_std
 
         if self.station_dependencies is None:
             self.station_dependencies = np.ones(
@@ -1271,7 +1278,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         for this connection could depend on day of week but start with constant one
         """
         # sigma = np.random.uniform(0.1, 1, (self.num_centroids, self.num_centroids))
-        sigma = np.ones((self.num_centroids, self.num_centroids))
+        sigma = np.ones((self.num_centroids, self.num_centroids))*self.rushhour_std
         return sigma
 
     def compute_intensity(self):

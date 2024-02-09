@@ -52,8 +52,8 @@ def run_agent_in_env(
             pass
             #callbacks.track_each_step(env_step, reward)
         elif env.render_mode == "human":
-            input()
-            #sleep(1)
+            #input()
+            sleep(1)
 
         if terminated or truncated:
             all_n_steps.append(n_steps)
