@@ -1,0 +1,191 @@
+-------------ENV INFO-------------
+Observation space keys: KeysView(Dict('bikes_distr': Box(0.0, 20.0, (43,), float32), 'day': Box(1.0, 31.0, (1,), float32), 'day_of_week': Box(1.0, 7.0, (1,), float32), 'month': Box(1.0, 12.0, (1,), float32), 'time_counter': Box(1.0, 5.0, (1,), float32)))
+Action space keys: KeysView(Dict('truck_centroid': Box(0.0, 42.0, (1,), float32)))
+Using artificial rentals dynamics
+Number of centroids: 43
+Centroid induced dependencies file: src/env/bikes_data/LouVelo_centroids/factors_radius_1-2.npy
+Results will be saved at /cluster/home/tvannier/HUCRL_for_FMDP/exp/wandb/bikes/pets_adapted/2024.02.09/001801_test_gaussian_process_lr_0.1.
+--------------MODEL INFO----------------
+Model obs input keys: ['bikes_distr', 'time_counter']
+Model action input keys: []
+Model output keys: ['bikes_distr']
+Normalize output: False
+Rescale input: True
+Target is delta: True
+Learne rewards: True
+Num elites: None
+| model_train    | I: 0 | E: 0 | TD: 50 | VD: 0 | MLOSS: 1.3047 | MVSCORE: 0.3506 | MBVSCORE: 0.3506 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 1 | TD: 50 | VD: 0 | MLOSS: 1.2537 | MVSCORE: 0.3360 | MBVSCORE: 0.3360 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 2 | TD: 50 | VD: 0 | MLOSS: 1.2088 | MVSCORE: 0.3224 | MBVSCORE: 0.3224 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 3 | TD: 50 | VD: 0 | MLOSS: 1.1684 | MVSCORE: 0.3106 | MBVSCORE: 0.3106 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 4 | TD: 50 | VD: 0 | MLOSS: 1.1313 | MVSCORE: 0.3007 | MBVSCORE: 0.3007 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 5 | TD: 50 | VD: 0 | MLOSS: 1.0968 | MVSCORE: 0.2924 | MBVSCORE: 0.2924 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 6 | TD: 50 | VD: 0 | MLOSS: 1.0641 | MVSCORE: 0.2856 | MBVSCORE: 0.2856 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 7 | TD: 50 | VD: 0 | MLOSS: 1.0330 | MVSCORE: 0.2799 | MBVSCORE: 0.2799 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 8 | TD: 50 | VD: 0 | MLOSS: 1.0029 | MVSCORE: 0.2751 | MBVSCORE: 0.2751 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 9 | TD: 50 | VD: 0 | MLOSS: 0.9738 | MVSCORE: 0.2709 | MBVSCORE: 0.2709 | TR2: -inf | VR2: -inf
+| results        | T: 1 | S: 4 | R: 0.1250
+| results        | T: 2 | S: 8 | R: 0.1429
+| results        | T: 3 | S: 12 | R: 0.2525
+| results        | T: 4 | S: 16 | R: 0.1250
+| results        | T: 5 | S: 20 | R: 0.2762
+| model_train    | I: 0 | E: 0 | TD: 70 | VD: 0 | MLOSS: 1.0228 | MVSCORE: 0.2630 | MBVSCORE: 0.2630 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 1 | TD: 70 | VD: 0 | MLOSS: 0.9953 | MVSCORE: 0.2583 | MBVSCORE: 0.2583 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 2 | TD: 70 | VD: 0 | MLOSS: 0.9626 | MVSCORE: 0.2533 | MBVSCORE: 0.2533 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 3 | TD: 70 | VD: 0 | MLOSS: 0.9275 | MVSCORE: 0.2482 | MBVSCORE: 0.2482 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 4 | TD: 70 | VD: 0 | MLOSS: 0.8916 | MVSCORE: 0.2429 | MBVSCORE: 0.2429 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 5 | TD: 70 | VD: 0 | MLOSS: 0.8558 | MVSCORE: 0.2376 | MBVSCORE: 0.2376 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 6 | TD: 70 | VD: 0 | MLOSS: 0.8206 | MVSCORE: 0.2324 | MBVSCORE: 0.2324 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 7 | TD: 70 | VD: 0 | MLOSS: 0.7865 | MVSCORE: 0.2272 | MBVSCORE: 0.2272 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 8 | TD: 70 | VD: 0 | MLOSS: 0.7537 | MVSCORE: 0.2221 | MBVSCORE: 0.2221 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 9 | TD: 70 | VD: 0 | MLOSS: 0.7223 | MVSCORE: 0.2172 | MBVSCORE: 0.2172 | TR2: -inf | VR2: -inf
+| results        | T: 6 | S: 24 | R: 0.2988
+| results        | T: 7 | S: 28 | R: 0.2455
+| results        | T: 8 | S: 32 | R: 0.5909
+| results        | T: 9 | S: 36 | R: 0.3466
+| results        | T: 10 | S: 40 | R: 0.5152
+| model_train    | I: 0 | E: 0 | TD: 90 | VD: 0 | MLOSS: 0.7136 | MVSCORE: 0.2205 | MBVSCORE: 0.2205 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 1 | TD: 90 | VD: 0 | MLOSS: 0.6837 | MVSCORE: 0.2159 | MBVSCORE: 0.2159 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 2 | TD: 90 | VD: 0 | MLOSS: 0.6528 | MVSCORE: 0.2113 | MBVSCORE: 0.2113 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 3 | TD: 90 | VD: 0 | MLOSS: 0.6224 | MVSCORE: 0.2066 | MBVSCORE: 0.2066 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 4 | TD: 90 | VD: 0 | MLOSS: 0.5927 | MVSCORE: 0.2021 | MBVSCORE: 0.2021 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 5 | TD: 90 | VD: 0 | MLOSS: 0.5642 | MVSCORE: 0.1977 | MBVSCORE: 0.1977 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 6 | TD: 90 | VD: 0 | MLOSS: 0.5371 | MVSCORE: 0.1935 | MBVSCORE: 0.1935 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 7 | TD: 90 | VD: 0 | MLOSS: 0.5113 | MVSCORE: 0.1894 | MBVSCORE: 0.1894 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 8 | TD: 90 | VD: 0 | MLOSS: 0.4866 | MVSCORE: 0.1855 | MBVSCORE: 0.1855 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 9 | TD: 90 | VD: 0 | MLOSS: 0.4627 | MVSCORE: 0.1817 | MBVSCORE: 0.1817 | TR2: -inf | VR2: -inf
+| results        | T: 11 | S: 44 | R: 0.5142
+| results        | T: 12 | S: 48 | R: 0.5823
+| results        | T: 13 | S: 52 | R: 0.3077
+| results        | T: 14 | S: 56 | R: 0.2800
+| results        | T: 15 | S: 60 | R: 0.4951
+| model_train    | I: 0 | E: 0 | TD: 110 | VD: 0 | MLOSS: 1.2476 | MVSCORE: 0.2338 | MBVSCORE: 0.2338 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 1 | TD: 110 | VD: 0 | MLOSS: 1.1902 | MVSCORE: 0.2279 | MBVSCORE: 0.2279 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 2 | TD: 110 | VD: 0 | MLOSS: 1.1102 | MVSCORE: 0.2218 | MBVSCORE: 0.2218 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 3 | TD: 110 | VD: 0 | MLOSS: 1.0237 | MVSCORE: 0.2158 | MBVSCORE: 0.2158 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 4 | TD: 110 | VD: 0 | MLOSS: 0.9386 | MVSCORE: 0.2102 | MBVSCORE: 0.2102 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 5 | TD: 110 | VD: 0 | MLOSS: 0.8591 | MVSCORE: 0.2050 | MBVSCORE: 0.2050 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 6 | TD: 110 | VD: 0 | MLOSS: 0.7874 | MVSCORE: 0.2001 | MBVSCORE: 0.2001 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 7 | TD: 110 | VD: 0 | MLOSS: 0.7237 | MVSCORE: 0.1957 | MBVSCORE: 0.1957 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 8 | TD: 110 | VD: 0 | MLOSS: 0.6676 | MVSCORE: 0.1916 | MBVSCORE: 0.1916 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 9 | TD: 110 | VD: 0 | MLOSS: 0.6185 | MVSCORE: 0.1879 | MBVSCORE: 0.1879 | TR2: -inf | VR2: -inf
+| results        | T: 16 | S: 64 | R: 0.4000
+| results        | T: 17 | S: 68 | R: 0.7500
+| results        | T: 18 | S: 72 | R: 0.2000
+| results        | T: 19 | S: 76 | R: 0.5714
+| results        | T: 20 | S: 80 | R: 0.0400
+| model_train    | I: 0 | E: 0 | TD: 130 | VD: 0 | MLOSS: 1.2633 | MVSCORE: 0.2023 | MBVSCORE: 0.2023 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 1 | TD: 130 | VD: 0 | MLOSS: 1.1831 | MVSCORE: 0.1974 | MBVSCORE: 0.1974 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 2 | TD: 130 | VD: 0 | MLOSS: 1.0884 | MVSCORE: 0.1924 | MBVSCORE: 0.1924 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 3 | TD: 130 | VD: 0 | MLOSS: 0.9936 | MVSCORE: 0.1877 | MBVSCORE: 0.1877 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 4 | TD: 130 | VD: 0 | MLOSS: 0.9053 | MVSCORE: 0.1833 | MBVSCORE: 0.1833 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 5 | TD: 130 | VD: 0 | MLOSS: 0.8259 | MVSCORE: 0.1793 | MBVSCORE: 0.1793 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 6 | TD: 130 | VD: 0 | MLOSS: 0.7558 | MVSCORE: 0.1755 | MBVSCORE: 0.1755 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 7 | TD: 130 | VD: 0 | MLOSS: 0.6946 | MVSCORE: 0.1721 | MBVSCORE: 0.1721 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 8 | TD: 130 | VD: 0 | MLOSS: 0.6417 | MVSCORE: 0.1689 | MBVSCORE: 0.1689 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 9 | TD: 130 | VD: 0 | MLOSS: 0.5959 | MVSCORE: 0.1658 | MBVSCORE: 0.1658 | TR2: -inf | VR2: -inf
+| results        | T: 21 | S: 84 | R: 0.0000
+| results        | T: 22 | S: 88 | R: 0.0000
+| results        | T: 23 | S: 92 | R: 0.0000
+| results        | T: 24 | S: 96 | R: 0.1429
+| results        | T: 25 | S: 100 | R: 0.0000
+| model_train    | I: 0 | E: 0 | TD: 150 | VD: 0 | MLOSS: 2.5666 | MVSCORE: 0.1717 | MBVSCORE: 0.1717 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 1 | TD: 150 | VD: 0 | MLOSS: 2.3252 | MVSCORE: 0.1660 | MBVSCORE: 0.1660 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 2 | TD: 150 | VD: 0 | MLOSS: 2.0428 | MVSCORE: 0.1603 | MBVSCORE: 0.1603 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 3 | TD: 150 | VD: 0 | MLOSS: 1.7677 | MVSCORE: 0.1548 | MBVSCORE: 0.1548 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 4 | TD: 150 | VD: 0 | MLOSS: 1.5212 | MVSCORE: 0.1496 | MBVSCORE: 0.1496 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 5 | TD: 150 | VD: 0 | MLOSS: 1.3101 | MVSCORE: 0.1449 | MBVSCORE: 0.1449 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 6 | TD: 150 | VD: 0 | MLOSS: 1.1335 | MVSCORE: 0.1406 | MBVSCORE: 0.1406 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 7 | TD: 150 | VD: 0 | MLOSS: 0.9875 | MVSCORE: 0.1367 | MBVSCORE: 0.1367 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 8 | TD: 150 | VD: 0 | MLOSS: 0.8669 | MVSCORE: 0.1331 | MBVSCORE: 0.1331 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 9 | TD: 150 | VD: 0 | MLOSS: 0.7675 | MVSCORE: 0.1298 | MBVSCORE: 0.1298 | TR2: -inf | VR2: -inf
+| results        | T: 26 | S: 104 | R: 0.1429
+| results        | T: 27 | S: 108 | R: 0.1462
+| results        | T: 28 | S: 112 | R: 0.0000
+| results        | T: 29 | S: 116 | R: 0.1538
+| results        | T: 30 | S: 120 | R: 0.0000
+| model_train    | I: 0 | E: 0 | TD: 170 | VD: 0 | MLOSS: 0.7475 | MVSCORE: 0.1211 | MBVSCORE: 0.1211 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 1 | TD: 170 | VD: 0 | MLOSS: 0.6745 | MVSCORE: 0.1177 | MBVSCORE: 0.1177 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 2 | TD: 170 | VD: 0 | MLOSS: 0.6087 | MVSCORE: 0.1147 | MBVSCORE: 0.1147 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 3 | TD: 170 | VD: 0 | MLOSS: 0.5510 | MVSCORE: 0.1120 | MBVSCORE: 0.1120 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 4 | TD: 170 | VD: 0 | MLOSS: 0.5008 | MVSCORE: 0.1097 | MBVSCORE: 0.1097 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 5 | TD: 170 | VD: 0 | MLOSS: 0.4579 | MVSCORE: 0.1077 | MBVSCORE: 0.1077 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 6 | TD: 170 | VD: 0 | MLOSS: 0.4216 | MVSCORE: 0.1059 | MBVSCORE: 0.1059 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 7 | TD: 170 | VD: 0 | MLOSS: 0.3908 | MVSCORE: 0.1042 | MBVSCORE: 0.1042 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 8 | TD: 170 | VD: 0 | MLOSS: 0.3644 | MVSCORE: 0.1027 | MBVSCORE: 0.1027 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 9 | TD: 170 | VD: 0 | MLOSS: 0.3414 | MVSCORE: 0.1013 | MBVSCORE: 0.1013 | TR2: -inf | VR2: -inf
+| results        | T: 31 | S: 124 | R: 0.0870
+| results        | T: 32 | S: 128 | R: 0.2352
+| results        | T: 33 | S: 132 | R: 0.1733
+| results        | T: 34 | S: 136 | R: 0.0000
+| results        | T: 35 | S: 140 | R: 0.2323
+| model_train    | I: 0 | E: 0 | TD: 190 | VD: 0 | MLOSS: 6.2348 | MVSCORE: 0.1108 | MBVSCORE: 0.1108 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 1 | TD: 190 | VD: 0 | MLOSS: 5.6097 | MVSCORE: 0.1082 | MBVSCORE: 0.1082 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 2 | TD: 190 | VD: 0 | MLOSS: 4.8725 | MVSCORE: 0.1057 | MBVSCORE: 0.1057 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 3 | TD: 190 | VD: 0 | MLOSS: 4.1456 | MVSCORE: 0.1034 | MBVSCORE: 0.1034 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 4 | TD: 190 | VD: 0 | MLOSS: 3.4844 | MVSCORE: 0.1013 | MBVSCORE: 0.1013 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 5 | TD: 190 | VD: 0 | MLOSS: 2.9112 | MVSCORE: 0.0994 | MBVSCORE: 0.0994 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 6 | TD: 190 | VD: 0 | MLOSS: 2.4286 | MVSCORE: 0.0977 | MBVSCORE: 0.0977 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 7 | TD: 190 | VD: 0 | MLOSS: 2.0294 | MVSCORE: 0.0963 | MBVSCORE: 0.0963 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 8 | TD: 190 | VD: 0 | MLOSS: 1.7031 | MVSCORE: 0.0950 | MBVSCORE: 0.0950 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 9 | TD: 190 | VD: 0 | MLOSS: 1.4381 | MVSCORE: 0.0938 | MBVSCORE: 0.0938 | TR2: -inf | VR2: -inf
+| results        | T: 36 | S: 144 | R: 0.6250
+| results        | T: 37 | S: 148 | R: 0.4000
+| results        | T: 38 | S: 152 | R: 0.2845
+| results        | T: 39 | S: 156 | R: 0.4815
+| results        | T: 40 | S: 160 | R: 0.2857
+| model_train    | I: 0 | E: 0 | TD: 210 | VD: 0 | MLOSS: 1.5890 | MVSCORE: 0.1059 | MBVSCORE: 0.1059 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 1 | TD: 210 | VD: 0 | MLOSS: 1.3612 | MVSCORE: 0.1044 | MBVSCORE: 0.1044 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 2 | TD: 210 | VD: 0 | MLOSS: 1.1705 | MVSCORE: 0.1028 | MBVSCORE: 0.1028 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 3 | TD: 210 | VD: 0 | MLOSS: 1.0131 | MVSCORE: 0.1013 | MBVSCORE: 0.1013 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 4 | TD: 210 | VD: 0 | MLOSS: 0.8839 | MVSCORE: 0.1000 | MBVSCORE: 0.1000 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 5 | TD: 210 | VD: 0 | MLOSS: 0.7780 | MVSCORE: 0.0987 | MBVSCORE: 0.0987 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 6 | TD: 210 | VD: 0 | MLOSS: 0.6912 | MVSCORE: 0.0976 | MBVSCORE: 0.0976 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 7 | TD: 210 | VD: 0 | MLOSS: 0.6199 | MVSCORE: 0.0966 | MBVSCORE: 0.0966 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 8 | TD: 210 | VD: 0 | MLOSS: 0.5611 | MVSCORE: 0.0956 | MBVSCORE: 0.0956 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 9 | TD: 210 | VD: 0 | MLOSS: 0.5121 | MVSCORE: 0.0946 | MBVSCORE: 0.0946 | TR2: -inf | VR2: -inf
+| results        | T: 41 | S: 164 | R: 0.1169
+| results        | T: 42 | S: 168 | R: 0.1190
+| results        | T: 43 | S: 172 | R: 0.0870
+| results        | T: 44 | S: 176 | R: 0.2159
+| results        | T: 45 | S: 180 | R: 0.0909
+| model_train    | I: 0 | E: 0 | TD: 230 | VD: 0 | MLOSS: 1.3275 | MVSCORE: 0.1037 | MBVSCORE: 0.1037 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 1 | TD: 230 | VD: 0 | MLOSS: 1.2589 | MVSCORE: 0.1016 | MBVSCORE: 0.1016 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 2 | TD: 230 | VD: 0 | MLOSS: 1.1817 | MVSCORE: 0.0993 | MBVSCORE: 0.0993 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 3 | TD: 230 | VD: 0 | MLOSS: 1.1012 | MVSCORE: 0.0971 | MBVSCORE: 0.0971 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 4 | TD: 230 | VD: 0 | MLOSS: 1.0175 | MVSCORE: 0.0949 | MBVSCORE: 0.0949 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 5 | TD: 230 | VD: 0 | MLOSS: 0.9394 | MVSCORE: 0.0930 | MBVSCORE: 0.0930 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 6 | TD: 230 | VD: 0 | MLOSS: 0.8619 | MVSCORE: 0.0911 | MBVSCORE: 0.0911 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 7 | TD: 230 | VD: 0 | MLOSS: 0.7879 | MVSCORE: 0.0895 | MBVSCORE: 0.0895 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 8 | TD: 230 | VD: 0 | MLOSS: 0.7169 | MVSCORE: 0.0880 | MBVSCORE: 0.0880 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 9 | TD: 230 | VD: 0 | MLOSS: 0.6529 | MVSCORE: 0.0867 | MBVSCORE: 0.0867 | TR2: -inf | VR2: -inf
+| results        | T: 46 | S: 184 | R: 0.3333
+| results        | T: 47 | S: 188 | R: 0.2582
+| results        | T: 48 | S: 192 | R: 0.7888
+| results        | T: 49 | S: 196 | R: 0.4067
+| results        | T: 50 | S: 200 | R: 0.3750
+| model_train    | I: 0 | E: 0 | TD: 250 | VD: 0 | MLOSS: 0.6166 | MVSCORE: 0.0875 | MBVSCORE: 0.0875 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 1 | TD: 250 | VD: 0 | MLOSS: 0.5652 | MVSCORE: 0.0856 | MBVSCORE: 0.0856 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 2 | TD: 250 | VD: 0 | MLOSS: 0.5178 | MVSCORE: 0.0839 | MBVSCORE: 0.0839 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 3 | TD: 250 | VD: 0 | MLOSS: 0.4757 | MVSCORE: 0.0823 | MBVSCORE: 0.0823 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 4 | TD: 250 | VD: 0 | MLOSS: 0.4391 | MVSCORE: 0.0809 | MBVSCORE: 0.0809 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 5 | TD: 250 | VD: 0 | MLOSS: 0.4081 | MVSCORE: 0.0797 | MBVSCORE: 0.0797 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 6 | TD: 250 | VD: 0 | MLOSS: 0.3817 | MVSCORE: 0.0788 | MBVSCORE: 0.0788 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 7 | TD: 250 | VD: 0 | MLOSS: 0.3593 | MVSCORE: 0.0780 | MBVSCORE: 0.0788 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 8 | TD: 250 | VD: 0 | MLOSS: 0.3402 | MVSCORE: 0.0774 | MBVSCORE: 0.0774 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 9 | TD: 250 | VD: 0 | MLOSS: 0.3236 | MVSCORE: 0.0769 | MBVSCORE: 0.0774 | TR2: -inf | VR2: -inf
+| results        | T: 51 | S: 204 | R: 0.1526
+| results        | T: 52 | S: 208 | R: 0.2500
+| results        | T: 53 | S: 212 | R: 0.1071
+| results        | T: 54 | S: 216 | R: 0.0476
+| results        | T: 55 | S: 220 | R: 0.1588
+| model_train    | I: 0 | E: 0 | TD: 270 | VD: 0 | MLOSS: 1.3665 | MVSCORE: 0.1076 | MBVSCORE: 0.1076 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 1 | TD: 270 | VD: 0 | MLOSS: 1.2067 | MVSCORE: 0.1028 | MBVSCORE: 0.1028 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 2 | TD: 270 | VD: 0 | MLOSS: 1.0286 | MVSCORE: 0.0980 | MBVSCORE: 0.0980 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 3 | TD: 270 | VD: 0 | MLOSS: 0.8661 | MVSCORE: 0.0934 | MBVSCORE: 0.0934 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 4 | TD: 270 | VD: 0 | MLOSS: 0.7306 | MVSCORE: 0.0894 | MBVSCORE: 0.0894 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 5 | TD: 270 | VD: 0 | MLOSS: 0.6232 | MVSCORE: 0.0859 | MBVSCORE: 0.0859 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 6 | TD: 270 | VD: 0 | MLOSS: 0.5403 | MVSCORE: 0.0831 | MBVSCORE: 0.0831 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 7 | TD: 270 | VD: 0 | MLOSS: 0.4769 | MVSCORE: 0.0806 | MBVSCORE: 0.0806 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 8 | TD: 270 | VD: 0 | MLOSS: 0.4284 | MVSCORE: 0.0785 | MBVSCORE: 0.0785 | TR2: -inf | VR2: -inf
+| model_train    | I: 0 | E: 9 | TD: 270 | VD: 0 | MLOSS: 0.3909 | MVSCORE: 0.0766 | MBVSCORE: 0.0766 | TR2: -inf | VR2: -inf
