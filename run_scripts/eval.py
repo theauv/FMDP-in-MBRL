@@ -208,12 +208,13 @@ class AdaptedVisualizer(Visualizer):
 
         if isinstance(self.dynamics_model.model, MultiOutputGP):
             for batch in self.dataset_train:
-                obs, act, next_obs, rewards, _, _ = batch.astuple()
-                train_x = torch.cat([torch.tensor(obs, dtype=torch.float32), torch.tensor(act, dtype=torch.float32)], axis=-1)
-                target = torch.tensor(next_obs, dtype=torch.float32)
-                self.dynamics_model.model.train()
-                self.dynamics_model.model.set_train_data(train_x, target)
-                self.dynamics_model.model.forward()
+                self.dynamics_model.loss(batch)
+                # obs, act, next_obs, rewards, _, _ = batch.astuple()
+                # train_x = torch.cat([torch.tensor(obs, dtype=torch.float32), torch.tensor(act, dtype=torch.float32)], axis=-1)
+                # target = torch.tensor(next_obs, dtype=torch.float32)
+                # self.dynamics_model.model.train()
+                # self.dynamics_model.model.set_train_data(train_x, target)
+                # self.dynamics_model.model.forward()
 
         # Instanciate the agent
         self.agent: mbrl.planning.Agent
@@ -227,7 +228,7 @@ class AdaptedVisualizer(Visualizer):
                 == "mbrl.planning.TrajectoryOptimizerAgent"
             ):
                 print("Agent uses TrajectoryOptimizer")
-                agent_cfg.algorithm.agent.planning_horizon = lookahead
+                #agent_cfg.algorithm.agent.planning_horizon = lookahead
                 self.agent = mbrl.planning.create_trajectory_optim_agent_for_model(
                     self.model_env,
                     agent_cfg.algorithm.agent,
@@ -269,6 +270,7 @@ class AdaptedVisualizer(Visualizer):
                 observation
             )  # this is where you would insert your policy
             observation, reward, terminated, truncated, info = self.env.step(action)
+            print(f"Step Reward: {reward}")
 
             n_steps += 1
             rewards += reward
@@ -280,6 +282,7 @@ class AdaptedVisualizer(Visualizer):
                 observation, info = self.env.reset()
                 n_steps = 0
                 rewards = 0
+                print(f"Episode Reward: {rewards}")
         self.env.close()
 
         print(f"Mean reward: {np.mean(all_rewards)}")
@@ -302,10 +305,6 @@ class AdaptedVisualizer(Visualizer):
 
         # create env and random seed
         observation, info = self.env.reset(seed=42)
-        model_observation = {
-            "obs": np.expand_dims(observation, axis=0),
-            "propagation_indices": None,
-        }
 
         real_trajectories = []
         model_trajectories = []
@@ -318,34 +317,64 @@ class AdaptedVisualizer(Visualizer):
             print("--------------------- \n" f"Env step: {env_step}")
 
             # Env step
+            from time import time
+            start = time()
             action = self.agent.act(observation)
+            model_observation = {
+                "obs": np.expand_dims(observation.copy(), axis=0),
+                "propagation_indices": None,
+            }
+            model_action = np.expand_dims(action.copy(), axis=0)
+            print("Act time: ", time()-start)
             new_obs, reward, terminated, truncated, info = self.env.step(action)
             real_trajectories.append([observation, action, new_obs])
             print("Real env")
-            print(f"Obs: {observation}, Action: {action}, New_obs: {new_obs}")
+            print(
+                f"Obs: {observation} \n"
+                f"Action: {action}\n"
+                f"New_obs: {new_obs}\n"
+                f"Reward: {reward}"
+            )
+            if hasattr(self.env.unwrapped, "delta_bikes"):
+                print(
+                    f"Old bikes distr: {observation[self.env.get_wrapper_attr('map_obs')['bikes_distr']]}"
+                    f"Delta_bikes: {self.env.get_wrapper_attr('delta_bikes')} \n"
+                    f"Pre-new_bikes distr: {self.env.get_wrapper_attr('previous_bikes_distr')} \n"
+                    f"New bikes distr: {new_obs[self.env.get_wrapper_attr('map_obs')['bikes_distr']]}"
+                )
+
             observation = new_obs
 
-            # Model_env step
-            # if env_step == 1 or np.all(model_observation["obs"][0] == observation):
-            #     model_action = action
-            # else:
-            #     model_action = self.agent.act(model_observation["obs"][0])
-            # model_action = np.expand_dims(model_action, axis=0)
-            model_action = np.expand_dims(action, axis=0)
-
-            old_model_observation = model_observation["obs"][0].copy()
-
-            _, _, _, model_observation = self.model_env.step(
-                model_action, model_observation
+            model_observation_ = {
+                "obs": model_observation["obs"].copy(),
+                "propagation_indices": None,
+            }
+            model_action_ = model_action.copy()
+            next_observs, rewards, dones, new_model_observation = self.model_env.step(
+                model_action_, model_observation_
             )
-            model_observation["obs"] = model_observation["obs"].detach().numpy()
+            model_observation = model_observation["obs"][0]
+            model_observation_ = model_observation_["obs"][0].detach().numpy()
+            new_model_observation = new_model_observation["obs"][0]
+            next_observs = next_observs.detach().numpy()[0]
+            rewards = rewards.detach().numpy()
             model_trajectories.append(
-                [old_model_observation, model_action[0], model_observation["obs"][0]]
+                [model_observation, model_action, new_model_observation]
             )
             print("Model env")
             print(
-                f"Obs: {old_model_observation}, Action: {model_action}, New_obs: {model_observation['obs'][0]}"
+                f"Obs: {model_observation} \n"
+                f"Action: {model_action} \n"
+                f"New_obs: {next_observs}\n" 
+                f"Rewards: {rewards}"
             )
+            if hasattr(self.env.unwrapped, "delta_bikes"):
+                print(
+                    f"Old bikes distr: {model_observation[self.env.get_wrapper_attr('map_obs')['bikes_distr']]}"
+                    f"Delta_bikes: {model_observation_[self.env.get_wrapper_attr('map_obs')['bikes_distr']] - model_observation[self.env.get_wrapper_attr('map_obs')['bikes_distr']]} \n"
+                    f"Pre-new_bikes distr: {model_observation_[self.env.get_wrapper_attr('map_obs')['bikes_distr']]} \n"
+                    f"New bikes distr: {next_observs[self.env.get_wrapper_attr('map_obs')['bikes_distr']]}"
+                )
 
         env_states = [traj[0] for traj in real_trajectories]
         env_states.append(real_trajectories[-1][-1])

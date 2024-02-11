@@ -1,7 +1,7 @@
 defaults:
   - algorithm: pets_adapted
-  - dynamics_model: simple #gaussian_mlp_ensemble
-  - overrides: pets_bikes_20centroid
+  - dynamics_model: factored_gp #gaussian_mlp_ensemble
+  - overrides: pets_bikes_5centroid
   - action_optimizer: cem
   - experiment: wandb
 

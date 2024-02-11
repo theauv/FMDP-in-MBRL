@@ -114,7 +114,11 @@ class MultiOutputGP(Model):
         if x is None:
             return self.gp(*self.gp.train_inputs)
         else:
-            return [model(x) for model in self.gp.models]
+            from time import time
+            start = time()
+            x = x.unsqueeze(0).repeat(self.out_size, 1, 1)
+            loss = self.gp(*x)
+            return loss
 
     def loss(self, model_in: torch.Tensor, target: torch.Tensor = None) -> torch.Tensor:
         # TODO: might be avoidably very computationally expensive !!
@@ -135,8 +139,8 @@ class MultiOutputGP(Model):
     def pred_distribution(
         self, model_in: torch.Tensor
     ) -> torch.distributions.Distribution:
+        self.eval()
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            self.eval()  # Here or outside ??
             return self.likelihood(*self.forward(model_in))
 
     def eval_score(
@@ -146,15 +150,14 @@ class MultiOutputGP(Model):
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         # if self.models.train_inputs ar all None -> None
         assert model_in.ndim == 2 and target.ndim == 2
-        with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            pred_output = self.pred_distribution(model_in)
-            pred_mean = torch.cat(
-                [pred.mean.unsqueeze(-1) for pred in pred_output], axis=-1
-            )
-            meta = {
-                "outputs": pred_mean,
-                "targets": target,
-            }
+        pred_output = self.pred_distribution(model_in)
+        pred_mean = torch.cat(
+            [pred.mean.unsqueeze(-1) for pred in pred_output], axis=-1
+        )
+        meta = {
+            "outputs": pred_mean,
+            "targets": target,
+        }
         return F.mse_loss(pred_mean, target, reduction="none").unsqueeze(0), meta
 
     def save(self, save_dir: Union[str, pathlib.Path]):
@@ -234,9 +237,7 @@ class FactoredMultiOutputGP(MultiOutputGP):
                     model_factors=self.reward_model_factors,
                 )
 
-        print(self.factors)
         self.model_factors = self.get_model_factors(self.factors)
-        print(self.model_factors)
         self.models = self.get_factored_models()
 
         self.gp = gpytorch.models.IndependentModelList(*self.models)

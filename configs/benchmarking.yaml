@@ -1,5 +1,5 @@
 defaults:
-  - overrides: pets_bikes_20centroid
+  - overrides: pets_bikes_5centroid
 
 env_name: ${overrides.env}
 agent: good_heuristic #good_heuristic #random

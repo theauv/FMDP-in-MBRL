@@ -12,6 +12,7 @@ agent:
 
 normalize: false
 rescale_input: true
+rescale_output: true
 normalize_double_precision: true
 target_is_delta: true
 initial_exploration_steps: ${overrides.trial_length}

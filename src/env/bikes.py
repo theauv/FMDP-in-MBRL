@@ -598,7 +598,6 @@ class Bikes(DictSpacesEnv):
             act = spaces.unflatten(self.dict_action_space, act)
 
         # Compute the number of new bikes added to each centroid
-        old_state = self.state.copy()
         self.delta_bikes = np.zeros(self.num_centroids, dtype=int)
         truck_centroid = act["truck_centroid"]
         truck_num_bikes = act.get(
@@ -1369,9 +1368,6 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
                     met_trips_per_centroid[idx_start_centroid] += 1
                 else:
                     tot_demand_per_centroid[idx_start_centroid] += 1
-
-        # print("tot_num_trips", tot_num_trips)
-        # print("num_met_trips", num_met_trips)
 
         return (
             new_bikes_ditr,

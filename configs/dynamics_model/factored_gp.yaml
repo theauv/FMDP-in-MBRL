@@ -12,5 +12,5 @@ model:
   reward_factors: null
 
 batch_size: ${overrides.dataset_size}
-model_lr: 0.01
+model_lr: 0.05
 model_wd: 0.

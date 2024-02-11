@@ -39,6 +39,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         target_is_delta: bool = True,
         normalize: bool = False,
         rescale_input: bool = False,
+        rescale_output: bool = False,
         normalize_double_precision: bool = False,
         learned_rewards: bool = True,
         obs_preprocess_fn: Optional[mbrl.types.ObsProcessFnType] = None,
@@ -102,30 +103,33 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         if self.learned_rewards:
             model_output_length += 1
 
-        # TODO: remove this line
-        self.output_normalizer = None
+        #Rescaling/Normalization
         self.rescale_input = rescale_input
-        if self.rescale_input:
+        self.rescale_output = rescale_output
+        if self.rescale_input or self.rescale_output:
             self.rescale_obs = rescale_obs
             self.rescale_act = rescale_act
         if normalize:
-            self.output_normalizer = mbrl.util.math.Normalizer(
-                model_output_length,
-                self.model.device,
-                dtype=torch.double if normalize_double_precision else torch.float,
-            )
+            #TODO: (re)-add a posssibility to nromalize input/output instead of rescale
+            self.input_normalizer = None #Initialized in mother class
+            warnings.warn(
+                "The normalizer is disabled for now as we only want to use "
+                "a rescaling process."
+                )
 
         print("--------------MODEL INFO----------------")    
         print(f"Model obs input keys: {model_input_obs_key}")
         print(f"Model action input keys: {model_input_act_key}")
         print(f"Model output keys: {model_output_key}")
-        print(f"Normalize output: {normalize}")
         print(f"Rescale input: {rescale_input}")
+        print(f"Rescale output: {rescale_output}")
         print(f"Target is delta: {target_is_delta}")
         print(f"Learne rewards: {learned_rewards}")
         print(f"Num elites: {num_elites}")
 
     def _get_next_obs(self, batch_next_obs: mbrl.types.TensorType):
+        if self.rescale_output:
+            batch_next_obs = self.rescale_obs(batch_next_obs)
         if len(batch_next_obs.shape) == 1:
             batch_next_obs = np.expand_dims(batch_next_obs, axis=0)
         if not np.any(self.model_output_mask):
@@ -138,12 +142,15 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
     ) -> torch.Tensor:
         if self.obs_process_fn:
             obs = self.obs_process_fn(obs, action)
+        
         obs = model_util.to_tensor(obs).to(self.device)
         action = model_util.to_tensor(action).to(self.device)
         if self.rescale_input:
-            obs = self.rescale_obs(obs)
-            action = self.rescale_act(action)
-        model_in = torch.cat([obs, action], dim=obs.ndim - 1)
+            obs_ = self.rescale_obs(obs.clone())
+            action_ = self.rescale_act(action.clone())
+            model_in = torch.cat([obs_, action_], dim=obs.ndim - 1)
+        else:
+            model_in = torch.cat([obs, action], dim=obs.ndim - 1)
 
         model_in = model_in.float().to(self.device)
         masked_model_in = model_in[..., self.model_input_mask]
@@ -164,6 +171,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
             target_obs = model_util.to_tensor(target_obs).to(self.device)
 
         model_in, _ = self._get_model_input(obs, action)
+
         if self.learned_rewards:
             reward = model_util.to_tensor(reward).to(self.device).unsqueeze(reward.ndim)
             if target_obs is not None:
@@ -176,28 +184,23 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         if target is None:
             raise ValueError("You try to predict nothing")
 
-        if self.output_normalizer:
-            target = self.output_normalizer.normalize(target)
-
         return model_in.float(), target.float()
 
     def forward(self, x: torch.Tensor, *args, **kwargs) -> Tuple[torch.Tensor, ...]:
         """Calls forward method of base model with the given input and args."""
-
-        warnings.warn("Not used so far, make sure it works")
-
-        if len(x.shape) == 1:
-            x = x[None, ...]
-
-        obs = x[: self.obs_length]
-        action = x[self.obs_length : self.obs_length + self.act_length]
-        model_input = self._get_model_input(obs, action)
-        output = obs
-        sub_output = self.model.forward(model_input, *args, **kwargs).numpy()
-        output[self.model_output_mask] = sub_output
-        output = self.obs_postprocess_fn(output)
-        # TODO: Denormalize output ???
-        return output
+        # TODO: badly implemented, but not used anyway, must be (re)-implemented
+        # if len(x.shape) == 1:
+        #     x = x[None, ...]
+        # obs = x[: self.obs_length]
+        # action = x[self.obs_length : self.obs_length + self.act_length]
+        # model_input = self._get_model_input(obs, action)
+        # output = obs
+        # sub_output = self.model.forward(model_input, *args, **kwargs).numpy()
+        # output[self.model_output_mask] = sub_output
+        # output = self.obs_postprocess_fn(output)
+        # # TODO: Denormalize output ???
+        # return output
+        raise NotImplementedError
 
     def update_normalizer(self, batch: mbrl.types.TransitionBatch):
         """Updates the normalizer statistics using the batch of transition data.
@@ -209,28 +212,10 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
             batch (:class:`mbrl.types.TransitionBatch`): The batch of transition data.
                 Only next_obs and reward will be used, since these are the outputs to the model.
         """
-        if self.output_normalizer is None:
+        #TODO: (Re)-implement the normalizer for modularize code (not necessary for now)
+        if self.input_normalizer is None:
             return
-        obs, next_obs, reward = batch.obs, batch.next_obs, batch.rewards
-        if self.target_is_delta:
-            target_obs = next_obs - obs
-            for dim in self.no_delta_list:
-                target_obs[..., dim] = next_obs[..., dim]
-        else:
-            target_obs = next_obs
-        target_obs = self._get_next_obs(target_obs)
-        if reward.ndim == 1:
-            reward = np.expand_dims(reward, axis=-1)
-        if target_obs is None:
-            target = reward
-        else:
-            if target_obs.ndim == 1:
-                target_obs = np.expand_dims(target_obs, axis=-1)
-            if self.learned_rewards:
-                target = np.concatenate([target_obs, reward], axis=obs.ndim - 1)
-            else:
-                target = target_obs
-        self.output_normalizer.update_stats(target)
+        raise NotImplementedError
 
     def get_output_and_targets(
         self, batch: mbrl.types.TransitionBatch
@@ -247,18 +232,17 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         Returns:
             (tuple(tensor), tensor): the model outputs and the target for this batch.
         """
-        warnings.warn("Not used so far, make sure it works")
-        with torch.no_grad():
-            model_in, target = self._process_batch(batch)
-            sub_output = self.model.forward(model_in)
-            if self.output_normalizer:
-                sub_output = self.output_normalizer.denormalize(sub_output)
-
-            out = model_in
-            out[..., self.model_output_mask] = sub_output
-            out = self.obs_postprocess_fn(out)
-
-            return out, target
+        # TODO: badly implemented, but not used anyway, must be (re)-implemented
+        # with torch.no_grad():
+        #     model_in, target = self._process_batch(batch)
+        #     sub_output = self.model.forward(model_in)
+        #     if self.output_normalizer:
+        #         sub_output = self.output_normalizer.denormalize(sub_output)
+        #     out = model_in
+        #     out[..., self.model_output_mask] = sub_output
+        #     out = self.obs_postprocess_fn(out)
+        #     return out, target
+        raise NotImplementedError
 
     def sample(
         self,
@@ -277,6 +261,14 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         This wrapper assumes that the underlying model's sample method returns a tuple
         with just one tensor, which concatenates next_observation and reward.
 
+        We want to sample (next_obs, reward) from (obs, act) using the following function:
+        (obs, act) -preprocess-> (new_obs, act) -model(.)-> (new_obs, preds) -postprocess-> (new_obs, preds)
+        This way, one can predict only a subspace of the full observation space and call pre/post processed
+        function that are environment-dependent to deal with the rest. We can also of course just predict
+        the full next_obs. But it is typically useful in a setting like the Bikes environment in which the 
+        addition of bikes at each timestep and the incrementation of the time coutner is known. But only the
+        bikes distribution needs to be learned.
+
         Args:
             act (tensor): the action at.
             model_state (tensor): the model state st.
@@ -287,7 +279,6 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         Returns:
             (tuple of two tensors): predicted next_observation (o_{t+1}) and rewards (r_{t+1}).
         """
-        obs = model_util.to_tensor(model_state["obs"]).to(self.device)
         model_in, preprocessed_obs = self._get_model_input(model_state["obs"], act)
         if not hasattr(self.model, "sample_1d"):
             raise RuntimeError(
@@ -296,20 +287,24 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         preds, next_model_state = self.model.sample_1d(
             model_in, model_state, rng=rng, deterministic=deterministic
         )
-        if self.output_normalizer is not None:
-            preds = self.output_normalizer.denormalize(preds).float()
         next_observs = preds[:, :-1] if self.learned_rewards else preds
+        if self.rescale_output:
+            tmp=torch.zeros(preprocessed_obs.shape)
+            tmp[:, self.model_output_mask] = next_observs
+            tmp = self.rescale_obs(tmp, scale=True)
+            next_observs = tmp[:, self.model_output_mask]
 
         next_obs = preprocessed_obs
-        if next_observs.shape[-1] > 0:
-            next_obs[:, self.model_output_mask] = next_observs
+        if next_observs.shape[-1] > 0:           
+            if self.target_is_delta:
+                next_obs[:, self.model_output_mask] += next_observs
+                for dim in self.no_delta_list:
+                    next_obs[:, dim] = next_observs[:, dim]
+            else:
+                next_obs[:, self.model_output_mask] = next_observs
+
         next_obs = self.obs_postprocess_fn(next_obs)
 
-        if self.target_is_delta:
-            tmp_ = next_obs + obs
-            for dim in self.no_delta_list:
-                tmp_[:, dim] = next_obs[:, dim]
-            next_obs = tmp_
         rewards = preds[:, -1:] if self.learned_rewards else None
         next_model_state["obs"] = next_obs
 

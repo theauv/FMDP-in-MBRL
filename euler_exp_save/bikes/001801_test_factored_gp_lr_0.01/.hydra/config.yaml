@@ -17,6 +17,7 @@ algorithm:
     verbose: ${debug_mode}
   normalize: false
   rescale_input: true
+  rescale_output: true
   normalize_double_precision: true
   target_is_delta: true
   initial_exploration_steps: ${overrides.trial_length}
@@ -78,7 +79,7 @@ overrides:
   num_epochs_train_model: 10
   dataset_size: 100000
   planning_horizon: ${overrides.env_config.action_per_day}
-  cem_num_iters: 20
+  cem_num_iters: 1
   cem_elite_ratio: 0.1
   cem_population_size: 350
   cem_alpha: 0.1

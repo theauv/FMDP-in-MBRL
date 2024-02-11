@@ -17,7 +17,7 @@ from src.env.bikes import Bikes
 # TODO: Take a look back to all of this implementation (partially and quickly implemented, needs review)
 # Good enough for now
 
-ENVSHANDMADE = ["maze", "hypergrid"]
+ENVSHANDMADE = ["maze", "hypergrid", "bikes"]
 
 
 def get_handler(
