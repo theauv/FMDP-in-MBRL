@@ -1,0 +1,376 @@
+-------------ENV INFO-------------
+Observation space keys: KeysView(Dict('bikes_distr': Box(0.0, 56.0, (20,), float32), 'day': Box(1.0, 31.0, (1,), float32), 'day_of_week': Box(1.0, 7.0, (1,), float32), 'month': Box(1.0, 12.0, (1,), float32), 'time_counter': Box(1.0, 5.0, (1,), float32)))
+Action space keys: KeysView(Dict('truck_centroid': Box(0.0, 19.0, (2,), float32)))
+Using artificial rentals dynamics
+Number of centroids: 20
+Centroid induced dependencies file: src/env/bikes_data/20_centroids/factors_radius_2.npy
+Results will be saved at /cluster/home/tvannier/HUCRL_for_FMDP/exp/wandb/bikes/pets_adapted/2024.02.11/225900_rescalein_true_rescaleout_true_targetdelta_false.
+--------------MODEL INFO----------------
+Model obs input keys: ['bikes_distr', 'time_counter']
+Model action input keys: []
+Model output keys: ['bikes_distr']
+Rescale input: True
+Rescale output: True
+Target is delta: False
+Learne rewards: True
+Num elites: None
+/cluster/home/tvannier/.local/lib/python3.9/site-packages/pygame/sysfont.py:228: UserWarning: Process running 'fc-list' timed-out! System fonts cannot be loaded on your platform
+  warnings.warn(
+| model_train    | I: 0 | E: 0 | TD: 50 | VD: 0 | MLOSS: 0.9472 | MVSCORE: 0.0372 | MBVSCORE: 0.0372 | TR2: -920.1075 | VR2: -14.7103
+| model_train    | I: 0 | E: 1 | TD: 50 | VD: 0 | MLOSS: 0.9195 | MVSCORE: 0.0345 | MBVSCORE: 0.0345 | TR2: -833.5947 | VR2: -13.5021
+| model_train    | I: 0 | E: 2 | TD: 50 | VD: 0 | MLOSS: 0.8924 | MVSCORE: 0.0321 | MBVSCORE: 0.0321 | TR2: -754.0596 | VR2: -12.3976
+| model_train    | I: 0 | E: 3 | TD: 50 | VD: 0 | MLOSS: 0.8657 | MVSCORE: 0.0298 | MBVSCORE: 0.0298 | TR2: -680.4705 | VR2: -11.3871
+| model_train    | I: 0 | E: 4 | TD: 50 | VD: 0 | MLOSS: 0.8394 | MVSCORE: 0.0278 | MBVSCORE: 0.0278 | TR2: -612.7815 | VR2: -10.4607
+| model_train    | I: 0 | E: 5 | TD: 50 | VD: 0 | MLOSS: 0.8135 | MVSCORE: 0.0259 | MBVSCORE: 0.0259 | TR2: -550.9315 | VR2: -9.6117
+| model_train    | I: 0 | E: 6 | TD: 50 | VD: 0 | MLOSS: 0.7880 | MVSCORE: 0.0241 | MBVSCORE: 0.0241 | TR2: -494.7840 | VR2: -8.8338
+| model_train    | I: 0 | E: 7 | TD: 50 | VD: 0 | MLOSS: 0.7627 | MVSCORE: 0.0225 | MBVSCORE: 0.0225 | TR2: -444.1464 | VR2: -8.1211
+| model_train    | I: 0 | E: 8 | TD: 50 | VD: 0 | MLOSS: 0.7376 | MVSCORE: 0.0210 | MBVSCORE: 0.0210 | TR2: -398.7705 | VR2: -7.4680
+| model_train    | I: 0 | E: 9 | TD: 50 | VD: 0 | MLOSS: 0.7128 | MVSCORE: 0.0197 | MBVSCORE: 0.0197 | TR2: -358.3471 | VR2: -6.8686
+wandb: 429 encountered (Filestream rate limit exceeded, retrying in 2.5 seconds.), retrying request
+wandb: 429 encountered (Filestream rate limit exceeded, retrying in 4.2 seconds.), retrying request
+| results        | T: 1 | S: 4 | R: 1.4789
+| results        | T: 2 | S: 8 | R: 0.9636
+| results        | T: 3 | S: 12 | R: 1.0394
+| results        | T: 4 | S: 16 | R: 1.0417
+| results        | T: 5 | S: 20 | R: 0.8750
+| model_train    | I: 0 | E: 0 | TD: 70 | VD: 0 | MLOSS: 0.6788 | MVSCORE: 0.0188 | MBVSCORE: 0.0188 | TR2: -421.0292 | VR2: -6.1019
+| model_train    | I: 0 | E: 1 | TD: 70 | VD: 0 | MLOSS: 0.6551 | MVSCORE: 0.0178 | MBVSCORE: 0.0178 | TR2: -381.5636 | VR2: -5.6561
+| model_train    | I: 0 | E: 2 | TD: 70 | VD: 0 | MLOSS: 0.6313 | MVSCORE: 0.0169 | MBVSCORE: 0.0169 | TR2: -346.4700 | VR2: -5.2085
+| model_train    | I: 0 | E: 3 | TD: 70 | VD: 0 | MLOSS: 0.6074 | MVSCORE: 0.0159 | MBVSCORE: 0.0159 | TR2: -315.3918 | VR2: -4.7653
+| model_train    | I: 0 | E: 4 | TD: 70 | VD: 0 | MLOSS: 0.5835 | MVSCORE: 0.0150 | MBVSCORE: 0.0150 | TR2: -287.9213 | VR2: -4.3328
+| model_train    | I: 0 | E: 5 | TD: 70 | VD: 0 | MLOSS: 0.5594 | MVSCORE: 0.0141 | MBVSCORE: 0.0141 | TR2: -263.6497 | VR2: -3.9170
+| model_train    | I: 0 | E: 6 | TD: 70 | VD: 0 | MLOSS: 0.5352 | MVSCORE: 0.0133 | MBVSCORE: 0.0133 | TR2: -242.1878 | VR2: -3.5222
+| model_train    | I: 0 | E: 7 | TD: 70 | VD: 0 | MLOSS: 0.5110 | MVSCORE: 0.0125 | MBVSCORE: 0.0125 | TR2: -223.1753 | VR2: -3.1511
+| model_train    | I: 0 | E: 8 | TD: 70 | VD: 0 | MLOSS: 0.4866 | MVSCORE: 0.0117 | MBVSCORE: 0.0117 | TR2: -206.2876 | VR2: -2.8053
+| model_train    | I: 0 | E: 9 | TD: 70 | VD: 0 | MLOSS: 0.4622 | MVSCORE: 0.0110 | MBVSCORE: 0.0110 | TR2: -191.2368 | VR2: -2.4850
+| results        | T: 6 | S: 24 | R: 0.6204
+| results        | T: 7 | S: 28 | R: 0.0000
+| results        | T: 8 | S: 32 | R: 0.0769
+| results        | T: 9 | S: 36 | R: 0.6218
+| results        | T: 10 | S: 40 | R: 0.0000
+| model_train    | I: 0 | E: 0 | TD: 90 | VD: 0 | MLOSS: 0.4356 | MVSCORE: 0.0112 | MBVSCORE: 0.0112 | TR2: -166.1734 | VR2: -2.3214
+| model_train    | I: 0 | E: 1 | TD: 90 | VD: 0 | MLOSS: 0.4111 | MVSCORE: 0.0105 | MBVSCORE: 0.0105 | TR2: -154.5793 | VR2: -2.0477
+| model_train    | I: 0 | E: 2 | TD: 90 | VD: 0 | MLOSS: 0.3862 | MVSCORE: 0.0098 | MBVSCORE: 0.0098 | TR2: -144.4000 | VR2: -1.7871
+| model_train    | I: 0 | E: 3 | TD: 90 | VD: 0 | MLOSS: 0.3611 | MVSCORE: 0.0092 | MBVSCORE: 0.0092 | TR2: -135.4521 | VR2: -1.5430
+| model_train    | I: 0 | E: 4 | TD: 90 | VD: 0 | MLOSS: 0.3358 | MVSCORE: 0.0085 | MBVSCORE: 0.0085 | TR2: -127.5737 | VR2: -1.3176
+| model_train    | I: 0 | E: 5 | TD: 90 | VD: 0 | MLOSS: 0.3104 | MVSCORE: 0.0079 | MBVSCORE: 0.0079 | TR2: -120.6160 | VR2: -1.1115
+| model_train    | I: 0 | E: 6 | TD: 90 | VD: 0 | MLOSS: 0.2849 | MVSCORE: 0.0073 | MBVSCORE: 0.0073 | TR2: -114.4346 | VR2: -0.9238
+| model_train    | I: 0 | E: 7 | TD: 90 | VD: 0 | MLOSS: 0.2592 | MVSCORE: 0.0068 | MBVSCORE: 0.0068 | TR2: -108.8879 | VR2: -0.7527
+| model_train    | I: 0 | E: 8 | TD: 90 | VD: 0 | MLOSS: 0.2335 | MVSCORE: 0.0063 | MBVSCORE: 0.0063 | TR2: -103.8463 | VR2: -0.5959
+| model_train    | I: 0 | E: 9 | TD: 90 | VD: 0 | MLOSS: 0.2078 | MVSCORE: 0.0059 | MBVSCORE: 0.0059 | TR2: -99.2031 | VR2: -0.4514
+| results        | T: 11 | S: 44 | R: 1.5737
+| results        | T: 12 | S: 48 | R: 1.0855
+| results        | T: 13 | S: 52 | R: 1.2968
+| results        | T: 14 | S: 56 | R: 1.3325
+| results        | T: 15 | S: 60 | R: 1.1838
+| model_train    | I: 0 | E: 0 | TD: 110 | VD: 0 | MLOSS: 0.1792 | MVSCORE: 0.0057 | MBVSCORE: 0.0057 | TR2: -105.7847 | VR2: -0.2795
+| model_train    | I: 0 | E: 1 | TD: 110 | VD: 0 | MLOSS: 0.1532 | MVSCORE: 0.0053 | MBVSCORE: 0.0053 | TR2: -101.9842 | VR2: -0.1431
+| model_train    | I: 0 | E: 2 | TD: 110 | VD: 0 | MLOSS: 0.1271 | MVSCORE: 0.0049 | MBVSCORE: 0.0049 | TR2: -98.3192 | VR2: -0.0166
+| model_train    | I: 0 | E: 3 | TD: 110 | VD: 0 | MLOSS: 0.1008 | MVSCORE: 0.0045 | MBVSCORE: 0.0045 | TR2: -94.7351 | VR2: 0.0964
+| model_train    | I: 0 | E: 4 | TD: 110 | VD: 0 | MLOSS: 0.0745 | MVSCORE: 0.0042 | MBVSCORE: 0.0042 | TR2: -91.1683 | VR2: 0.1939
+| model_train    | I: 0 | E: 5 | TD: 110 | VD: 0 | MLOSS: 0.0483 | MVSCORE: 0.0040 | MBVSCORE: 0.0040 | TR2: -87.5535 | VR2: 0.2764
+| model_train    | I: 0 | E: 6 | TD: 110 | VD: 0 | MLOSS: 0.0221 | MVSCORE: 0.0038 | MBVSCORE: 0.0038 | TR2: -83.8338 | VR2: 0.3465
+| model_train    | I: 0 | E: 7 | TD: 110 | VD: 0 | MLOSS: -0.0041 | MVSCORE: 0.0036 | MBVSCORE: 0.0036 | TR2: -79.9657 | VR2: 0.4076
+| model_train    | I: 0 | E: 8 | TD: 110 | VD: 0 | MLOSS: -0.0302 | MVSCORE: 0.0034 | MBVSCORE: 0.0034 | TR2: -75.9207 | VR2: 0.4626
+| model_train    | I: 0 | E: 9 | TD: 110 | VD: 0 | MLOSS: -0.0564 | MVSCORE: 0.0032 | MBVSCORE: 0.0032 | TR2: -71.6893 | VR2: 0.5134
+| results        | T: 16 | S: 64 | R: 1.0758
+| results        | T: 17 | S: 68 | R: 1.3782
+| results        | T: 18 | S: 72 | R: 0.9053
+| results        | T: 19 | S: 76 | R: 1.2000
+| results        | T: 20 | S: 80 | R: 0.9697
+| model_train    | I: 0 | E: 0 | TD: 130 | VD: 0 | MLOSS: -0.0820 | MVSCORE: 0.0032 | MBVSCORE: 0.0032 | TR2: -77.7893 | VR2: 0.5406
+| model_train    | I: 0 | E: 1 | TD: 130 | VD: 0 | MLOSS: -0.1087 | MVSCORE: 0.0030 | MBVSCORE: 0.0030 | TR2: -72.8720 | VR2: 0.5946
+| model_train    | I: 0 | E: 2 | TD: 130 | VD: 0 | MLOSS: -0.1355 | MVSCORE: 0.0029 | MBVSCORE: 0.0029 | TR2: -67.9297 | VR2: 0.6388
+| model_train    | I: 0 | E: 3 | TD: 130 | VD: 0 | MLOSS: -0.1624 | MVSCORE: 0.0028 | MBVSCORE: 0.0028 | TR2: -63.0663 | VR2: 0.6721
+| model_train    | I: 0 | E: 4 | TD: 130 | VD: 0 | MLOSS: -0.1892 | MVSCORE: 0.0027 | MBVSCORE: 0.0027 | TR2: -58.3672 | VR2: 0.6966
+| model_train    | I: 0 | E: 5 | TD: 130 | VD: 0 | MLOSS: -0.2159 | MVSCORE: 0.0026 | MBVSCORE: 0.0026 | TR2: -53.8919 | VR2: 0.7163
+| model_train    | I: 0 | E: 6 | TD: 130 | VD: 0 | MLOSS: -0.2425 | MVSCORE: 0.0025 | MBVSCORE: 0.0025 | TR2: -49.6830 | VR2: 0.7347
+| model_train    | I: 0 | E: 7 | TD: 130 | VD: 0 | MLOSS: -0.2691 | MVSCORE: 0.0024 | MBVSCORE: 0.0024 | TR2: -45.7855 | VR2: 0.7539
+| model_train    | I: 0 | E: 8 | TD: 130 | VD: 0 | MLOSS: -0.2957 | MVSCORE: 0.0024 | MBVSCORE: 0.0024 | TR2: -42.2488 | VR2: 0.7737
+| model_train    | I: 0 | E: 9 | TD: 130 | VD: 0 | MLOSS: -0.3223 | MVSCORE: 0.0023 | MBVSCORE: 0.0023 | TR2: -39.1145 | VR2: 0.7927
+| results        | T: 21 | S: 84 | R: 0.8444
+| results        | T: 22 | S: 88 | R: 0.8929
+| results        | T: 23 | S: 92 | R: 0.8000
+| results        | T: 24 | S: 96 | R: 0.9804
+| results        | T: 25 | S: 100 | R: 0.8901
+| model_train    | I: 0 | E: 0 | TD: 150 | VD: 0 | MLOSS: -0.3436 | MVSCORE: 0.0027 | MBVSCORE: 0.0027 | TR2: -42.2506 | VR2: 0.7788
+| model_train    | I: 0 | E: 1 | TD: 150 | VD: 0 | MLOSS: -0.3701 | MVSCORE: 0.0027 | MBVSCORE: 0.0027 | TR2: -39.5999 | VR2: 0.7959
+| model_train    | I: 0 | E: 2 | TD: 150 | VD: 0 | MLOSS: -0.3970 | MVSCORE: 0.0026 | MBVSCORE: 0.0026 | TR2: -37.3037 | VR2: 0.8081
+| model_train    | I: 0 | E: 3 | TD: 150 | VD: 0 | MLOSS: -0.4238 | MVSCORE: 0.0026 | MBVSCORE: 0.0026 | TR2: -35.3116 | VR2: 0.8170
+| model_train    | I: 0 | E: 4 | TD: 150 | VD: 0 | MLOSS: -0.4505 | MVSCORE: 0.0025 | MBVSCORE: 0.0025 | TR2: -33.5242 | VR2: 0.8253
+| model_train    | I: 0 | E: 5 | TD: 150 | VD: 0 | MLOSS: -0.4772 | MVSCORE: 0.0025 | MBVSCORE: 0.0025 | TR2: -31.8452 | VR2: 0.8351
+| model_train    | I: 0 | E: 6 | TD: 150 | VD: 0 | MLOSS: -0.5038 | MVSCORE: 0.0024 | MBVSCORE: 0.0024 | TR2: -30.2297 | VR2: 0.8459
+| model_train    | I: 0 | E: 7 | TD: 150 | VD: 0 | MLOSS: -0.5303 | MVSCORE: 0.0024 | MBVSCORE: 0.0024 | TR2: -28.6815 | VR2: 0.8558
+| model_train    | I: 0 | E: 8 | TD: 150 | VD: 0 | MLOSS: -0.5567 | MVSCORE: 0.0023 | MBVSCORE: 0.0023 | TR2: -27.2162 | VR2: 0.8637
+| model_train    | I: 0 | E: 9 | TD: 150 | VD: 0 | MLOSS: -0.5831 | MVSCORE: 0.0023 | MBVSCORE: 0.0023 | TR2: -25.8356 | VR2: 0.8697
+| results        | T: 26 | S: 104 | R: 0.0000
+| results        | T: 27 | S: 108 | R: 0.0000
+| results        | T: 28 | S: 112 | R: 0.7727
+| results        | T: 29 | S: 116 | R: 0.1111
+| results        | T: 30 | S: 120 | R: 0.7361
+| model_train    | I: 0 | E: 0 | TD: 170 | VD: 0 | MLOSS: -0.6079 | MVSCORE: 0.0022 | MBVSCORE: 0.0022 | TR2: -27.5846 | VR2: 0.8674
+| model_train    | I: 0 | E: 1 | TD: 170 | VD: 0 | MLOSS: -0.6349 | MVSCORE: 0.0021 | MBVSCORE: 0.0021 | TR2: -26.1858 | VR2: 0.8739
+| model_train    | I: 0 | E: 2 | TD: 170 | VD: 0 | MLOSS: -0.6617 | MVSCORE: 0.0021 | MBVSCORE: 0.0021 | TR2: -24.8149 | VR2: 0.8782
+| model_train    | I: 0 | E: 3 | TD: 170 | VD: 0 | MLOSS: -0.6883 | MVSCORE: 0.0021 | MBVSCORE: 0.0021 | TR2: -23.4653 | VR2: 0.8804
+| model_train    | I: 0 | E: 4 | TD: 170 | VD: 0 | MLOSS: -0.7146 | MVSCORE: 0.0020 | MBVSCORE: 0.0020 | TR2: -22.1172 | VR2: 0.8820
+| model_train    | I: 0 | E: 5 | TD: 170 | VD: 0 | MLOSS: -0.7409 | MVSCORE: 0.0020 | MBVSCORE: 0.0020 | TR2: -20.7675 | VR2: 0.8841
+| model_train    | I: 0 | E: 6 | TD: 170 | VD: 0 | MLOSS: -0.7672 | MVSCORE: 0.0019 | MBVSCORE: 0.0019 | TR2: -19.4258 | VR2: 0.8868
+| model_train    | I: 0 | E: 7 | TD: 170 | VD: 0 | MLOSS: -0.7936 | MVSCORE: 0.0019 | MBVSCORE: 0.0019 | TR2: -18.0856 | VR2: 0.8902
+| model_train    | I: 0 | E: 8 | TD: 170 | VD: 0 | MLOSS: -0.8199 | MVSCORE: 0.0018 | MBVSCORE: 0.0018 | TR2: -16.7265 | VR2: 0.8940
+| model_train    | I: 0 | E: 9 | TD: 170 | VD: 0 | MLOSS: -0.8461 | MVSCORE: 0.0018 | MBVSCORE: 0.0018 | TR2: -15.3482 | VR2: 0.8976
+| results        | T: 31 | S: 124 | R: 2.8271
+| results        | T: 32 | S: 128 | R: 2.3000
+| results        | T: 33 | S: 132 | R: 2.0217
+| results        | T: 34 | S: 136 | R: 1.8166
+| results        | T: 35 | S: 140 | R: 2.4394
+| model_train    | I: 0 | E: 0 | TD: 190 | VD: 0 | MLOSS: -0.8719 | MVSCORE: 0.0019 | MBVSCORE: 0.0019 | TR2: -15.5554 | VR2: 0.8947
+| model_train    | I: 0 | E: 1 | TD: 190 | VD: 0 | MLOSS: -0.8981 | MVSCORE: 0.0019 | MBVSCORE: 0.0019 | TR2: -14.1601 | VR2: 0.8975
+| model_train    | I: 0 | E: 2 | TD: 190 | VD: 0 | MLOSS: -0.9242 | MVSCORE: 0.0018 | MBVSCORE: 0.0018 | TR2: -12.8719 | VR2: 0.9002
+| model_train    | I: 0 | E: 3 | TD: 190 | VD: 0 | MLOSS: -0.9502 | MVSCORE: 0.0017 | MBVSCORE: 0.0017 | TR2: -11.6680 | VR2: 0.9031
+| model_train    | I: 0 | E: 4 | TD: 190 | VD: 0 | MLOSS: -0.9763 | MVSCORE: 0.0016 | MBVSCORE: 0.0016 | TR2: -10.5389 | VR2: 0.9060
+| model_train    | I: 0 | E: 5 | TD: 190 | VD: 0 | MLOSS: -1.0023 | MVSCORE: 0.0016 | MBVSCORE: 0.0016 | TR2: -9.4832 | VR2: 0.9089
+| model_train    | I: 0 | E: 6 | TD: 190 | VD: 0 | MLOSS: -1.0284 | MVSCORE: 0.0015 | MBVSCORE: 0.0015 | TR2: -8.4841 | VR2: 0.9117
+| model_train    | I: 0 | E: 7 | TD: 190 | VD: 0 | MLOSS: -1.0544 | MVSCORE: 0.0014 | MBVSCORE: 0.0014 | TR2: -7.5366 | VR2: 0.9140
+| model_train    | I: 0 | E: 8 | TD: 190 | VD: 0 | MLOSS: -1.0803 | MVSCORE: 0.0013 | MBVSCORE: 0.0013 | TR2: -6.6623 | VR2: 0.9163
+| model_train    | I: 0 | E: 9 | TD: 190 | VD: 0 | MLOSS: -1.1061 | MVSCORE: 0.0012 | MBVSCORE: 0.0012 | TR2: -5.8588 | VR2: 0.9187
+| results        | T: 36 | S: 144 | R: 3.0556
+| results        | T: 37 | S: 148 | R: 2.7379
+| results        | T: 38 | S: 152 | R: 3.0238
+| results        | T: 39 | S: 156 | R: 2.7471
+| results        | T: 40 | S: 160 | R: 2.6400
+| model_train    | I: 0 | E: 0 | TD: 210 | VD: 0 | MLOSS: -1.1344 | MVSCORE: 0.0011 | MBVSCORE: 0.0011 | TR2: -5.6673 | VR2: 0.9127
+| model_train    | I: 0 | E: 1 | TD: 210 | VD: 0 | MLOSS: -1.1602 | MVSCORE: 0.0010 | MBVSCORE: 0.0010 | TR2: -4.8381 | VR2: 0.9152
+| model_train    | I: 0 | E: 2 | TD: 210 | VD: 0 | MLOSS: -1.1860 | MVSCORE: 0.0010 | MBVSCORE: 0.0010 | TR2: -4.0437 | VR2: 0.9179
+| model_train    | I: 0 | E: 3 | TD: 210 | VD: 0 | MLOSS: -1.2116 | MVSCORE: 0.0009 | MBVSCORE: 0.0009 | TR2: -3.3185 | VR2: 0.9205
+| model_train    | I: 0 | E: 4 | TD: 210 | VD: 0 | MLOSS: -1.2371 | MVSCORE: 0.0008 | MBVSCORE: 0.0008 | TR2: -2.6697 | VR2: 0.9228
+| model_train    | I: 0 | E: 5 | TD: 210 | VD: 0 | MLOSS: -1.2624 | MVSCORE: 0.0007 | MBVSCORE: 0.0007 | TR2: -2.0866 | VR2: 0.9251
+| model_train    | I: 0 | E: 6 | TD: 210 | VD: 0 | MLOSS: -1.2877 | MVSCORE: 0.0007 | MBVSCORE: 0.0007 | TR2: -1.5625 | VR2: 0.9274
+| model_train    | I: 0 | E: 7 | TD: 210 | VD: 0 | MLOSS: -1.3129 | MVSCORE: 0.0006 | MBVSCORE: 0.0006 | TR2: -1.0978 | VR2: 0.9293
+| model_train    | I: 0 | E: 8 | TD: 210 | VD: 0 | MLOSS: -1.3379 | MVSCORE: 0.0006 | MBVSCORE: 0.0006 | TR2: -0.6951 | VR2: 0.9310
+| model_train    | I: 0 | E: 9 | TD: 210 | VD: 0 | MLOSS: -1.3629 | MVSCORE: 0.0006 | MBVSCORE: 0.0006 | TR2: -0.3572 | VR2: 0.9326
+| results        | T: 41 | S: 164 | R: 2.6942
+| results        | T: 42 | S: 168 | R: 2.4260
+| results        | T: 43 | S: 172 | R: 2.6000
+| results        | T: 44 | S: 176 | R: 2.5500
+| results        | T: 45 | S: 180 | R: 3.1045
+| model_train    | I: 0 | E: 0 | TD: 230 | VD: 0 | MLOSS: -1.3891 | MVSCORE: 0.0006 | MBVSCORE: 0.0006 | TR2: -0.1893 | VR2: 0.9274
+| model_train    | I: 0 | E: 1 | TD: 230 | VD: 0 | MLOSS: -1.4139 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.0388 | VR2: 0.9288
+| model_train    | I: 0 | E: 2 | TD: 230 | VD: 0 | MLOSS: -1.4386 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.2267 | VR2: 0.9302
+| model_train    | I: 0 | E: 3 | TD: 230 | VD: 0 | MLOSS: -1.4631 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.3930 | VR2: 0.9312
+| model_train    | I: 0 | E: 4 | TD: 230 | VD: 0 | MLOSS: -1.4876 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.5284 | VR2: 0.9323
+| model_train    | I: 0 | E: 5 | TD: 230 | VD: 0 | MLOSS: -1.5121 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6274 | VR2: 0.9332
+| model_train    | I: 0 | E: 6 | TD: 230 | VD: 0 | MLOSS: -1.5363 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6973 | VR2: 0.9339
+| model_train    | I: 0 | E: 7 | TD: 230 | VD: 0 | MLOSS: -1.5605 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7486 | VR2: 0.9347
+| model_train    | I: 0 | E: 8 | TD: 230 | VD: 0 | MLOSS: -1.5844 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7795 | VR2: 0.9352
+| model_train    | I: 0 | E: 9 | TD: 230 | VD: 0 | MLOSS: -1.6082 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7864 | VR2: 0.9358
+| results        | T: 46 | S: 184 | R: 2.3794
+| results        | T: 47 | S: 188 | R: 2.9583
+| results        | T: 48 | S: 192 | R: 2.6379
+| results        | T: 49 | S: 196 | R: 2.1143
+| results        | T: 50 | S: 200 | R: 3.1264
+| model_train    | I: 0 | E: 0 | TD: 250 | VD: 0 | MLOSS: -1.4895 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.4876 | VR2: 0.9277
+| model_train    | I: 0 | E: 1 | TD: 250 | VD: 0 | MLOSS: -1.5137 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.5563 | VR2: 0.9286
+| model_train    | I: 0 | E: 2 | TD: 250 | VD: 0 | MLOSS: -1.5377 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6182 | VR2: 0.9297
+| model_train    | I: 0 | E: 3 | TD: 250 | VD: 0 | MLOSS: -1.5616 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6602 | VR2: 0.9302
+| model_train    | I: 0 | E: 4 | TD: 250 | VD: 0 | MLOSS: -1.5852 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6701 | VR2: 0.9310
+| model_train    | I: 0 | E: 5 | TD: 250 | VD: 0 | MLOSS: -1.6087 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6807 | VR2: 0.9314
+| model_train    | I: 0 | E: 6 | TD: 250 | VD: 0 | MLOSS: -1.6321 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6944 | VR2: 0.9319
+| model_train    | I: 0 | E: 7 | TD: 250 | VD: 0 | MLOSS: -1.6553 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6991 | VR2: 0.9325
+| model_train    | I: 0 | E: 8 | TD: 250 | VD: 0 | MLOSS: -1.6784 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7047 | VR2: 0.9327
+| model_train    | I: 0 | E: 9 | TD: 250 | VD: 0 | MLOSS: -1.7014 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7238 | VR2: 0.9332
+| results        | T: 51 | S: 204 | R: 3.1646
+| results        | T: 52 | S: 208 | R: 2.5672
+| results        | T: 53 | S: 212 | R: 2.0816
+| results        | T: 54 | S: 216 | R: 2.2927
+| results        | T: 55 | S: 220 | R: 3.1901
+| model_train    | I: 0 | E: 0 | TD: 270 | VD: 0 | MLOSS: -1.7249 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7256 | VR2: 0.9278
+| model_train    | I: 0 | E: 1 | TD: 270 | VD: 0 | MLOSS: -1.7474 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7258 | VR2: 0.9281
+| model_train    | I: 0 | E: 2 | TD: 270 | VD: 0 | MLOSS: -1.7698 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7255 | VR2: 0.9282
+| model_train    | I: 0 | E: 3 | TD: 270 | VD: 0 | MLOSS: -1.7918 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7256 | VR2: 0.9283
+| model_train    | I: 0 | E: 4 | TD: 270 | VD: 0 | MLOSS: -1.8137 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7272 | VR2: 0.9284
+| model_train    | I: 0 | E: 5 | TD: 270 | VD: 0 | MLOSS: -1.8354 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7299 | VR2: 0.9285
+| model_train    | I: 0 | E: 6 | TD: 270 | VD: 0 | MLOSS: -1.8568 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7343 | VR2: 0.9286
+| model_train    | I: 0 | E: 7 | TD: 270 | VD: 0 | MLOSS: -1.8780 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.7331 | VR2: 0.9286
+| model_train    | I: 0 | E: 8 | TD: 270 | VD: 0 | MLOSS: -1.8990 | MVSCORE: 0.0004 | MBVSCORE: 0.0005 | TR2: 0.7256 | VR2: 0.9287
+| model_train    | I: 0 | E: 9 | TD: 270 | VD: 0 | MLOSS: -1.9198 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.7216 | VR2: 0.9288
+| results        | T: 56 | S: 224 | R: 2.7264
+| results        | T: 57 | S: 228 | R: 2.6405
+| results        | T: 58 | S: 232 | R: 2.9511
+| results        | T: 59 | S: 236 | R: 2.4649
+| results        | T: 60 | S: 240 | R: 2.8204
+| model_train    | I: 0 | E: 0 | TD: 290 | VD: 0 | MLOSS: -1.9400 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6954 | VR2: 0.9237
+| model_train    | I: 0 | E: 1 | TD: 290 | VD: 0 | MLOSS: -1.9603 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6763 | VR2: 0.9240
+| model_train    | I: 0 | E: 2 | TD: 290 | VD: 0 | MLOSS: -1.9804 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6553 | VR2: 0.9241
+| model_train    | I: 0 | E: 3 | TD: 290 | VD: 0 | MLOSS: -2.0002 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6552 | VR2: 0.9241
+| model_train    | I: 0 | E: 4 | TD: 290 | VD: 0 | MLOSS: -2.0196 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6435 | VR2: 0.9240
+| model_train    | I: 0 | E: 5 | TD: 290 | VD: 0 | MLOSS: -2.0389 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6494 | VR2: 0.9241
+| model_train    | I: 0 | E: 6 | TD: 290 | VD: 0 | MLOSS: -2.0579 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.6491 | VR2: 0.9244
+| model_train    | I: 0 | E: 7 | TD: 290 | VD: 0 | MLOSS: -2.0767 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.6485 | VR2: 0.9247
+| model_train    | I: 0 | E: 8 | TD: 290 | VD: 0 | MLOSS: -2.0953 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.6566 | VR2: 0.9245
+| model_train    | I: 0 | E: 9 | TD: 290 | VD: 0 | MLOSS: -2.1134 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.6763 | VR2: 0.9248
+| results        | T: 61 | S: 244 | R: 3.0593
+| results        | T: 62 | S: 248 | R: 2.5719
+| results        | T: 63 | S: 252 | R: 3.5138
+| results        | T: 64 | S: 256 | R: 2.5865
+| results        | T: 65 | S: 260 | R: 2.7471
+| model_train    | I: 0 | E: 0 | TD: 310 | VD: 0 | MLOSS: -2.1129 | MVSCORE: 0.0005 | MBVSCORE: 0.0005 | TR2: 0.6584 | VR2: 0.9164
+| model_train    | I: 0 | E: 1 | TD: 310 | VD: 0 | MLOSS: -2.1282 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.5273 | VR2: 0.9205
+| model_train    | I: 0 | E: 2 | TD: 310 | VD: 0 | MLOSS: -2.1478 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.6243 | VR2: 0.9183
+| model_train    | I: 0 | E: 3 | TD: 310 | VD: 0 | MLOSS: -2.1644 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.5828 | VR2: 0.9207
+| model_train    | I: 0 | E: 4 | TD: 310 | VD: 0 | MLOSS: -2.1824 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.5661 | VR2: 0.9197
+| model_train    | I: 0 | E: 5 | TD: 310 | VD: 0 | MLOSS: -2.1990 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.5038 | VR2: 0.9210
+| model_train    | I: 0 | E: 6 | TD: 310 | VD: 0 | MLOSS: -2.2163 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.5671 | VR2: 0.9210
+| model_train    | I: 0 | E: 7 | TD: 310 | VD: 0 | MLOSS: -2.2329 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.5490 | VR2: 0.9215
+| model_train    | I: 0 | E: 8 | TD: 310 | VD: 0 | MLOSS: -2.2494 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.5339 | VR2: 0.9222
+| model_train    | I: 0 | E: 9 | TD: 310 | VD: 0 | MLOSS: -2.2659 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.5310 | VR2: 0.9223
+| results        | T: 66 | S: 264 | R: 3.3274
+| results        | T: 67 | S: 268 | R: 2.7744
+| results        | T: 68 | S: 272 | R: 3.1136
+| results        | T: 69 | S: 276 | R: 1.8586
+| results        | T: 70 | S: 280 | R: 3.1500
+| model_train    | I: 0 | E: 0 | TD: 330 | VD: 0 | MLOSS: -2.2829 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.4664 | VR2: 0.9205
+| model_train    | I: 0 | E: 1 | TD: 330 | VD: 0 | MLOSS: -2.2992 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.5029 | VR2: 0.9204
+| model_train    | I: 0 | E: 2 | TD: 330 | VD: 0 | MLOSS: -2.3149 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.4998 | VR2: 0.9214
+| model_train    | I: 0 | E: 3 | TD: 330 | VD: 0 | MLOSS: -2.3308 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.5003 | VR2: 0.9215
+| model_train    | I: 0 | E: 4 | TD: 330 | VD: 0 | MLOSS: -2.3462 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.4139 | VR2: 0.9222
+| model_train    | I: 0 | E: 5 | TD: 330 | VD: 0 | MLOSS: -2.3616 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.4390 | VR2: 0.9224
+| model_train    | I: 0 | E: 6 | TD: 330 | VD: 0 | MLOSS: -2.3766 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.4130 | VR2: 0.9229
+| model_train    | I: 0 | E: 7 | TD: 330 | VD: 0 | MLOSS: -2.3913 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.4233 | VR2: 0.9233
+| model_train    | I: 0 | E: 8 | TD: 330 | VD: 0 | MLOSS: -2.4056 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.4208 | VR2: 0.9236
+| model_train    | I: 0 | E: 9 | TD: 330 | VD: 0 | MLOSS: -2.4194 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.4076 | VR2: 0.9240
+| results        | T: 71 | S: 284 | R: 3.3125
+| results        | T: 72 | S: 288 | R: 2.8253
+| results        | T: 73 | S: 292 | R: 3.2096
+| results        | T: 74 | S: 296 | R: 3.3375
+| results        | T: 75 | S: 300 | R: 2.6453
+| model_train    | I: 0 | E: 0 | TD: 350 | VD: 0 | MLOSS: -2.4345 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.3873 | VR2: 0.9210
+| model_train    | I: 0 | E: 1 | TD: 350 | VD: 0 | MLOSS: -2.4478 | MVSCORE: 0.0004 | MBVSCORE: 0.0004 | TR2: 0.3611 | VR2: 0.9214
+| model_train    | I: 0 | E: 2 | TD: 350 | VD: 0 | MLOSS: -2.4606 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3628 | VR2: 0.9217
+| model_train    | I: 0 | E: 3 | TD: 350 | VD: 0 | MLOSS: -2.4731 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3411 | VR2: 0.9222
+| model_train    | I: 0 | E: 4 | TD: 350 | VD: 0 | MLOSS: -2.4852 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2939 | VR2: 0.9225
+| model_train    | I: 0 | E: 5 | TD: 350 | VD: 0 | MLOSS: -2.4972 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2992 | VR2: 0.9230
+| model_train    | I: 0 | E: 6 | TD: 350 | VD: 0 | MLOSS: -2.5091 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3113 | VR2: 0.9233
+| model_train    | I: 0 | E: 7 | TD: 350 | VD: 0 | MLOSS: -2.5204 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3193 | VR2: 0.9239
+| model_train    | I: 0 | E: 8 | TD: 350 | VD: 0 | MLOSS: -2.5321 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3556 | VR2: 0.9242
+| model_train    | I: 0 | E: 9 | TD: 350 | VD: 0 | MLOSS: -2.5433 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3687 | VR2: 0.9247
+| results        | T: 76 | S: 304 | R: 2.8141
+| results        | T: 77 | S: 308 | R: 2.8385
+| results        | T: 78 | S: 312 | R: 3.0174
+| results        | T: 79 | S: 316 | R: 3.4929
+| results        | T: 80 | S: 320 | R: 3.2297
+| model_train    | I: 0 | E: 0 | TD: 370 | VD: 0 | MLOSS: -2.5570 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3593 | VR2: 0.9229
+| model_train    | I: 0 | E: 1 | TD: 370 | VD: 0 | MLOSS: -2.5682 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3618 | VR2: 0.9234
+| model_train    | I: 0 | E: 2 | TD: 370 | VD: 0 | MLOSS: -2.5788 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3540 | VR2: 0.9239
+| model_train    | I: 0 | E: 3 | TD: 370 | VD: 0 | MLOSS: -2.5895 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3701 | VR2: 0.9244
+| model_train    | I: 0 | E: 4 | TD: 370 | VD: 0 | MLOSS: -2.5998 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3730 | VR2: 0.9247
+| model_train    | I: 0 | E: 5 | TD: 370 | VD: 0 | MLOSS: -2.6096 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4263 | VR2: 0.9250
+| model_train    | I: 0 | E: 6 | TD: 370 | VD: 0 | MLOSS: -2.6190 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4290 | VR2: 0.9254
+| model_train    | I: 0 | E: 7 | TD: 370 | VD: 0 | MLOSS: -2.6283 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4730 | VR2: 0.9260
+| model_train    | I: 0 | E: 8 | TD: 370 | VD: 0 | MLOSS: -2.6372 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4786 | VR2: 0.9264
+| model_train    | I: 0 | E: 9 | TD: 370 | VD: 0 | MLOSS: -2.6460 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.5470 | VR2: 0.9267
+| results        | T: 81 | S: 324 | R: 2.7104
+| results        | T: 82 | S: 328 | R: 2.8940
+| results        | T: 83 | S: 332 | R: 2.4797
+| results        | T: 84 | S: 336 | R: 2.3804
+| results        | T: 85 | S: 340 | R: 2.7393
+| model_train    | I: 0 | E: 0 | TD: 390 | VD: 0 | MLOSS: -2.6450 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.5351 | VR2: 0.9218
+| model_train    | I: 0 | E: 1 | TD: 390 | VD: 0 | MLOSS: -2.6422 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3901 | VR2: 0.9250
+| model_train    | I: 0 | E: 2 | TD: 390 | VD: 0 | MLOSS: -2.6594 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.5647 | VR2: 0.9238
+| model_train    | I: 0 | E: 3 | TD: 390 | VD: 0 | MLOSS: -2.6632 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.5309 | VR2: 0.9258
+| model_train    | I: 0 | E: 4 | TD: 390 | VD: 0 | MLOSS: -2.6754 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4970 | VR2: 0.9251
+| model_train    | I: 0 | E: 5 | TD: 390 | VD: 0 | MLOSS: -2.6814 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4954 | VR2: 0.9266
+| model_train    | I: 0 | E: 6 | TD: 390 | VD: 0 | MLOSS: -2.6911 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.6496 | VR2: 0.9262
+| model_train    | I: 0 | E: 7 | TD: 390 | VD: 0 | MLOSS: -2.6980 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.5310 | VR2: 0.9273
+| model_train    | I: 0 | E: 8 | TD: 390 | VD: 0 | MLOSS: -2.7056 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.5850 | VR2: 0.9273
+| model_train    | I: 0 | E: 9 | TD: 390 | VD: 0 | MLOSS: -2.7126 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4770 | VR2: 0.9279
+| results        | T: 86 | S: 344 | R: 3.1848
+| results        | T: 87 | S: 348 | R: 2.6398
+| results        | T: 88 | S: 352 | R: 3.4683
+| results        | T: 89 | S: 356 | R: 2.7141
+| results        | T: 90 | S: 360 | R: 2.4469
+| model_train    | I: 0 | E: 0 | TD: 410 | VD: 0 | MLOSS: -2.7146 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4620 | VR2: 0.9237
+| model_train    | I: 0 | E: 1 | TD: 410 | VD: 0 | MLOSS: -2.7129 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3516 | VR2: 0.9246
+| model_train    | I: 0 | E: 2 | TD: 410 | VD: 0 | MLOSS: -2.7239 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4679 | VR2: 0.9257
+| model_train    | I: 0 | E: 3 | TD: 410 | VD: 0 | MLOSS: -2.7303 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4552 | VR2: 0.9253
+| model_train    | I: 0 | E: 4 | TD: 410 | VD: 0 | MLOSS: -2.7353 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2428 | VR2: 0.9264
+| model_train    | I: 0 | E: 5 | TD: 410 | VD: 0 | MLOSS: -2.7427 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4479 | VR2: 0.9260
+| model_train    | I: 0 | E: 6 | TD: 410 | VD: 0 | MLOSS: -2.7476 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4158 | VR2: 0.9266
+| model_train    | I: 0 | E: 7 | TD: 410 | VD: 0 | MLOSS: -2.7542 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4541 | VR2: 0.9269
+| model_train    | I: 0 | E: 8 | TD: 410 | VD: 0 | MLOSS: -2.7592 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3855 | VR2: 0.9271
+| model_train    | I: 0 | E: 9 | TD: 410 | VD: 0 | MLOSS: -2.7650 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2655 | VR2: 0.9276
+| results        | T: 91 | S: 364 | R: 2.8857
+| results        | T: 92 | S: 368 | R: 3.3063
+| results        | T: 93 | S: 372 | R: 3.3128
+| results        | T: 94 | S: 376 | R: 2.3230
+| results        | T: 95 | S: 380 | R: 2.8501
+| model_train    | I: 0 | E: 0 | TD: 430 | VD: 0 | MLOSS: -2.7458 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4316 | VR2: 0.9244
+| model_train    | I: 0 | E: 1 | TD: 430 | VD: 0 | MLOSS: -2.7491 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3619 | VR2: 0.9254
+| model_train    | I: 0 | E: 2 | TD: 430 | VD: 0 | MLOSS: -2.7572 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4414 | VR2: 0.9255
+| model_train    | I: 0 | E: 3 | TD: 430 | VD: 0 | MLOSS: -2.7620 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2980 | VR2: 0.9256
+| model_train    | I: 0 | E: 4 | TD: 430 | VD: 0 | MLOSS: -2.7663 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2266 | VR2: 0.9264
+| model_train    | I: 0 | E: 5 | TD: 430 | VD: 0 | MLOSS: -2.7736 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3810 | VR2: 0.9262
+| model_train    | I: 0 | E: 6 | TD: 430 | VD: 0 | MLOSS: -2.7771 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3728 | VR2: 0.9265
+| model_train    | I: 0 | E: 7 | TD: 430 | VD: 0 | MLOSS: -2.7822 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4169 | VR2: 0.9270
+| model_train    | I: 0 | E: 8 | TD: 430 | VD: 0 | MLOSS: -2.7877 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2986 | VR2: 0.9271
+| model_train    | I: 0 | E: 9 | TD: 430 | VD: 0 | MLOSS: -2.7915 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2022 | VR2: 0.9276
+| results        | T: 96 | S: 384 | R: 3.1864
+| results        | T: 97 | S: 388 | R: 2.4500
+| results        | T: 98 | S: 392 | R: 3.2108
+| results        | T: 99 | S: 396 | R: 2.7000
+| results        | T: 100 | S: 400 | R: 3.2614
+| model_train    | I: 0 | E: 0 | TD: 450 | VD: 0 | MLOSS: -2.7499 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3436 | VR2: 0.9246
+| model_train    | I: 0 | E: 1 | TD: 450 | VD: 0 | MLOSS: -2.7584 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4099 | VR2: 0.9244
+| model_train    | I: 0 | E: 2 | TD: 450 | VD: 0 | MLOSS: -2.7619 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2080 | VR2: 0.9246
+| model_train    | I: 0 | E: 3 | TD: 450 | VD: 0 | MLOSS: -2.7664 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2131 | VR2: 0.9255
+| model_train    | I: 0 | E: 4 | TD: 450 | VD: 0 | MLOSS: -2.7734 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3658 | VR2: 0.9256
+| model_train    | I: 0 | E: 5 | TD: 450 | VD: 0 | MLOSS: -2.7776 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3521 | VR2: 0.9257
+| model_train    | I: 0 | E: 6 | TD: 450 | VD: 0 | MLOSS: -2.7817 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3319 | VR2: 0.9264
+| model_train    | I: 0 | E: 7 | TD: 450 | VD: 0 | MLOSS: -2.7878 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2657 | VR2: 0.9267
+| model_train    | I: 0 | E: 8 | TD: 450 | VD: 0 | MLOSS: -2.7915 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.1894 | VR2: 0.9271
+| model_train    | I: 0 | E: 9 | TD: 450 | VD: 0 | MLOSS: -2.7965 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3006 | VR2: 0.9275
+| results        | T: 101 | S: 404 | R: 3.4963
+| results        | T: 102 | S: 408 | R: 2.5946
+| results        | T: 103 | S: 412 | R: 3.2051
+| results        | T: 104 | S: 416 | R: 2.8892
+| results        | T: 105 | S: 420 | R: 2.7203
+| model_train    | I: 0 | E: 0 | TD: 470 | VD: 0 | MLOSS: -2.7602 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3950 | VR2: 0.9233
+| model_train    | I: 0 | E: 1 | TD: 470 | VD: 0 | MLOSS: -2.7657 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4175 | VR2: 0.9239
+| model_train    | I: 0 | E: 2 | TD: 470 | VD: 0 | MLOSS: -2.7708 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3811 | VR2: 0.9242
+| model_train    | I: 0 | E: 3 | TD: 470 | VD: 0 | MLOSS: -2.7755 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2305 | VR2: 0.9247
+| model_train    | I: 0 | E: 4 | TD: 470 | VD: 0 | MLOSS: -2.7805 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.1952 | VR2: 0.9252
+| model_train    | I: 0 | E: 5 | TD: 470 | VD: 0 | MLOSS: -2.7854 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2515 | VR2: 0.9254
+| model_train    | I: 0 | E: 6 | TD: 470 | VD: 0 | MLOSS: -2.7897 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2764 | VR2: 0.9259
+| model_train    | I: 0 | E: 7 | TD: 470 | VD: 0 | MLOSS: -2.7946 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2756 | VR2: 0.9263
+| model_train    | I: 0 | E: 8 | TD: 470 | VD: 0 | MLOSS: -2.7989 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2500 | VR2: 0.9268
+| model_train    | I: 0 | E: 9 | TD: 470 | VD: 0 | MLOSS: -2.8034 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2124 | VR2: 0.9273
+| results        | T: 106 | S: 424 | R: 2.7447
+| results        | T: 107 | S: 428 | R: 3.2337
+| results        | T: 108 | S: 432 | R: 2.6893
+| results        | T: 109 | S: 436 | R: 2.6970
+| results        | T: 110 | S: 440 | R: 2.2953
+| model_train    | I: 0 | E: 0 | TD: 490 | VD: 0 | MLOSS: -2.7667 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.4017 | VR2: 0.9222
+| model_train    | I: 0 | E: 1 | TD: 490 | VD: 0 | MLOSS: -2.7725 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3511 | VR2: 0.9227
+| model_train    | I: 0 | E: 2 | TD: 490 | VD: 0 | MLOSS: -2.7770 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.1567 | VR2: 0.9230
+| model_train    | I: 0 | E: 3 | TD: 490 | VD: 0 | MLOSS: -2.7813 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.0906 | VR2: 0.9238
+| model_train    | I: 0 | E: 4 | TD: 490 | VD: 0 | MLOSS: -2.7873 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.1782 | VR2: 0.9240
+| model_train    | I: 0 | E: 5 | TD: 490 | VD: 0 | MLOSS: -2.7911 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.1836 | VR2: 0.9246
+| model_train    | I: 0 | E: 6 | TD: 490 | VD: 0 | MLOSS: -2.7958 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.1530 | VR2: 0.9251
+| model_train    | I: 0 | E: 7 | TD: 490 | VD: 0 | MLOSS: -2.8008 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.0884 | VR2: 0.9257
+| model_train    | I: 0 | E: 8 | TD: 490 | VD: 0 | MLOSS: -2.8049 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.0324 | VR2: 0.9262
+| model_train    | I: 0 | E: 9 | TD: 490 | VD: 0 | MLOSS: -2.8094 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.0592 | VR2: 0.9270
+| results        | T: 111 | S: 444 | R: 1.6017
+| results        | T: 112 | S: 448 | R: 2.9809
+| results        | T: 113 | S: 452 | R: 2.6089
+| results        | T: 114 | S: 456 | R: 2.8721
+| results        | T: 115 | S: 460 | R: 3.3776
+| model_train    | I: 0 | E: 0 | TD: 510 | VD: 0 | MLOSS: -2.7760 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3397 | VR2: 0.9217
+| model_train    | I: 0 | E: 1 | TD: 510 | VD: 0 | MLOSS: -2.7806 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.3427 | VR2: 0.9221
+| model_train    | I: 0 | E: 2 | TD: 510 | VD: 0 | MLOSS: -2.7855 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.2839 | VR2: 0.9231
+| model_train    | I: 0 | E: 3 | TD: 510 | VD: 0 | MLOSS: -2.7905 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.1474 | VR2: 0.9233
+| model_train    | I: 0 | E: 4 | TD: 510 | VD: 0 | MLOSS: -2.7953 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.0315 | VR2: 0.9243
+| model_train    | I: 0 | E: 5 | TD: 510 | VD: 0 | MLOSS: -2.8000 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: -0.0190 | VR2: 0.9245
+| model_train    | I: 0 | E: 6 | TD: 510 | VD: 0 | MLOSS: -2.8045 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: -0.0004 | VR2: 0.9255
+| model_train    | I: 0 | E: 7 | TD: 510 | VD: 0 | MLOSS: -2.8094 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.0325 | VR2: 0.9259
+| model_train    | I: 0 | E: 8 | TD: 510 | VD: 0 | MLOSS: -2.8137 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.0501 | VR2: 0.9268
+| model_train    | I: 0 | E: 9 | TD: 510 | VD: 0 | MLOSS: -2.8184 | MVSCORE: 0.0003 | MBVSCORE: 0.0003 | TR2: 0.0894 | VR2: 0.9276
+| results        | T: 116 | S: 464 | R: 2.8822

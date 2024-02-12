@@ -1,0 +1,7 @@
+- experiment.with_tracking=true
+- overrides=pets_bikes_20centroid
+- algorithm.rescale_input=true
+- algorithm.rescale_output=false
+- algorithm.target_is_delta=true
+- experiment.run_configs.name=rescalein_true_rescaleout_false_targetdelta_true
+- experiment.run_configs.group=test_targetisdelta_real_4step_20centroid

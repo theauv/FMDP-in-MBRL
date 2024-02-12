@@ -1,0 +1,44 @@
+-------------ENV INFO-------------
+Observation space keys: KeysView(Dict('bikes_distr': Box(0.0, 56.0, (20,), float32), 'day': Box(1.0, 31.0, (1,), float32), 'day_of_week': Box(1.0, 7.0, (1,), float32), 'month': Box(1.0, 12.0, (1,), float32), 'time_counter': Box(1.0, 5.0, (1,), float32)))
+Action space keys: KeysView(Dict('truck_centroid': Box(0.0, 19.0, (2,), float32)))
+Using artificial rentals dynamics
+Number of centroids: 20
+Centroid induced dependencies file: src/env/bikes_data/20_centroids/factors_radius_2.npy
+Results will be saved at /cluster/home/tvannier/HUCRL_for_FMDP/exp/wandb/bikes/pets_adapted/2024.02.11/225900_rescalein_true_rescaleout_false_targetdelta_true.
+--------------MODEL INFO----------------
+Model obs input keys: ['bikes_distr', 'time_counter']
+Model action input keys: []
+Model output keys: ['bikes_distr']
+Rescale input: True
+Rescale output: False
+Target is delta: True
+Learne rewards: True
+Num elites: None
+| model_train    | I: 0 | E: 0 | TD: 50 | VD: 0 | MLOSS: 3.4356 | MVSCORE: 2.9078 | MBVSCORE: 2.9078 | TR2: -1.9545 | VR2: 0.3018
+| model_train    | I: 0 | E: 1 | TD: 50 | VD: 0 | MLOSS: 3.3261 | MVSCORE: 2.8480 | MBVSCORE: 2.8480 | TR2: -1.7490 | VR2: 0.3166
+| model_train    | I: 0 | E: 2 | TD: 50 | VD: 0 | MLOSS: 3.2236 | MVSCORE: 2.7876 | MBVSCORE: 2.7876 | TR2: -1.5623 | VR2: 0.3314
+| model_train    | I: 0 | E: 3 | TD: 50 | VD: 0 | MLOSS: 3.1279 | MVSCORE: 2.7266 | MBVSCORE: 2.7266 | TR2: -1.3985 | VR2: 0.3463
+| model_train    | I: 0 | E: 4 | TD: 50 | VD: 0 | MLOSS: 3.0385 | MVSCORE: 2.6648 | MBVSCORE: 2.6648 | TR2: -1.2541 | VR2: 0.3612
+| model_train    | I: 0 | E: 5 | TD: 50 | VD: 0 | MLOSS: 2.9551 | MVSCORE: 2.6024 | MBVSCORE: 2.6024 | TR2: -1.1245 | VR2: 0.3760
+| model_train    | I: 0 | E: 6 | TD: 50 | VD: 0 | MLOSS: 2.8774 | MVSCORE: 2.5393 | MBVSCORE: 2.5393 | TR2: -1.0072 | VR2: 0.3908
+| model_train    | I: 0 | E: 7 | TD: 50 | VD: 0 | MLOSS: 2.8050 | MVSCORE: 2.4756 | MBVSCORE: 2.4756 | TR2: -0.9009 | VR2: 0.4057
+| model_train    | I: 0 | E: 8 | TD: 50 | VD: 0 | MLOSS: 2.7376 | MVSCORE: 2.4113 | MBVSCORE: 2.4113 | TR2: -0.8047 | VR2: 0.4205
+| model_train    | I: 0 | E: 9 | TD: 50 | VD: 0 | MLOSS: 2.6750 | MVSCORE: 2.3466 | MBVSCORE: 2.3466 | TR2: -0.7178 | VR2: 0.4353
+wandb: 429 encountered (Filestream rate limit exceeded, retrying in 2.1 seconds.), retrying request
+wandb: 429 encountered (Filestream rate limit exceeded, retrying in 4.7 seconds.), retrying request
+| results        | T: 1 | S: 4 | R: 0.9579
+Traceback (most recent call last):
+  File "/cluster/home/tvannier/HUCRL_for_FMDP/run_scripts/train.py", line 35, in run
+    return pets_adapted.train(env, term_fn, reward_fn, cfg)
+  File "/cluster/home/tvannier/HUCRL_for_FMDP/src/algorithm/pets_adapted.py", line 216, in train
+    logger.log_data(
+  File "/cluster/home/tvannier/.local/lib/python3.9/site-packages/mbrl/util/logger.py", line 186, in log_data
+    self._dump(group_name)
+  File "/cluster/home/tvannier/.local/lib/python3.9/site-packages/mbrl/util/logger.py", line 192, in _dump
+    meter_group.dump(self._group_steps[group_name], group_name, save, color=color)
+  File "/cluster/home/tvannier/.local/lib/python3.9/site-packages/mbrl/util/logger.py", line 99, in dump
+    self._dump_to_csv(data)
+  File "/cluster/home/tvannier/.local/lib/python3.9/site-packages/mbrl/util/logger.py", line 71, in _dump_to_csv
+    self._csv_file.flush()
+OSError: [Errno 116] Stale file handle
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
