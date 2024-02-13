@@ -18,7 +18,7 @@ for i in {1..3}
         for target_is_delta in true false
             do
             run_name="rescalein_${rescale_input}_rescaleout_${rescale_output}_targetdelta_${target_is_delta}"
-            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=${overrides} model_dynamics=${model} algorithm.rescale_input=${rescale_input} algorithm.rescale_output=${rescale_output} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=${overrides} dynamics_model=${model} algorithm.rescale_input=${rescale_input} algorithm.rescale_output=${rescale_output} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
         done
     done
 done
