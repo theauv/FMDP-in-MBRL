@@ -31,7 +31,9 @@ from src.util.util import get_base_dir_path
 # TODO: run_name
 
 
-def create_dataset(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str] = None):
+def create_dataset(
+    cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str] = None
+):
     # -------- Initialization --------
     obs_shape = env.observation_space.shape
     act_shape = env.action_space.shape
@@ -46,9 +48,7 @@ def create_dataset(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[s
     print(f"Results will be saved at {work_dir}.")
 
     env_is_bikes = False
-    base_env = env
-    while hasattr(base_env, "env"):
-        base_env = base_env.env
+    base_env = env.unwrapped
     if isinstance(base_env, Bikes):
         env_is_bikes = True
         base_env.set_next_day_method("random")
@@ -65,7 +65,9 @@ def create_dataset(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[s
 
     # Try to load potentially existing dataset
     if isinstance(base_env, Bikes):
-        station_dependencies = cfg.overrides.env_config.get("station_dependencies", None)
+        station_dependencies = cfg.overrides.env_config.get(
+            "station_dependencies", None
+        )
         if station_dependencies is not None:
             station_dependencies = station_dependencies.split("/")[-1].split(".")[0]
         dataset_dir = Path(
@@ -74,7 +76,7 @@ def create_dataset(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[s
             f"{base_env.__class__.__name__}",
             f"n_centroids_{base_env.num_centroids}",
             f"{station_dependencies}",
-            f"{base_env.action_per_day}"
+            f"{base_env.action_per_day}",
         )
     else:
         dataset_dir = Path(
@@ -123,11 +125,12 @@ def create_dataset(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[s
         dataset_dir.mkdir(parents=True, exist_ok=True)
         replay_buffer.save(dataset_dir)
 
+
 @hydra.main(config_path="../configs", config_name="training_model")
 def run(cfg: omegaconf.DictConfig):
-    #Overrides
+    # Overrides
     if not cfg.debug_mode:
-        cfg.overrides.render_mode=None
+        cfg.overrides.render_mode = None
     cfg.overrides.dataset_size = cfg.get("dataset_size", cfg.overrides.dataset_size)
     cfg.algorithm.dataset_size = cfg.get("dataset_size", cfg.algorithm.dataset_size)
 

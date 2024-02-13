@@ -1,8 +1,11 @@
 import argparse
 import pathlib
-import hydra
-from typing import List, Optional, Tuple, Dict, Any
+import pygame
+from random import uniform
 from time import sleep
+from typing import List, Optional, Tuple, Dict, Any
+
+import hydra
 import numpy as np
 import matplotlib
 import matplotlib.animation as animation
@@ -16,26 +19,32 @@ import mbrl.models
 import mbrl.planning
 import mbrl.util.common
 
+from src.env.bikes import Bikes
+from src.env.constants import *
 from src.env.hypergrid import ContinuousHyperGrid
 from src.env.env_handler import get_handler
-from src.env.constants import BLACK, GREEN, RED, WHITE
+from src.env.constants import BLACK
 from src.util.util import get_weights_model
-from src.util.common_overriden import create_one_dim_tr_model_overriden, create_overriden_replay_buffer
+from src.util.common_overriden import (
+    create_one_dim_tr_model_overriden,
+    create_overriden_replay_buffer,
+)
 from src.model.gaussian_process import MultiOutputGP
 
 VisData = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
+
 class PerfectHypergridModel(mbrl.models.Model):
     def __init__(self, device, *args, **kwargs):
         super().__init__(device, *args, **kwargs)
-        #HARD CODED !!!
+        # HARD CODED !!!
         self.in_size = 4
         self.out_size = 2
 
     def forward(self, x: torch.Tensor, *args, **kwargs) -> Tuple[torch.Tensor, ...]:
         input_dim = x.shape[-1]
-        assert input_dim%2 == 0
-        return x[..., input_dim//2:] #x[..., :input_dim//2]+x[..., input_dim//2:]
+        assert input_dim % 2 == 0
+        return x[..., input_dim // 2 :]  # x[..., :input_dim//2]+x[..., input_dim//2:]
 
     def loss(
         self,
@@ -85,8 +94,6 @@ class PerfectHypergridModel(mbrl.models.Model):
         return (self.forward(model_input), model_state)
 
 
-
-
 def unit_vector(vector):
     """Returns the unit vector of the vector."""
     return vector / np.linalg.norm(vector)
@@ -112,6 +119,7 @@ class AdaptedVisualizer(Visualizer):
         model_subdir: Optional[str] = None,
         render: bool = False,
         use_perfect_hypergrid_model: bool = False,
+        use_untrained_model: bool = False,
     ):
         self.lookahead = lookahead
         self.results_path = pathlib.Path(results_dir)
@@ -146,7 +154,9 @@ class AdaptedVisualizer(Visualizer):
             model = PerfectHypergridModel(device="cpu")
             name_obs_process_fn = self.cfg.overrides.get("obs_process_fn", None)
             if name_obs_process_fn:
-                obs_process_fn = hydra.utils.get_method(self.cfg.overrides.obs_process_fn)
+                obs_process_fn = hydra.utils.get_method(
+                    self.cfg.overrides.obs_process_fn
+                )
             else:
                 obs_process_fn = None
             self.dynamics_model = hydra.utils.instantiate(
@@ -162,15 +172,18 @@ class AdaptedVisualizer(Visualizer):
                 no_delta_list=self.cfg.overrides.get("no_delta_list", None),
                 num_elites=self.cfg.overrides.get("num_elites", None),
             )
-            #Overrides
-            self.cfg.overrides.model_batch_size = self.cfg.dynamics_model.get("batch_size", self.cfg.overrides.model_batch_size)
+            # Overrides
+            self.cfg.overrides.model_batch_size = self.cfg.dynamics_model.get(
+                "batch_size", self.cfg.overrides.model_batch_size
+            )
         else:
+            print(use_untrained_model)
             self.dynamics_model = create_one_dim_tr_model_overriden(
                 self.cfg,
                 self.env,
                 self.env.observation_space.shape,
                 self.env.action_space.shape,
-                model_dir=self.model_path,
+                model_dir=self.model_path if not use_untrained_model else None,
             )
         self.model_env = mbrl.models.ModelEnv(
             self.env,
@@ -209,12 +222,6 @@ class AdaptedVisualizer(Visualizer):
         if isinstance(self.dynamics_model.model, MultiOutputGP):
             for batch in self.dataset_train:
                 self.dynamics_model.loss(batch)
-                # obs, act, next_obs, rewards, _, _ = batch.astuple()
-                # train_x = torch.cat([torch.tensor(obs, dtype=torch.float32), torch.tensor(act, dtype=torch.float32)], axis=-1)
-                # target = torch.tensor(next_obs, dtype=torch.float32)
-                # self.dynamics_model.model.train()
-                # self.dynamics_model.model.set_train_data(train_x, target)
-                # self.dynamics_model.model.forward()
 
         # Instanciate the agent
         self.agent: mbrl.planning.Agent
@@ -228,7 +235,7 @@ class AdaptedVisualizer(Visualizer):
                 == "mbrl.planning.TrajectoryOptimizerAgent"
             ):
                 print("Agent uses TrajectoryOptimizer")
-                #agent_cfg.algorithm.agent.planning_horizon = lookahead
+                # agent_cfg.algorithm.agent.planning_horizon = lookahead
                 self.agent = mbrl.planning.create_trajectory_optim_agent_for_model(
                     self.model_env,
                     agent_cfg.algorithm.agent,
@@ -246,6 +253,45 @@ class AdaptedVisualizer(Visualizer):
 
         # The total reward obtained while building the visualizationn
         self.total_reward = 0
+
+        # Rendering for bikes_dynamics
+        if isinstance(self.env.unwrapped, Bikes):
+            self.viewer = None
+            screen_ydim = 650
+            screen_xdim = int(
+                screen_ydim
+                * abs(
+                    (
+                        self.env.get_wrapper_attr("longitudes")[1]
+                        - self.env.get_wrapper_attr("longitudes")[0]
+                    )
+                    / (
+                        self.env.get_wrapper_attr("latitudes")[0]
+                        - self.env.get_wrapper_attr("latitudes")[1]
+                    )
+                )
+            )
+            self.screen_dim = (screen_xdim, screen_ydim)
+            self.scale = np.abs(
+                self.screen_dim
+                / np.array(
+                    [
+                        self.env.get_wrapper_attr("longitudes")[1]
+                        - self.env.get_wrapper_attr("longitudes")[0],
+                        self.env.get_wrapper_attr("latitudes")[0]
+                        - self.env.get_wrapper_attr("latitudes")[1],
+                    ]
+                )
+            )
+            self.offset = np.array(
+                [
+                    self.env.get_wrapper_attr("longitudes")[0],
+                    self.env.get_wrapper_attr("latitudes")[0],
+                ]
+            )
+            self.screen = None
+            self.clock = None
+            self.isopen = True
 
     def test_agent(self):
         """
@@ -318,6 +364,7 @@ class AdaptedVisualizer(Visualizer):
 
             # Env step
             from time import time
+
             start = time()
             action = self.agent.act(observation)
             model_observation = {
@@ -325,7 +372,7 @@ class AdaptedVisualizer(Visualizer):
                 "propagation_indices": None,
             }
             model_action = np.expand_dims(action.copy(), axis=0)
-            print("Act time: ", time()-start)
+            print("Act time: ", time() - start)
             new_obs, reward, terminated, truncated, info = self.env.step(action)
             real_trajectories.append([observation, action, new_obs])
             print("Real env")
@@ -365,7 +412,7 @@ class AdaptedVisualizer(Visualizer):
             print(
                 f"Obs: {model_observation} \n"
                 f"Action: {model_action} \n"
-                f"New_obs: {next_observs}\n" 
+                f"New_obs: {next_observs}\n"
                 f"Rewards: {rewards}"
             )
             if hasattr(self.env.unwrapped, "delta_bikes"):
@@ -679,10 +726,7 @@ class AdaptedVisualizer(Visualizer):
                 )
 
     def test_model(self):
-
-        base_env = self.env
-        while hasattr(base_env, "env"):
-            base_env = base_env.env
+        base_env = self.env.unwrapped
         assert isinstance(base_env, ContinuousHyperGrid)
 
         dataset_train, dataset_val = mbrl.util.common.get_basic_buffer_iterators(
@@ -696,7 +740,13 @@ class AdaptedVisualizer(Visualizer):
 
         for batch in dataset_train:
             obs, act, next_obs, rewards, _, _ = batch.astuple()
-            train_x = torch.cat([torch.tensor(obs, dtype=torch.float32), torch.tensor(act, dtype=torch.float32)], axis=-1)
+            train_x = torch.cat(
+                [
+                    torch.tensor(obs, dtype=torch.float32),
+                    torch.tensor(act, dtype=torch.float32),
+                ],
+                axis=-1,
+            )
             target = torch.tensor(next_obs, dtype=torch.float32)
 
         with torch.no_grad():
@@ -709,33 +759,293 @@ class AdaptedVisualizer(Visualizer):
             observed_preds = self.dynamics_model.forward(test_x)
 
         import matplotlib
+
         matplotlib.use("TkAgg")
         f, ax = plt.subplots(1, x_dim, figsize=(4, 3))
         for i in range(x_dim):
             # Plot training data as black stars
-            j = i%(x_dim//2)
-            ax[i].plot(train_x[:,i].numpy(), target[:,j].numpy(), 'k*')
+            j = i % (x_dim // 2)
+            ax[i].plot(train_x[:, i].numpy(), target[:, j].numpy(), "k*")
             if isinstance(self.dynamics_model.model, MultiOutputGP):
-                ax[i].plot(test_x[:,i].numpy(), observed_preds[j].mean.detach().numpy(), 'bo')
+                ax[i].plot(
+                    test_x[:, i].numpy(), observed_preds[j].mean.detach().numpy(), "bo"
+                )
                 lower, upper = observed_preds[j].confidence_region()
-                ax[i].fill_between(test_x[:,i].numpy(), lower.detach().numpy(), upper.detach().numpy(), alpha=0.5)
-                ax[i].legend(['Observed Data', 'Mean', 'Confidence'])
+                ax[i].fill_between(
+                    test_x[:, i].numpy(),
+                    lower.detach().numpy(),
+                    upper.detach().numpy(),
+                    alpha=0.5,
+                )
+                ax[i].legend(["Observed Data", "Mean", "Confidence"])
             else:
-                ax[i].plot(test_x[:,i].numpy(), observed_preds[:,j].numpy(), 'b')
+                ax[i].plot(test_x[:, i].numpy(), observed_preds[:, j].numpy(), "b")
         plt.show()
 
+    def render_bikes(
+        self, model_next_distr, true_reward=None, model_reward=None, pre_obs=False, total_failed_bikes=None, n_failed_bikes=None
+    ):
+        if self.screen is None:
+            pygame.init()
+            pygame.display.init()
+            self.screen = pygame.display.set_mode(self.screen_dim)
+        if self.clock is None:
+            self.clock = pygame.time.Clock()
 
-    def test(self):
+        self.surf = pygame.Surface(self.screen_dim)
+        self.surf.fill(BLACK)
 
-        inp = [1, 2, 0.5, 0.5]
-        inp = torch.tensor(inp, dtype=torch.float32).unsqueeze(0)
+        city_map = pygame.image.load("src/env/bikes_data/louisville_map.png")
+        city_size = city_map.get_size()
+        city_real_dim = [-85.9, -85.55, 38.15, 38.35]
+        city_scale = np.abs(
+            city_size
+            / np.array(
+                [
+                    city_real_dim[1] - city_real_dim[0],
+                    city_real_dim[3] - city_real_dim[2],
+                ]
+            )
+        )
+        city_offset = np.array([city_real_dim[0], city_real_dim[2]])
+        x = (self.env.get_wrapper_attr("longitudes") - city_offset[0]) * city_scale[0]
+        # Warning: pygame has a reversed y axis
+        y = (
+            city_size[1]
+            - (self.env.get_wrapper_attr("latitudes") - city_offset[1]) * city_scale[1]
+        )
+        cropped_region = (x[0], y[1], x[1] - x[0], y[0] - y[1])
+        city_map = city_map.subsurface(cropped_region)
+        city_map = pygame.transform.scale(city_map, self.screen_dim)
+        self.surf.blit(city_map, (0, 0))
 
-        with torch.no_grad():
-            print(self.dynamics_model.forward(inp))
+        # Added bikes from depot:
+        if pre_obs:
+            font_size = 10
+            font = pygame.font.SysFont("Arial", font_size)
+            depot_coord = (self.screen_dim[0] - 50, self.screen_dim[1] - 50)
+            if self.env.get_wrapper_attr("delta_bikes") is not None:
+                for i, added_bikes in enumerate(
+                    self.env.get_wrapper_attr("delta_bikes")
+                ):
+                    if added_bikes > 0:
+                        coord = self.env.get_wrapper_attr("centroid_coords")[i]
+                        coord = (coord[1], coord[0])
+                        new_coord = (coord - self.offset) * self.scale
+                        new_coord[1] = self.screen_dim[1] - new_coord[1]
+                        width = 1  # added_bikes
+                        self.env.unwrapped._draw_arrow(
+                            self.surf,
+                            pygame.Vector2(depot_coord[0], depot_coord[1]),
+                            pygame.Vector2(new_coord[0], new_coord[1]),
+                            PRETTY_RED,
+                            width,
+                            2 + min(5 * width, 10 + width),
+                        )
+                        txtsurf = font.render(str(added_bikes), True, DARK_RED)
+                        alpha = uniform(0.25, 0.5)
+                        text_coord = depot_coord + alpha * (new_coord - depot_coord)
+                        self.surf.blit(
+                            txtsurf,
+                            (
+                                text_coord[0] - font_size / 3.5,
+                                text_coord[1] - font_size / 1.5,
+                            ),
+                        )
+            pygame.draw.circle(self.surf, PRETTY_RED, depot_coord, 10)
+            txtsurf = font.render("DEPOT", True, BLACK)
+            self.surf.blit(
+                txtsurf,
+                (depot_coord[0] - font_size / 1.5, depot_coord[1] - font_size / 1.5),
+            )
+            real_next_distr = self.env.get_wrapper_attr("previous_bikes_distr")
+        else:
+            real_next_distr = self.env.get_wrapper_attr("state")["bikes_distr"]
 
-            
+        # Predicted bikes_distr vs real bikes_distr
+        font_size = 15
+        font = pygame.font.SysFont("Arial", font_size)
+        model_next_distr = np.round(model_next_distr).astype(int)
+        for coord, real_bikes, model_bikes in zip(
+            self.env.get_wrapper_attr("centroid_coords"),
+            real_next_distr,
+            model_next_distr,
+        ):
+            coord = (coord[1], coord[0])
+            new_coord = (coord - self.offset) * self.scale
+            new_coord[1] = self.screen_dim[1] - new_coord[1]
+            radius = 15
+            color = PRETTY_GREEN if real_bikes == model_bikes else RED
+            pygame.draw.circle(self.surf, color, new_coord, radius)
+            txtsurf = font.render(f"{real_bikes}-{model_bikes}", True, BLACK)
+            self.surf.blit(
+                txtsurf,
+                (new_coord[0] - font_size / 3.5, new_coord[1] - font_size / 1.5),
+            )
+
+        # Legend:
+        font_size = 15
+        font = pygame.font.SysFont("Arial", font_size)
+        shift = self.env.unwrapped.get_timeshift()
+        title_str = (
+            (
+                f"Shift {shift[0]}:{shift[1]} Day: {int(self.env.get_wrapper_attr('state')['day'])} "
+                f"({int(self.env.get_wrapper_attr('state')['day_of_week'])}/7) "
+                f"Month: {int(self.env.get_wrapper_attr('state')['month'])}"
+            )
+            if shift is not None
+            else (
+                f"Shift: {shift} Day: {int(self.env.get_wrapper_attr('state')['day'])} "
+                f"({int(self.env.get_wrapper_attr('state')['day_of_week'])}/7) "
+                f"Month: {int(self.env.get_wrapper_attr('state')['month'])}"
+            )
+        )
+        title = font.render(title_str, True, BLACK)
+        self.surf.blit(title, (self.screen_dim[0] // 2, 0))
+
+        if true_reward and model_reward:
+            font_size = 15
+            font = pygame.font.SysFont("Arial", font_size)
+            text = font.render(
+                f"True reward: {true_reward} Model reward: {model_reward}", True, BLACK
+            )
+            self.surf.blit(text, (10 - font_size / 3.5, 20 - font_size / 1.5))
 
 
+        if total_failed_bikes and n_failed_bikes:
+            text = font.render(
+                f"Total misspred bikes: {total_failed_bikes}(+{n_failed_bikes} this round)", True, BLACK
+            )
+            self.surf.blit(text, (10 - font_size / 3.5, 40 - font_size / 1.5))
+
+
+        self.screen.blit(self.surf, (0, 0))
+        pygame.event.pump()
+        pygame.display.flip()
+
+    def check_preprocessed_bikes(self):
+        observation, info = self.env.reset(seed=42)
+
+        episode_step = 0
+        for env_step in range(self.num_steps):
+            print(f"Total env step: {env_step} Episode step: {episode_step}")
+
+            # Take action
+            action = self.env.get_wrapper_attr('action_space').sample()
+            model_observation = {
+                "obs": np.expand_dims(observation.copy(), axis=0),
+                "propagation_indices": None,
+            }
+            model_action = np.expand_dims(action.copy(), axis=0)
+
+            next_obs, reward, terminated, truncated, info = self.env.step(action)
+
+            model_in, preprocessed_obs = self.dynamics_model._get_model_input(model_observation["obs"].copy(), model_action.copy())
+            preprocessed_obs = preprocessed_obs.clone().detach().numpy()[0].astype(int)
+            pre_bikes_distr = preprocessed_obs[self.env.get_wrapper_attr('map_obs')['bikes_distr']]
+            assert np.all(pre_bikes_distr == self.env.get_wrapper_attr("previous_bikes_distr"))
+            (
+                next_model_observs,
+                model_rewards,
+                model_dones,
+                next_model_state,
+            ) = self.model_env.step(model_action, model_observation)
+            next_model_obs = next_model_state["obs"][0].detach().numpy()
+            next_model_observs = next_model_observs[0] #.detach().numpy()[0]
+            model_reward = model_rewards[0,0] #.detach().numpy()[0, 0]
+            model_done = model_dones[0,0] #.detach().numpy()[0, 0]
+
+            assert model_done == terminated
+            assert np.all(next_model_obs == next_model_observs)
+
+            observation = next_obs
+            episode_step += 1
+
+            if terminated or truncated:
+                observation, info = self.env.reset()
+                episode_step = 0
+        self.env.close()
+
+
+    def test_bikes_learned_dynamics(self, plan_whole_episode=True):
+        """Compare the predicted dynamics of model env with the real env"""
+
+        observation, info = self.env.reset(seed=42)
+        model_obs = observation
+
+        episode_step = 0
+        total_failed_bikes = 0
+        for env_step in range(self.num_steps):
+            print(f"Total env step: {env_step} Episode step: {episode_step}")
+
+            # Take action
+            model_obs = model_obs if plan_whole_episode else observation.copy()
+            model_observation = {
+                "obs": np.expand_dims(model_obs, axis=0),
+                "propagation_indices": None,
+            }
+            action = self.agent.act(model_obs)
+            model_action = np.expand_dims(action.copy(), axis=0)
+
+            next_obs, reward, terminated, truncated, info = self.env.step(action)
+
+            self.render_bikes(
+                model_obs[self.env.get_wrapper_attr("map_obs")["bikes_distr"]]
+                + self.env.get_wrapper_attr("delta_bikes"),
+                pre_obs=True,
+            )
+            #sleep(2)
+
+            (
+                next_model_observs,
+                model_rewards,
+                model_dones,
+                next_model_state,
+            ) = self.model_env.step(model_action, model_observation)
+            next_model_obs = next_model_state["obs"][0].detach().numpy()
+            next_model_observs = next_model_observs.detach().numpy()[0]
+            model_reward = model_rewards.detach().numpy()[0, 0]
+            model_done = model_dones.detach().numpy()[0, 0]
+
+            assert np.all(next_model_obs == next_model_observs)
+
+            reward = round(reward, 2)
+            model_reward = round(float(model_reward),2)
+            print(
+                "Real env vs Model env"
+                f"real next_obs - model next_obs: {np.round(next_obs - next_model_obs, 2)} \n"
+                f"True reward: {reward} vs Model reward: {model_reward} \n"
+                f"True done: {terminated} vs model done: {model_done}"
+            )
+
+            next_model_distr = np.round(
+                    next_model_obs[self.env.get_wrapper_attr("map_obs")["bikes_distr"]]
+                )
+            next_distr = self.env.get_wrapper_attr('state')['bikes_distr']
+            n_failed_bikes = np.sum(np.abs(next_model_distr-next_distr))
+            total_failed_bikes += n_failed_bikes
+
+            self.render_bikes(
+                next_model_distr,
+                reward,
+                model_reward,
+                n_failed_bikes=n_failed_bikes,
+                total_failed_bikes=total_failed_bikes
+            )
+            #input()
+            #sleep(2)
+
+            observation = next_obs
+            model_obs = next_model_obs
+            episode_step += 1
+
+            if terminated or truncated:
+                sleep(0.5)
+                observation, info = self.env.reset()
+                model_obs = observation
+                episode_step = 0
+                total_failed_bikes = 0
+        self.env.close()
 
 
 if __name__ == "__main__":
@@ -781,6 +1091,12 @@ if __name__ == "__main__":
         action=argparse.BooleanOptionalAction,
         help="Add it if you want to use a 'perfect' model to solve the hypergrid env",
     )
+    parser.add_argument(
+        "--use_untrained_model",
+        default=False,
+        action=argparse.BooleanOptionalAction,
+        help="Add it if you want to use a not-trained model",
+    )
     args = parser.parse_args()
 
     visualizer = AdaptedVisualizer(
@@ -791,7 +1107,8 @@ if __name__ == "__main__":
         num_model_samples=args.num_model_samples,
         model_subdir=args.model_subdir,
         render=args.render,
-        use_perfect_hypergrid_model=args.use_phm
+        use_perfect_hypergrid_model=args.use_phm,
+        use_untrained_model=args.use_untrained_model,
     )
 
     if args.function == "test_agent":
@@ -804,7 +1121,9 @@ if __name__ == "__main__":
         visualizer.test_model_sparsity()
     elif args.function == "model_weights_dependencies":
         visualizer.model_weights_dependencies()
-    elif args.function == "test":
-        visualizer.test()
+    elif args.function == "test_bikes_learned_dynamics":
+        visualizer.test_bikes_learned_dynamics()
+    elif args.function == "check_preprocessed_bikes":
+        visualizer.check_preprocessed_bikes()
     else:
         raise ValueError("There is no such function implemented by the Visualizer")

@@ -14,7 +14,11 @@ from mbrl.planning.core import Agent, RandomAgent
 from src.env.bikes import Bikes
 from src.env.hypergrid import ContinuousHyperGrid
 from src.callbacks.wandb_callbacks import CallbackWandb
-from src.agent.heuristic import StubbornAgent, GoodBikesHeuristic, ArtificialGoodBikesHeuristic
+from src.agent.heuristic import (
+    StubbornAgent,
+    GoodBikesHeuristic,
+    ArtificialGoodBikesHeuristic,
+)
 
 
 def run_agent_in_env(
@@ -50,9 +54,9 @@ def run_agent_in_env(
 
         if callbacks is not None:
             pass
-            #callbacks.track_each_step(env_step, reward)
+            # callbacks.track_each_step(env_step, reward)
         elif env.render_mode == "human":
-            #input()
+            # input()
             sleep(1)
 
         if terminated or truncated:

@@ -88,9 +88,7 @@ def train(
     )
     # TODO: rewrite that better
     env_is_bikes = False
-    base_env = env
-    while hasattr(base_env, "env"):
-        base_env = base_env.env
+    base_env = env.unwrapped
     if isinstance(base_env, Bikes):
         env_is_bikes = True
         base_env.set_next_day_method("random")

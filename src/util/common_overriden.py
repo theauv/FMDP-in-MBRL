@@ -109,9 +109,7 @@ def create_one_dim_tr_model_overriden(
     Handles DictSpacesEnv and factored environments
     """
     env_has_dict_spaces = False
-    base_env = env
-    while hasattr(base_env, "env"):
-        base_env = base_env.env
+    base_env = env.unwrapped
     if isinstance(base_env, DictSpacesEnv):
         env_has_dict_spaces = True
 

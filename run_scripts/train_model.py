@@ -31,7 +31,9 @@ from src.util.util import get_base_dir_path
 # TODO: run_name
 
 
-def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str] = None):
+def train_model(
+    cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str] = None
+):
     # -------- Initialization --------
     obs_shape = env.observation_space.shape
     act_shape = env.action_space.shape
@@ -46,9 +48,7 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str]
     print(f"Results will be saved at {work_dir}.")
 
     env_is_bikes = False
-    base_env = env
-    while hasattr(base_env, "env"):
-        base_env = base_env.env
+    base_env = env.unwrapped
     if isinstance(base_env, Bikes):
         env_is_bikes = True
         base_env.set_next_day_method("random")
@@ -65,16 +65,17 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str]
 
     # Try to load potentially existing dataset
     if isinstance(base_env, Bikes):
-        station_dependencies = cfg.overrides.env_config.get("station_dependencies", None)
+        station_dependencies = cfg.overrides.env_config.get(
+            "station_dependencies", None
+        )
         if station_dependencies is not None:
             station_dependencies = station_dependencies.split("/")[-1].split(".")[0]
         dataset_dir = Path(
             base_dir,
             cfg.dataset_folder_name,
             f"{base_env.__class__.__name__}",
-            f"n_centroids_{base_env.num_centroids}"
-            f"{station_dependencies}",
-            f"{base_env.action_per_day}"
+            f"n_centroids_{base_env.num_centroids}" f"{station_dependencies}",
+            f"{base_env.action_per_day}",
         )
     else:
         dataset_dir = Path(
@@ -163,7 +164,7 @@ def train_model(cfg: omegaconf.DictConfig, env: gym.Env, work_dir: Optional[str]
         work_dir=work_dir,
         callback=callbacks.model_train_callback_per_epoch,
         callback_sparsity=callbacks.model_sparsity,
-        debug=cfg.debug_mode
+        debug=cfg.debug_mode,
     )
     print("Training end")
     if cfg.debug_mode:
@@ -208,13 +209,21 @@ def run(cfg: omegaconf.DictConfig):
         else:
             raise ValueError("Unsupported API")
 
-    #Overrides
+    # Overrides
     if not cfg.debug_mode:
-        cfg.overrides.render_mode=None
-    cfg.overrides.learned_rewards = cfg.get("learned_rewards", cfg.overrides.learned_rewards)
-    cfg.overrides.model_batch_size = cfg.get("model_batch_size", cfg.overrides.model_batch_size)
-    cfg.overrides.validation_ratio = cfg.get("validation_ratio", cfg.overrides.validation_ratio)
-    cfg.overrides.num_epochs_train_model = cfg.get("num_epochs_train_model", cfg.overrides.num_epochs_train_model)
+        cfg.overrides.render_mode = None
+    cfg.overrides.learned_rewards = cfg.get(
+        "learned_rewards", cfg.overrides.learned_rewards
+    )
+    cfg.overrides.model_batch_size = cfg.get(
+        "model_batch_size", cfg.overrides.model_batch_size
+    )
+    cfg.overrides.validation_ratio = cfg.get(
+        "validation_ratio", cfg.overrides.validation_ratio
+    )
+    cfg.overrides.num_epochs_train_model = cfg.get(
+        "num_epochs_train_model", cfg.overrides.num_epochs_train_model
+    )
     cfg.overrides.dataset_size = cfg.get("dataset_size", cfg.overrides.dataset_size)
     cfg.algorithm.dataset_size = cfg.get("dataset_size", cfg.algorithm.dataset_size)
     cfg.overrides.patience = cfg.get("patience", cfg.overrides.patience)
