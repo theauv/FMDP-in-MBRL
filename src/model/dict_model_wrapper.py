@@ -103,21 +103,21 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         if self.learned_rewards:
             model_output_length += 1
 
-        #Rescaling/Normalization
+        # Rescaling/Normalization
         self.rescale_input = rescale_input
         self.rescale_output = rescale_output
         if self.rescale_input or self.rescale_output:
             self.rescale_obs = rescale_obs
             self.rescale_act = rescale_act
         if normalize:
-            #TODO: (re)-add a posssibility to nromalize input/output instead of rescale
-            self.input_normalizer = None #Initialized in mother class
+            # TODO: (re)-add a posssibility to nromalize input/output instead of rescale
+            self.input_normalizer = None  # Initialized in mother class
             warnings.warn(
                 "The normalizer is disabled for now as we only want to use "
                 "a rescaling process."
-                )
+            )
 
-        print("--------------MODEL INFO----------------")    
+        print("--------------MODEL INFO----------------")
         print(f"Model obs input keys: {model_input_obs_key}")
         print(f"Model action input keys: {model_input_act_key}")
         print(f"Model output keys: {model_output_key}")
@@ -142,7 +142,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
     ) -> torch.Tensor:
         if self.obs_process_fn:
             obs = self.obs_process_fn(obs, action)
-        
+
         obs = model_util.to_tensor(obs).to(self.device)
         action = model_util.to_tensor(action).to(self.device)
         if self.rescale_input:
@@ -212,7 +212,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
             batch (:class:`mbrl.types.TransitionBatch`): The batch of transition data.
                 Only next_obs and reward will be used, since these are the outputs to the model.
         """
-        #TODO: (Re)-implement the normalizer for modularize code (not necessary for now)
+        # TODO: (Re)-implement the normalizer for modularize code (not necessary for now)
         if self.input_normalizer is None:
             return
         raise NotImplementedError
@@ -265,7 +265,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         (obs, act) -preprocess-> (new_obs, act) -model(.)-> (new_obs, preds) -postprocess-> (new_obs, preds)
         This way, one can predict only a subspace of the full observation space and call pre/post processed
         function that are environment-dependent to deal with the rest. We can also of course just predict
-        the full next_obs. But it is typically useful in a setting like the Bikes environment in which the 
+        the full next_obs. But it is typically useful in a setting like the Bikes environment in which the
         addition of bikes at each timestep and the incrementation of the time coutner is known. But only the
         bikes distribution needs to be learned.
 
@@ -289,13 +289,13 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         )
         next_observs = preds[:, :-1] if self.learned_rewards else preds
         if self.rescale_output:
-            tmp=torch.zeros(preprocessed_obs.shape)
+            tmp = torch.zeros(preprocessed_obs.shape)
             tmp[:, self.model_output_mask] = next_observs
-            tmp = self.rescale_obs(tmp, scale=True)
+            tmp = self.rescale_obs(tmp, reverse=True)
             next_observs = tmp[:, self.model_output_mask]
 
         next_obs = preprocessed_obs
-        if next_observs.shape[-1] > 0:           
+        if next_observs.shape[-1] > 0:
             if self.target_is_delta:
                 next_obs[:, self.model_output_mask] += next_observs
                 for dim in self.no_delta_list:

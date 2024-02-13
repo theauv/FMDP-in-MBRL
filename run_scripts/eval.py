@@ -783,7 +783,13 @@ class AdaptedVisualizer(Visualizer):
         plt.show()
 
     def render_bikes(
-        self, model_next_distr, true_reward=None, model_reward=None, pre_obs=False, total_failed_bikes=None, n_failed_bikes=None
+        self,
+        model_next_distr,
+        true_reward=None,
+        model_reward=None,
+        pre_obs=False,
+        total_failed_bikes=None,
+        n_failed_bikes=None,
     ):
         if self.screen is None:
             pygame.init()
@@ -911,13 +917,13 @@ class AdaptedVisualizer(Visualizer):
             )
             self.surf.blit(text, (10 - font_size / 3.5, 20 - font_size / 1.5))
 
-
         if total_failed_bikes and n_failed_bikes:
             text = font.render(
-                f"Total misspred bikes: {total_failed_bikes}(+{n_failed_bikes} this round)", True, BLACK
+                f"Total misspred bikes: {total_failed_bikes}(+{n_failed_bikes} this round)",
+                True,
+                BLACK,
             )
             self.surf.blit(text, (10 - font_size / 3.5, 40 - font_size / 1.5))
-
 
         self.screen.blit(self.surf, (0, 0))
         pygame.event.pump()
@@ -931,7 +937,7 @@ class AdaptedVisualizer(Visualizer):
             print(f"Total env step: {env_step} Episode step: {episode_step}")
 
             # Take action
-            action = self.env.get_wrapper_attr('action_space').sample()
+            action = self.env.get_wrapper_attr("action_space").sample()
             model_observation = {
                 "obs": np.expand_dims(observation.copy(), axis=0),
                 "propagation_indices": None,
@@ -940,10 +946,16 @@ class AdaptedVisualizer(Visualizer):
 
             next_obs, reward, terminated, truncated, info = self.env.step(action)
 
-            model_in, preprocessed_obs = self.dynamics_model._get_model_input(model_observation["obs"].copy(), model_action.copy())
+            model_in, preprocessed_obs = self.dynamics_model._get_model_input(
+                model_observation["obs"].copy(), model_action.copy()
+            )
             preprocessed_obs = preprocessed_obs.clone().detach().numpy()[0].astype(int)
-            pre_bikes_distr = preprocessed_obs[self.env.get_wrapper_attr('map_obs')['bikes_distr']]
-            assert np.all(pre_bikes_distr == self.env.get_wrapper_attr("previous_bikes_distr"))
+            pre_bikes_distr = preprocessed_obs[
+                self.env.get_wrapper_attr("map_obs")["bikes_distr"]
+            ]
+            assert np.all(
+                pre_bikes_distr == self.env.get_wrapper_attr("previous_bikes_distr")
+            )
             (
                 next_model_observs,
                 model_rewards,
@@ -951,9 +963,9 @@ class AdaptedVisualizer(Visualizer):
                 next_model_state,
             ) = self.model_env.step(model_action, model_observation)
             next_model_obs = next_model_state["obs"][0].detach().numpy()
-            next_model_observs = next_model_observs[0] #.detach().numpy()[0]
-            model_reward = model_rewards[0,0] #.detach().numpy()[0, 0]
-            model_done = model_dones[0,0] #.detach().numpy()[0, 0]
+            next_model_observs = next_model_observs[0]  # .detach().numpy()[0]
+            model_reward = model_rewards[0, 0]  # .detach().numpy()[0, 0]
+            model_done = model_dones[0, 0]  # .detach().numpy()[0, 0]
 
             assert model_done == terminated
             assert np.all(next_model_obs == next_model_observs)
@@ -965,7 +977,6 @@ class AdaptedVisualizer(Visualizer):
                 observation, info = self.env.reset()
                 episode_step = 0
         self.env.close()
-
 
     def test_bikes_learned_dynamics(self, plan_whole_episode=True):
         """Compare the predicted dynamics of model env with the real env"""
@@ -994,7 +1005,7 @@ class AdaptedVisualizer(Visualizer):
                 + self.env.get_wrapper_attr("delta_bikes"),
                 pre_obs=True,
             )
-            #sleep(2)
+            # sleep(2)
 
             (
                 next_model_observs,
@@ -1010,7 +1021,7 @@ class AdaptedVisualizer(Visualizer):
             assert np.all(next_model_obs == next_model_observs)
 
             reward = round(reward, 2)
-            model_reward = round(float(model_reward),2)
+            model_reward = round(float(model_reward), 2)
             print(
                 "Real env vs Model env"
                 f"real next_obs - model next_obs: {np.round(next_obs - next_model_obs, 2)} \n"
@@ -1019,10 +1030,10 @@ class AdaptedVisualizer(Visualizer):
             )
 
             next_model_distr = np.round(
-                    next_model_obs[self.env.get_wrapper_attr("map_obs")["bikes_distr"]]
-                )
-            next_distr = self.env.get_wrapper_attr('state')['bikes_distr']
-            n_failed_bikes = np.sum(np.abs(next_model_distr-next_distr))
+                next_model_obs[self.env.get_wrapper_attr("map_obs")["bikes_distr"]]
+            )
+            next_distr = self.env.get_wrapper_attr("state")["bikes_distr"]
+            n_failed_bikes = np.sum(np.abs(next_model_distr - next_distr))
             total_failed_bikes += n_failed_bikes
 
             self.render_bikes(
@@ -1030,10 +1041,10 @@ class AdaptedVisualizer(Visualizer):
                 reward,
                 model_reward,
                 n_failed_bikes=n_failed_bikes,
-                total_failed_bikes=total_failed_bikes
+                total_failed_bikes=total_failed_bikes,
             )
-            #input()
-            #sleep(2)
+            # input()
+            # sleep(2)
 
             observation = next_obs
             model_obs = next_model_obs

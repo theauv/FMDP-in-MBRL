@@ -3,7 +3,7 @@ Environments for the bikes experiments.
 """
 
 import math
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, List
 from random import uniform
 
 import geopy.distance
@@ -344,6 +344,12 @@ class Bikes(DictSpacesEnv):
             "time_counter": spaces.Box(
                 low=1, high=self.action_per_day + 1, shape=(1,), dtype=np.float32
             ),
+            "tot_n_bikes": spaces.Box(
+                low=0,
+                high=self.n_bikes * self.action_per_day,
+                shape=(1,),
+                dtype=np.float32,
+            ),
         }
         if self.all_trips_data is not None:
             obs_space["demands"] = spaces.Box(
@@ -401,6 +407,31 @@ class Bikes(DictSpacesEnv):
         # Env info
         if print_info:
             self.get_env_info()
+
+    def rescale_obs(self, flat_obs, reverse=False, keys: Optional[List[str]] = None):
+        if keys is not None:
+            raise NotImplementedError
+
+        tot_n_bikes = flat_obs[self.map_obs["tot_n_bikes"]]
+
+        for key, value in self.map_obs.items():
+            if key != "length":
+                if key == "bikes_distr":
+                    low = self.dict_observation_space[key].low
+                    high = tot_n_bikes
+                    print("Rescale with tot_n_bikes", tot_n_bikes, high)
+                    assert tot_n_bikes >= self.n_bikes
+                else:
+                    low = self.dict_observation_space[key].low
+                    high = self.dict_observation_space[key].high
+                if torch.is_tensor(flat_obs):
+                    low = torch.tensor(low)
+                    high = torch.tensor(high)
+                if reverse:
+                    flat_obs[..., value] = (high - low) * flat_obs[..., value] + low
+                else:
+                    flat_obs[..., value] = (flat_obs[..., value] - low) / (high - low)
+        return flat_obs
 
     def flatten_obs(self, obs=None):
         return super().flatten_obs(obs)
@@ -610,6 +641,7 @@ class Bikes(DictSpacesEnv):
 
         # Update obs
         self.state["bikes_distr"] += self.delta_bikes
+        self.state["tot_n_bikes"] += sum(self.delta_bikes)
         self.previous_bikes_distr = self.state["bikes_distr"]
 
         # Let all the vehicules being used during the day
@@ -718,13 +750,15 @@ class Bikes(DictSpacesEnv):
             else:
                 day, month, day_of_week = self.get_next_day()
 
+            init_bikes_distr = self.get_initial_bikes_distribution()
             self.state = {
-                "bikes_distr": self.get_initial_bikes_distribution(),
+                "bikes_distr": init_bikes_distr,
                 "day": day,
                 "day_of_week": day_of_week,
                 "month": month,
                 "time_counter": 1,
                 "demands": self.get_demands(day, month),
+                "tot_n_bikes": sum(init_bikes_distr),
             }
 
         else:
@@ -746,12 +780,14 @@ class Bikes(DictSpacesEnv):
                     else 1
                 )
 
+            init_bikes_distr = self.get_initial_bikes_distribution()
             self.state = {
-                "bikes_distr": self.get_initial_bikes_distribution(),
+                "bikes_distr": init_bikes_distr,
                 "day": day,
                 "day_of_week": day_of_week,
                 "month": month,
                 "time_counter": 1,
+                "tot_n_bikes": sum(init_bikes_distr),
             }
 
         self.tot_num_trips = None
@@ -857,7 +893,7 @@ class Bikes(DictSpacesEnv):
         )
 
         # Centroids
-        scale_bikes_render = 1 * (self.num_centroids / self.n_bikes)
+        scale_bikes_render = 1 * (self.num_centroids / self.state["tot_n_bikes"])
         offset_bikes_render = 5
         new_centroid_coords = []
         for coord, bikes in zip(self.centroid_coords, self.state["bikes_distr"]):
@@ -1143,14 +1179,18 @@ class Bikes(DictSpacesEnv):
 
         # Update obs
         batch_obs[..., self.map_obs["bikes_distr"]] += delta_bikes
+        batch_obs[..., self.map_obs["tot_n_bikes"]] += np.sum(delta_bikes, axis=-1)
+
+        print(
+            "preprocess obs tot_n_bikes: ", batch_obs[..., self.map_obs["tot_n_bikes"]]
+        )
+        print(batch_obs[..., self.map_obs["tot_n_bikes"]].shape)
 
         return batch_obs
 
     def obs_postprocess_fn(
         self,
         batch_new_obs: torch.Tensor,
-        real_dynamics: bool = False,
-        real_reward: bool = False,
     ):
         """
         As we only want to learn the rentals dynamics, the learnable model
@@ -1161,18 +1201,54 @@ class Bikes(DictSpacesEnv):
         """
         batch_new_obs[..., self.map_obs["time_counter"]] += 1
 
-        if real_dynamics or real_reward:
-            for i, new_obs in enumerate(batch_new_obs):
-                # Or add a basic trips_steps
-                new_bikes_dist_after_shift, reward = self.trips_steps(
-                    batch_new_obs[i, self.map_obs["bikes_distr"]]
+        tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
+        new_distr = (
+            torch.nn.functional.softmax(batch_new_obs[..., self.map_obs["bikes_distr"]])
+            * tot_n_bikes
+        )
+        round_new_distr = torch.round(new_distr)
+        pred_n_bikes = torch.sum(round_new_distr, axis=-1).unsqueeze(-1)
+        delta_tot_bikes = (
+            (tot_n_bikes.squeeze() - pred_n_bikes.squeeze())
+            .detach()
+            .numpy()
+            .astype(int)
+        )
+
+        def add_missing_bikes(bikes_distr, k):
+            if k > 0:
+                idx = torch.topk(
+                    bikes_distr - torch.round(bikes_distr), k, sorted=False
+                ).indices
+                bikes_distr[idx] += 1
+            if k < 0:
+                idx = torch.topk(
+                    torch.round(bikes_distr) - bikes_distr, abs(k), sorted=False
+                ).indices
+                bikes_distr[idx] -= 1
+            return bikes_distr
+
+        def repeat_along_dim(pred, delta_tot_bikes):
+            if pred.ndim > 2:
+                return torch.stack(
+                    [
+                        repeat_along_dim(x_i, delta_tot_bikes[i])
+                        for i, x_i in enumerate(torch.unbind(pred, dim=0), 0)
+                    ],
+                    dim=0,
                 )
-                if real_dynamics:
-                    batch_new_obs[
-                        i, self.map_obs["bikes_distr"]
-                    ] = new_bikes_dist_after_shift
-                if real_reward:
-                    batch_new_obs[i, -1] = reward
+            else:
+                return torch.stack(
+                    [
+                        add_missing_bikes(x_i, delta_tot_bikes[i])
+                        for i, x_i in enumerate(torch.unbind(pred, dim=0), 0)
+                    ],
+                    dim=0,
+                )
+
+        new_distr = repeat_along_dim(new_distr, delta_tot_bikes)
+        new_distr = torch.round(new_distr)
+        batch_new_obs[..., self.map_obs["bikes_distr"]] = new_distr
 
         return batch_new_obs
 
@@ -1204,7 +1280,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         self.std = 0.1  # Factor of random noise in the bike distribution
         self.threshold = 0.5
         self.timestep = time_step  # hours
-        self.rush_hours = [4, 8, 12, 16, 20] #[2, 4, 8, 10, 12, 16, 18, 22]
+        self.rush_hours = [4, 8, 12, 16, 20]  # [2, 4, 8, 10, 12, 16, 18, 22]
         self.n_hubs_per_rushhour = n_hubs_per_rushhour
         self.n_edge_per_hub = n_edge_per_hub
         self.rushhour_std = rushhour_std
@@ -1277,7 +1353,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         for this connection could depend on day of week but start with constant one
         """
         # sigma = np.random.uniform(0.1, 1, (self.num_centroids, self.num_centroids))
-        sigma = np.ones((self.num_centroids, self.num_centroids))*self.rushhour_std
+        sigma = np.ones((self.num_centroids, self.num_centroids)) * self.rushhour_std
         return sigma
 
     def compute_intensity(self):

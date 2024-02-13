@@ -112,13 +112,11 @@ class MultiOutputGP(Model):
         self, x: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         if x is None:
-            return self.gp(*self.gp.train_inputs)
+            out = self.gp(*self.gp.train_inputs)
         else:
-            from time import time
-            start = time()
             x = x.unsqueeze(0).repeat(self.out_size, 1, 1)
-            loss = self.gp(*x)
-            return loss
+            out = self.gp(*x)
+        return out
 
     def loss(self, model_in: torch.Tensor, target: torch.Tensor = None) -> torch.Tensor:
         # TODO: might be avoidably very computationally expensive !!
@@ -298,11 +296,11 @@ class FactoredMultiOutputGP(MultiOutputGP):
         self, x: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         if x is None:
-            return self.gp(*self.gp.train_inputs)
+            out = self.gp(*self.gp.train_inputs)
         else:
             assert len(self.gp.models) == len(self.model_factors)
             out = []
             for i, model in enumerate(self.gp.models):
                 sub_x = x.index_select(-1, torch.tensor(self.model_factors[i][0]))
                 out.append(model(sub_x))
-            return out
+        return out

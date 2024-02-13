@@ -36,7 +36,7 @@ num_epochs_train_model: 10 #Generally need more if using NN instead of GP
 dataset_size: 100000
 
 planning_horizon: ${overrides.env_config.action_per_day}
-cem_num_iters: 20
+cem_num_iters: 10
 cem_elite_ratio: 0.1
 cem_population_size: 350
 cem_alpha: 0.1 #0.1 ??
