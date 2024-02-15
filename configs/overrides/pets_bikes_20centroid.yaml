@@ -19,7 +19,7 @@ env_config:
   station_dependencies: src/env/bikes_data/20_centroids/factors_radius_2.npy #3/2/1-2
 model_wrapper:
   _target_: src.model.dict_model_wrapper.OneDTransitionRewardModelDictSpace
-  model_input_obs_key: ["bikes_distr", "time_counter"] #["bikes_distr","day_of_week", "demands", "month", "time_counter"]
+  model_input_obs_key: ["bikes_distr", "tot_n_bikes", "time_counter"] #["bikes_distr", "time_counter", "tot_n_bikes", "demands", "day_of_week", "month"]
   model_input_act_key: []
   model_output_key: ["bikes_distr"]
 learned_rewards: true

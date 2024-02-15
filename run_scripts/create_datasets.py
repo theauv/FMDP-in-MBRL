@@ -16,7 +16,6 @@ import mbrl
 from mbrl.util.common import rollout_agent_trajectories
 
 from src.callbacks.constants import RESULTS_LOG_NAME, EVAL_LOG_FORMAT
-from src.callbacks.wandb_callbacks import CallbackWandb
 from src.env.bikes import Bikes
 from src.env.env_handler import HandMadeEnvHandler
 from src.util.common_overriden import (

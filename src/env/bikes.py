@@ -24,159 +24,6 @@ from src.env.constants import *
 from src.env.dict_spaces_env import DictSpacesEnv
 
 
-class Rentals_Simulator:
-    """Class used to simulate rentals in the city from historic data."""
-
-    def __init__(
-        self,
-        centroids,
-        start_walk_dist_max=1,
-        end_walk_dist_max=1,
-        station_dependencies: Optional[np.array] = None,
-        trip_duration: Optional[float] = None,
-    ):
-        self.centroids = centroids
-        self.num_centroids = len(centroids)
-        self.start_walk_dist_max = start_walk_dist_max
-        self.end_walk_dist_max = end_walk_dist_max
-        self.taken_bikes = []
-        self.station_dependencies = station_dependencies
-        self.station_dependencies_ll = self.station_dependencies_linked_list()
-        self.trip_duration = trip_duration if trip_duration else 0.5
-
-    def reset(self):
-        self.taken_bikes = []
-
-    def station_dependencies_linked_list(self):
-        if self.station_dependencies is None:
-            return None
-        else:
-            return [
-                [i for i, e in enumerate(station) if e > 0]
-                for station in self.station_dependencies
-            ]
-
-    def simulate_rentals(self, trips, X):
-        """
-        Simulate daily rentals when X[i] bikes are positioned in each region i at
-        the beginning of the day on daynum of month.
-        Returns a list of the starting coordinates of the trips that were met and
-        a list of the starting coordinates of the trips that were unmet.
-        """
-        new_x = np.array(X)
-        # All trips
-        tot_num_trips = len(trips)
-        feasible_trips = np.zeros(len(trips), dtype=int)
-        num_met_trips = 0
-
-        # trips per centroid
-        tot_demand_per_centroid = np.zeros(self.num_centroids, dtype=int)
-        met_trips_per_centroid = np.zeros(self.num_centroids, dtype=int)
-
-        adjacency_matrix = np.zeros((self.num_centroids, self.num_centroids), dtype=int)
-
-        # TODO: maybe not a fixed time for every trip ?
-        # TODO: Penser à si dans un meme timeshift velos finissent leur trip
-        # Does it make sense for the current reward ? Does it make sense for what we are doing ?
-        # BIKE_SPEED = 20  # km/h
-
-        total_walking_distance = 0
-
-        for i in range(tot_num_trips):
-            trip = trips.iloc[i]
-            start_time = trip.StartTime
-
-            # this is a str in 24 hour format. convert to a float in hours
-            start_time = float(start_time[0:2]) + float(start_time[3:5]) / 60
-
-            # check if any bikes that were in transit have completed there trip, and add them back to the system
-            for bike in self.taken_bikes:
-                if bike[0] <= start_time:
-                    new_x[bike[1]] += 1
-                    self.taken_bikes.remove(bike)
-
-            # Find the potential starting centroids
-            start_loc = np.array([trip.StartLatitude, trip.StartLongitude])
-            end_loc = np.array([trip.EndLatitude, trip.EndLongitude])
-            starting_distances = distance.cdist(
-                start_loc.reshape(-1, 2), self.centroids, metric="euclidean"
-            )
-            starting_centroid_idx_argsort = np.argsort(starting_distances)[0]
-
-            # We go through the centroids in order of closest to farthest and see if there is an
-            # available bike at one of the centroids to make the trip
-            for j, idx_start_centroid in enumerate(starting_centroid_idx_argsort):
-                total_walking_distance = geopy.distance.distance(
-                    start_loc, self.centroids[idx_start_centroid, :]
-                ).km
-                if total_walking_distance > self.start_walk_dist_max:
-                    break
-                # Find the potential ending
-                if self.station_dependencies_ll is not None:
-                    if not self.station_dependencies_ll[idx_start_centroid]:
-                        break
-                    potential_ending_centroids = self.centroids[
-                        self.station_dependencies_ll[idx_start_centroid]
-                    ]
-                else:
-                    potential_ending_centroids = self.centroids
-                ending_distances = distance.cdist(
-                    end_loc.reshape(-1, 2),
-                    potential_ending_centroids,
-                    metric="euclidean",
-                )
-                idx_end_centroid = np.argmin(ending_distances)
-                if self.station_dependencies_ll:
-                    idx_end_centroid = self.station_dependencies_ll[idx_start_centroid][
-                        idx_end_centroid
-                    ]
-                geo_ending_dist = geopy.distance.distance(
-                    end_loc, self.centroids[idx_end_centroid, :]
-                ).km
-                if geo_ending_dist <= self.end_walk_dist_max:
-                    feasible_trips[i] = 1
-                    tot_demand_per_centroid[idx_start_centroid] += 1
-                    if new_x[idx_start_centroid] > 0:
-                        # If the trip can be met, we update all of the relevent lists tracking trips and where bikes are
-                        new_x[idx_start_centroid] -= 1
-                        total_walking_distance += geo_ending_dist
-
-                        # Compute the duration of the trip
-                        # distance_trip = geopy.distance.distance(
-                        #     self.centroids[idx_start_centroid, :],
-                        #     self.centroids[idx_end_centroid, :],
-                        # ).km
-                        # if distance_trip == 0.0:
-                        #     delta_t = uniform(0.2, 1)
-                        # else:
-                        #     delta_t = distance_trip / BIKE_SPEED + uniform(0.1, 0.2)
-
-                        self.taken_bikes.append(
-                            (start_time + self.trip_duration, idx_end_centroid)
-                        )
-                        adjacency_matrix[idx_start_centroid, idx_end_centroid] += 1
-
-                        # All trips
-                        num_met_trips += 1
-                        # trips per centroid
-                        met_trips_per_centroid[idx_start_centroid] += 1
-                        break
-
-        feasible_trips = sum(feasible_trips)
-        assert tot_num_trips >= feasible_trips
-        assert num_met_trips <= feasible_trips
-        assert np.all(tot_demand_per_centroid >= met_trips_per_centroid)
-        return (
-            new_x,
-            tot_num_trips,
-            feasible_trips,
-            num_met_trips,
-            tot_demand_per_centroid,
-            met_trips_per_centroid,
-            adjacency_matrix,
-        )
-
-
 class Bikes(DictSpacesEnv):
     # WHAT IS METADATA ???
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": [50]}
@@ -212,9 +59,6 @@ class Bikes(DictSpacesEnv):
         self.base_dir = env_config.get("base_dir", "")
 
         # Centroids data
-        # _, _, _, _, _, _, centroid_coords = pickle.load(
-        #     open(self.base_dir + "src/env/bikes_data/training_data_5_40.pckl", "rb")
-        # )
         if env_config.centroids_coord is None:
             centroid_latitudes = [38.21, 38.27]
             centroid_longitudes = [-85.79, -85.71]
@@ -412,21 +256,18 @@ class Bikes(DictSpacesEnv):
         if keys is not None:
             raise NotImplementedError
 
-        tot_n_bikes = flat_obs[self.map_obs["tot_n_bikes"]]
+        tot_n_bikes = flat_obs[..., self.map_obs["tot_n_bikes"]]
 
         for key, value in self.map_obs.items():
             if key != "length":
                 if key == "bikes_distr":
-                    low = self.dict_observation_space[key].low
                     high = tot_n_bikes
-                    print("Rescale with tot_n_bikes", tot_n_bikes, high)
-                    assert tot_n_bikes >= self.n_bikes
                 else:
-                    low = self.dict_observation_space[key].low
                     high = self.dict_observation_space[key].high
-                if torch.is_tensor(flat_obs):
-                    low = torch.tensor(low)
-                    high = torch.tensor(high)
+                    high = torch.tensor(high) if torch.is_tensor(flat_obs) else high
+                low = self.dict_observation_space[key].low
+                low = torch.tensor(low) if torch.is_tensor(flat_obs) else low
+
                 if reverse:
                     flat_obs[..., value] = (high - low) * flat_obs[..., value] + low
                 else:
@@ -438,6 +279,21 @@ class Bikes(DictSpacesEnv):
 
     def flatten_action(self, action=None):
         return super().flatten_action(action)
+
+    def embed1d_act(self, flat_act):
+        if torch.is_tensor(flat_act):
+            flat_act = flat_act.detach().numpy()
+        flat_act = np.round(flat_act).astype(int)
+        embedding = [
+            centroid * (self.num_centroids) ** i
+            for i, centroid in enumerate(flat_act[self.map_act["truck_centroid"]])
+        ]
+        if "truck_num_bikes" in self.map_act:
+            embedding += [
+                n_bikes * (self.bikes_per_truck) ** (i + self.num_trucks)
+                for i, n_bikes in enumerate(flat_act[self.map_act["truck_num_bikes"]])
+            ]
+        return sum(embedding)
 
     def get_timeshift(self, state=None):
         if state is None:
@@ -893,7 +749,9 @@ class Bikes(DictSpacesEnv):
         )
 
         # Centroids
-        scale_bikes_render = 1 * (self.num_centroids / self.state["tot_n_bikes"])
+        scale_bikes_render = 1 * (
+            self.num_centroids / max(1, self.state["tot_n_bikes"] / 5)
+        )
         offset_bikes_render = 5
         new_centroid_coords = []
         for coord, bikes in zip(self.centroid_coords, self.state["bikes_distr"]):
@@ -1179,14 +1037,43 @@ class Bikes(DictSpacesEnv):
 
         # Update obs
         batch_obs[..., self.map_obs["bikes_distr"]] += delta_bikes
-        batch_obs[..., self.map_obs["tot_n_bikes"]] += np.sum(delta_bikes, axis=-1)
-
-        print(
-            "preprocess obs tot_n_bikes: ", batch_obs[..., self.map_obs["tot_n_bikes"]]
-        )
-        print(batch_obs[..., self.map_obs["tot_n_bikes"]].shape)
+        batch_obs[..., self.map_obs["tot_n_bikes"]] += np.sum(delta_bikes, axis=-1)[
+            ..., None
+        ]
 
         return batch_obs
+
+    def add_missing_bikes(self, bikes_distr, k):
+        k = k.item()
+        if k > 0:
+            idx = torch.topk(
+                bikes_distr - torch.round(bikes_distr), k, sorted=False
+            ).indices
+            bikes_distr[idx] += 1
+        if k < 0:
+            idx = torch.topk(
+                torch.round(bikes_distr) - bikes_distr, abs(k), sorted=False
+            ).indices
+            bikes_distr[idx] -= 1
+        return bikes_distr
+
+    def repeat_along_dim(self, pred, delta_tot_bikes):
+        if pred.ndim > 2:
+            return torch.stack(
+                [
+                    self.repeat_along_dim(x_i, delta_tot_bikes[i])
+                    for i, x_i in enumerate(torch.unbind(pred, dim=0), 0)
+                ],
+                dim=0,
+            )
+        else:
+            return torch.stack(
+                [
+                    self.add_missing_bikes(x_i, delta_tot_bikes[i])
+                    for i, x_i in enumerate(torch.unbind(pred, dim=0), 0)
+                ],
+                dim=0,
+            )
 
     def obs_postprocess_fn(
         self,
@@ -1202,55 +1089,231 @@ class Bikes(DictSpacesEnv):
         batch_new_obs[..., self.map_obs["time_counter"]] += 1
 
         tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
-        new_distr = (
-            torch.nn.functional.softmax(batch_new_obs[..., self.map_obs["bikes_distr"]])
-            * tot_n_bikes
+        proba_distr = torch.nn.functional.softmax(
+            batch_new_obs[..., self.map_obs["bikes_distr"]], dim=-1
         )
+
+        new_distr = proba_distr * tot_n_bikes
         round_new_distr = torch.round(new_distr)
         pred_n_bikes = torch.sum(round_new_distr, axis=-1).unsqueeze(-1)
-        delta_tot_bikes = (
-            (tot_n_bikes.squeeze() - pred_n_bikes.squeeze())
-            .detach()
-            .numpy()
-            .astype(int)
+        delta_tot_bikes = (tot_n_bikes - pred_n_bikes).detach().numpy().astype(int)
+
+        new_distr = self.repeat_along_dim(new_distr, delta_tot_bikes)
+        new_distr = torch.round(new_distr)
+        batch_new_obs[..., self.map_obs["bikes_distr"]] = new_distr
+
+        return batch_new_obs
+
+    def obs_postprocess_pred_proba(
+        self,
+        batch_new_obs: torch.Tensor,
+    ):
+        """
+        As we only want to learn the rentals dynamics, the learnable model
+        will only return the new bike distribution but we need to return the whole
+        new state. So we manually process the rest of the obs -> new_obs.
+        In our case, we only need to increment the time_counter
+        :return: postprocessed new_observation
+        """
+        batch_new_obs[..., self.map_obs["time_counter"]] += 1
+
+        tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
+        proba_distr = torch.nn.functional.softmax(
+            batch_new_obs[..., self.map_obs["bikes_distr"]], dim=-1
         )
 
-        def add_missing_bikes(bikes_distr, k):
-            if k > 0:
-                idx = torch.topk(
-                    bikes_distr - torch.round(bikes_distr), k, sorted=False
-                ).indices
-                bikes_distr[idx] += 1
-            if k < 0:
-                idx = torch.topk(
-                    torch.round(bikes_distr) - bikes_distr, abs(k), sorted=False
-                ).indices
-                bikes_distr[idx] -= 1
+        def compute_new_distr(bikes_distr, proba_distr, tot_n_bikes):
+            centroid_idx = np.random.choice(
+                np.arange(self.num_centroids), int(tot_n_bikes), p=proba_distr
+            )
+            unq, counts = np.unique(centroid_idx, return_counts=True)
+            bikes_distr[unq] += counts.astype(np.float32)
             return bikes_distr
 
-        def repeat_along_dim(pred, delta_tot_bikes):
-            if pred.ndim > 2:
+        def repeat_along_dim(bikes_distr, proba_distr, tot_n_bikes):
+            if bikes_distr.ndim > 2:
                 return torch.stack(
                     [
-                        repeat_along_dim(x_i, delta_tot_bikes[i])
-                        for i, x_i in enumerate(torch.unbind(pred, dim=0), 0)
+                        repeat_along_dim(x_i, proba_distr[i], tot_n_bikes[i])
+                        for i, x_i in enumerate(torch.unbind(bikes_distr, dim=0), 0)
                     ],
                     dim=0,
                 )
             else:
                 return torch.stack(
                     [
-                        add_missing_bikes(x_i, delta_tot_bikes[i])
-                        for i, x_i in enumerate(torch.unbind(pred, dim=0), 0)
+                        compute_new_distr(x_i, proba_distr[i], tot_n_bikes[i])
+                        for i, x_i in enumerate(torch.unbind(bikes_distr, dim=0), 0)
                     ],
                     dim=0,
                 )
 
-        new_distr = repeat_along_dim(new_distr, delta_tot_bikes)
-        new_distr = torch.round(new_distr)
+        new_distr = torch.zeros(proba_distr.shape).squeeze()
+        new_distr = repeat_along_dim(new_distr, proba_distr, tot_n_bikes)
+
         batch_new_obs[..., self.map_obs["bikes_distr"]] = new_distr
 
         return batch_new_obs
+
+
+class Rentals_Simulator:
+    """Class used to simulate rentals in the city from historic data."""
+
+    def __init__(
+        self,
+        centroids,
+        start_walk_dist_max=1,
+        end_walk_dist_max=1,
+        station_dependencies: Optional[np.array] = None,
+        trip_duration: Optional[float] = None,
+    ):
+        self.centroids = centroids
+        self.num_centroids = len(centroids)
+        self.start_walk_dist_max = start_walk_dist_max
+        self.end_walk_dist_max = end_walk_dist_max
+        self.taken_bikes = []
+        self.station_dependencies = station_dependencies
+        self.station_dependencies_ll = self.station_dependencies_linked_list()
+        self.trip_duration = trip_duration if trip_duration else 0.5
+
+    def reset(self):
+        self.taken_bikes = []
+
+    def station_dependencies_linked_list(self):
+        if self.station_dependencies is None:
+            return None
+        else:
+            return [
+                [i for i, e in enumerate(station) if e > 0]
+                for station in self.station_dependencies
+            ]
+
+    def simulate_rentals(self, trips, X):
+        """
+        Simulate daily rentals when X[i] bikes are positioned in each region i at
+        the beginning of the day on daynum of month.
+        Returns a list of the starting coordinates of the trips that were met and
+        a list of the starting coordinates of the trips that were unmet.
+        """
+        new_x = np.array(X)
+        # All trips
+        tot_num_trips = len(trips)
+        feasible_trips = np.zeros(len(trips), dtype=int)
+        num_met_trips = 0
+
+        # trips per centroid
+        tot_demand_per_centroid = np.zeros(self.num_centroids, dtype=int)
+        met_trips_per_centroid = np.zeros(self.num_centroids, dtype=int)
+
+        adjacency_matrix = np.zeros((self.num_centroids, self.num_centroids), dtype=int)
+
+        # TODO: maybe not a fixed time for every trip ?
+        # TODO: Penser à si dans un meme timeshift velos finissent leur trip
+        # Does it make sense for the current reward ? Does it make sense for what we are doing ?
+        # BIKE_SPEED = 20  # km/h
+
+        total_walking_distance = 0
+
+        assert not self.taken_bikes
+
+        for i in range(tot_num_trips):
+            trip = trips.iloc[i]
+            start_time = trip.StartTime
+
+            # this is a str in 24 hour format. convert to a float in hours
+            start_time = float(start_time[0:2]) + float(start_time[3:5]) / 60
+
+            # check if any bikes that were in transit have completed there trip, and add them back to the system
+            # Note that for now taken bikes is always empty for simplification all bikes finish there
+            # trips at the end of the timeshift
+            for bike in self.taken_bikes:
+                if bike[0] <= start_time:
+                    new_x[bike[1]] += 1
+                    self.taken_bikes.remove(bike)
+
+            # Find the potential starting centroids
+            start_loc = np.array([trip.StartLatitude, trip.StartLongitude])
+            end_loc = np.array([trip.EndLatitude, trip.EndLongitude])
+            starting_distances = distance.cdist(
+                start_loc.reshape(-1, 2), self.centroids, metric="euclidean"
+            )
+            starting_centroid_idx_argsort = np.argsort(starting_distances)[0]
+
+            # We go through the centroids in order of closest to farthest and see if there is an
+            # available bike at one of the centroids to make the trip
+            for j, idx_start_centroid in enumerate(starting_centroid_idx_argsort):
+                total_walking_distance = geopy.distance.distance(
+                    start_loc, self.centroids[idx_start_centroid, :]
+                ).km
+                if total_walking_distance > self.start_walk_dist_max:
+                    break
+                # Find the potential ending
+                if self.station_dependencies_ll is not None:
+                    if not self.station_dependencies_ll[idx_start_centroid]:
+                        break
+                    potential_ending_centroids = self.centroids[
+                        self.station_dependencies_ll[idx_start_centroid]
+                    ]
+                else:
+                    potential_ending_centroids = self.centroids
+                ending_distances = distance.cdist(
+                    end_loc.reshape(-1, 2),
+                    potential_ending_centroids,
+                    metric="euclidean",
+                )
+                idx_end_centroid = np.argmin(ending_distances)
+                if self.station_dependencies_ll:
+                    idx_end_centroid = self.station_dependencies_ll[idx_start_centroid][
+                        idx_end_centroid
+                    ]
+                geo_ending_dist = geopy.distance.distance(
+                    end_loc, self.centroids[idx_end_centroid, :]
+                ).km
+                if geo_ending_dist <= self.end_walk_dist_max:
+                    feasible_trips[i] = 1
+                    tot_demand_per_centroid[idx_start_centroid] += 1
+                    if new_x[idx_start_centroid] > 0:
+                        # If the trip can be met, we update all of the relevent lists tracking trips and where bikes are
+                        new_x[idx_start_centroid] -= 1
+                        total_walking_distance += geo_ending_dist
+
+                        # Compute the duration of the trip
+                        # distance_trip = geopy.distance.distance(
+                        #     self.centroids[idx_start_centroid, :],
+                        #     self.centroids[idx_end_centroid, :],
+                        # ).km
+                        # if distance_trip == 0.0:
+                        #     delta_t = uniform(0.2, 1)
+                        # else:
+                        #     delta_t = distance_trip / BIKE_SPEED + uniform(0.1, 0.2)
+
+                        self.taken_bikes.append(
+                            (start_time + self.trip_duration, idx_end_centroid)
+                        )
+                        adjacency_matrix[idx_start_centroid, idx_end_centroid] += 1
+
+                        # All trips
+                        num_met_trips += 1
+                        # trips per centroid
+                        met_trips_per_centroid[idx_start_centroid] += 1
+                        break
+
+        feasible_trips = sum(feasible_trips)
+        for bike in self.taken_bikes:
+            new_x[bike[1]] += 1
+            self.taken_bikes.remove(bike)
+        assert tot_num_trips >= feasible_trips
+        assert num_met_trips <= feasible_trips
+        assert np.all(tot_demand_per_centroid >= met_trips_per_centroid)
+        return (
+            new_x,
+            tot_num_trips,
+            feasible_trips,
+            num_met_trips,
+            tot_demand_per_centroid,
+            met_trips_per_centroid,
+            adjacency_matrix,
+        )
 
 
 class ArtificialRentals_Simulator(Rentals_Simulator):
@@ -1410,6 +1473,8 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
 
         adjacency_matrix = np.zeros((self.num_centroids, self.num_centroids), dtype=int)
 
+        assert not self.taken_bikes
+
         for time in np.arange(start, end, self.timestep):
             for bike in self.taken_bikes:
                 if bike[0] <= time:
@@ -1444,6 +1509,10 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
                     met_trips_per_centroid[idx_start_centroid] += 1
                 else:
                     tot_demand_per_centroid[idx_start_centroid] += 1
+
+        for bike in self.taken_bikes:
+            new_bikes_ditr[bike[1]] += 1
+        self.taken_bikes = []
 
         return (
             new_bikes_ditr,

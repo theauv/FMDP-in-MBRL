@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+import gymnasium as gym
 import matplotlib
 from matplotlib import pyplot as plt
 import numpy as np
@@ -9,30 +10,32 @@ import wandb
 
 from mbrl.models import Model
 
+from src.env.dict_spaces_env import DictSpacesEnv
+
 # TODO: Make it more modular maybe ? (Not trivial as it would mean touch mbrl functions)
 
 
 class CallbackWandb:
     """
-    TODO: Split into diferent classes
+    TODO: Split into diferent classes?
     Class dealing with the generated callbacks during a training run
     """
 
     def __init__(
         self,
+        env: Optional[gym.Env] = None,
         with_tracking: bool = True,
         max_traj_iterations: int = 0,
         model_out_size: int = None,
         plot_local: bool = False,
         centroid_coords: Optional[List] = None,
         num_epochs_train_model: Optional[int] = None,
+        epsilon: Optional[float] = 1.0e-6,
     ) -> None:
         """
         Define the different metrics usseful to track and plot
-
         :param with_tracking: if we don't want to track and plot in wandb, default is True
         """
-
         self.num_epochs_train_model = num_epochs_train_model
         self.max_traj_iterations = max_traj_iterations
         self.with_tracking = with_tracking
@@ -40,6 +43,15 @@ class CallbackWandb:
         self.model_out_size = model_out_size
         self.plot_local = plot_local
         self.centroid_coords = centroid_coords
+        self.epsilon = epsilon
+        self.map_obs = None
+        self.map_act = None
+        self.embed_act = None
+        if env:
+            self.embed_act = getattr(env.unwrapped, "embed1d_act", None)
+            if isinstance(env.unwrapped, DictSpacesEnv):
+                self.map_obs = env.get_wrapper_attr("map_obs")
+                self.map_act = env.get_wrapper_attr("map_act")
 
         # Define new metrics for each tracked values
         if self.with_tracking:
@@ -347,3 +359,70 @@ class CallbackWandb:
         else:
             net.write_html(html_file, open_browser=False)
         wandb.log({f"DBN graph": wandb.Html(open("dbn_graph.html"), inject=False)})
+
+    def compute_dict_pred_error(
+        self, next_obs, next_model_obs, output_keys, epsilon=1.0e-6
+    ):
+        errors = {}
+        for key, value in self.map_obs.items():
+            if key != "length":
+                if key not in output_keys:
+                    assert next_obs[..., value] == next_model_obs[value]
+                else:
+                    real_out = next_obs[..., value]
+                    model_out = next_model_obs[..., value]
+                    if (
+                        key == "bikes_distr"
+                    ):  # TODO: not great to have it like this but can't think of a better way
+                        tot_n_bikes = next_obs[..., self.map_obs["tot_n_bikes"]]
+                        error_key = f"Missclassified pred_{key} ratio"
+                        errors[error_key] = (
+                            np.sum(np.abs(real_out - model_out)) / tot_n_bikes
+                            if tot_n_bikes > 0
+                            else np.nan
+                        )
+                    else:
+                        error_key = f"Mean relative error pred_{key}"
+                        errors[error_key] = np.mean(
+                            np.abs((model_out - real_out) / (real_out + epsilon))
+                        )
+        return errors
+
+    def compute_pred_error(self, next_obs, next_model_obs, epsilon=1.0e-6):
+        return np.mean(np.abs((next_model_obs - next_obs) / (next_obs + epsilon)))
+
+    def pred_dynamics_callback(
+        self,
+        action,
+        next_obs,
+        reward,
+        next_model_obs,
+        model_reward,
+        output_keys: Optional[List[str]] = None,
+    ):
+        if not self.with_tracking:
+            return
+
+        if output_keys and self.map_obs:
+            errors = self.compute_dict_pred_error(
+                next_obs, next_model_obs, output_keys, self.epsilon
+            )
+        else:
+            error = self.compute_pred_error(next_obs, next_model_obs, self.epsilon)
+            errors = {"Mean relative error pred_obs": error}
+
+        reward_error = np.abs((reward - model_reward) / (reward + self.epsilon))
+        errors[f"Mean relative error pred_reward"] = reward_error
+
+        if self.env_step <= 1:
+            wandb.define_metric("env_step", hidden=True)
+            for key in errors.keys():
+                wandb.define_metric(key, step_metric="env_step")
+
+        errors["env_step"] = self.env_step
+
+        if self.embed_act:
+            embedded_act = self.embed_act(action)
+            errors["embedded_action"] = embedded_act
+
+        wandb.log(errors)

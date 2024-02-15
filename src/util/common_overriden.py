@@ -10,6 +10,7 @@ import numpy as np
 import mbrl
 from mbrl.util.replay_buffer import ReplayBuffer
 from mbrl.planning import Agent
+from mbrl.models import ModelEnv
 
 from src.util.model_trainer import LassoModelTrainer
 from src.env.dict_spaces_env import DictSpacesEnv
@@ -68,6 +69,7 @@ def train_model_and_save_model_and_data_overriden(
 
 def step_env_and_add_to_buffer_overriden(
     env: gym.Env,
+    model_env: ModelEnv,
     obs: np.ndarray,
     agent: Agent,
     agent_kwargs: Dict,
@@ -75,6 +77,7 @@ def step_env_and_add_to_buffer_overriden(
     callback: Optional[Callable] = None,
     agent_uses_low_dim_obs: bool = False,
     optimizer_callback: Optional[Callable] = None,
+    dynamics_callback: Optional[Callable] = None,
 ) -> Tuple[np.ndarray, float, bool, bool, Dict]:
     """
     Overwrite of function step_env_and_add_to_buffer in mbrl.util.common
@@ -94,6 +97,23 @@ def step_env_and_add_to_buffer_overriden(
     replay_buffer.add(obs, action, next_obs, reward, terminated, truncated)
     if callback:
         callback((obs, action, next_obs, reward, terminated, truncated))
+    if dynamics_callback:
+        model_state = {
+            "obs": np.expand_dims(agent_obs, axis=0),
+            "propagation_indices": None,
+        }
+        model_action = np.expand_dims(action, axis=0)
+        model_next_obs, model_rewards, model_dones, next_model_state = model_env.step(
+            model_action, model_state
+        )
+        next_model_obs = next_model_state["obs"][0].detach().numpy()
+        next_model_observs = model_next_obs.detach().numpy()[0]
+        model_reward = model_rewards.detach().numpy()[0, 0]
+        model_done = model_dones.detach().numpy()[0, 0]
+        output_keys = getattr(model_env.dynamics_model, "output_keys", None)
+        dynamics_callback(
+            action, next_obs, reward, next_model_obs, model_reward, output_keys
+        )
     return next_obs, reward, terminated, truncated, info
 
 
@@ -185,8 +205,12 @@ def create_one_dim_tr_model_overriden(
             map_act=base_env.map_act,
             rescale_obs=base_env.rescale_obs,
             rescale_act=base_env.rescale_act,
-            obs_preprocess_fn=base_env.obs_preprocess_fn,
-            obs_postprocess_fn=base_env.obs_postprocess_fn,
+            obs_preprocess_fn=base_env.get_wrapper_attr(
+                cfg.overrides.get("obs_preprocess_fn", "obs_preprocess_fn")
+            ),
+            obs_postprocess_fn=base_env.get_wrapper_attr(
+                cfg.overrides.get("obs_postprocess_fn", "obs_postprocess_fn")
+            ),
             target_is_delta=cfg.algorithm.target_is_delta,
             rescale_input=cfg.algorithm.rescale_input,
             rescale_output=cfg.algorithm.rescale_output,

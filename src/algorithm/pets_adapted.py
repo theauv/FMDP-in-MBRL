@@ -138,6 +138,7 @@ def train(
     # ---------------------------------------------------------
     # ----------------- Callbacks -----------------------------
     callbacks = CallbackWandb(
+        env,
         cfg.experiment.with_tracking,
         max_traj_iterations=cfg.overrides.cem_num_iters,
         model_out_size=dynamics_model.model.out_size,
@@ -191,6 +192,7 @@ def train(
                 _,
             ) = step_env_and_add_to_buffer_overriden(  # locally overriden to handle callbacks
                 env,
+                model_env,
                 obs,
                 agent,
                 {},
@@ -199,6 +201,7 @@ def train(
                 agent_uses_low_dim_obs=cfg.overrides.get(
                     "agent_uses_low_dim_obs", False
                 ),
+                dynamics_callback=callbacks.pred_dynamics_callback,
             )
 
             obs = next_obs

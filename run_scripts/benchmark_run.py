@@ -137,7 +137,7 @@ def run(cfg: omegaconf.DictConfig):
         init_run_kwargs = wandb_config
         init_run_kwargs["config"] = omegaconf.OmegaConf.to_container(cfg, resolve=True)
         wandb.init(**init_run_kwargs)
-        callbacks = CallbackWandb(cfg.with_tracking)
+        callbacks = CallbackWandb(env, cfg.with_tracking)
     run_agent_in_env(env, agent, cfg.num_steps, callbacks)
 
 

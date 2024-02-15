@@ -3,8 +3,6 @@ import warnings
 
 import numpy as np
 import torch
-from torcheval.metrics.functional import r2_score
-
 
 import mbrl.models.util as model_util
 import mbrl.types
@@ -63,6 +61,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         self.act_length = self.map_act["length"]
         self.obs_process_fn = obs_preprocess_fn
         self.obs_postprocess_fn = obs_postprocess_fn
+        self.output_keys = model_output_key
 
         if model_input_obs_key is None:
             model_input_obs_key = [
@@ -126,6 +125,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
         print(f"Target is delta: {target_is_delta}")
         print(f"Learne rewards: {learned_rewards}")
         print(f"Num elites: {num_elites}")
+        print(f"Post-process obs method: {self.obs_postprocess_fn}")
 
     def _get_next_obs(self, batch_next_obs: mbrl.types.TensorType):
         if self.rescale_output:
