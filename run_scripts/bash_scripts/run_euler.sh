@@ -1,9 +1,10 @@
 #!/bin/bash
 
-module load eth_proxy
-module load gcc/8.2.0 python/3.9.9
-source euler-pdm-env/bin/activate
-pip install -e .
+# bash
+# module load eth_proxy
+# module load gcc/8.2.0 python/3.9.9
+# conda activate pdm-env
+# pip install -e .
 
 group_name='art_4step_5centroid'
 overrides='pets_bikes_5centroid'
