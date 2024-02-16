@@ -50,8 +50,8 @@ class CallbackWandb:
         if env:
             self.embed_act = getattr(env.unwrapped, "embed1d_act", None)
             if isinstance(env.unwrapped, DictSpacesEnv):
-                self.map_obs = env.get_wrapper_attr("map_obs")
-                self.map_act = env.get_wrapper_attr("map_act")
+                self.map_obs = env.unwrapped.map_obs
+                self.map_act = env.unwrapped.map_act
 
         # Define new metrics for each tracked values
         if self.with_tracking:

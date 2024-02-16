@@ -205,10 +205,10 @@ def create_one_dim_tr_model_overriden(
             map_act=base_env.map_act,
             rescale_obs=base_env.rescale_obs,
             rescale_act=base_env.rescale_act,
-            obs_preprocess_fn=base_env.get_wrapper_attr(
+            obs_preprocess_fn=getattr(base_env, 
                 cfg.overrides.get("obs_preprocess_fn", "obs_preprocess_fn")
             ),
-            obs_postprocess_fn=base_env.get_wrapper_attr(
+            obs_postprocess_fn=getattr(base_env,
                 cfg.overrides.get("obs_postprocess_fn", "obs_postprocess_fn")
             ),
             target_is_delta=cfg.algorithm.target_is_delta,

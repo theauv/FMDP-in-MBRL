@@ -262,12 +262,12 @@ class AdaptedVisualizer(Visualizer):
                 screen_ydim
                 * abs(
                     (
-                        self.env.get_wrapper_attr("longitudes")[1]
-                        - self.env.get_wrapper_attr("longitudes")[0]
+                        self.env.unwrapped.longitudes[1]
+                        - self.env.unwrapped.longitudes[0]
                     )
                     / (
-                        self.env.get_wrapper_attr("latitudes")[0]
-                        - self.env.get_wrapper_attr("latitudes")[1]
+                        self.env.unwrapped.latitudes[0]
+                        - self.env.unwrapped.latitudes[1]
                     )
                 )
             )
@@ -276,17 +276,17 @@ class AdaptedVisualizer(Visualizer):
                 self.screen_dim
                 / np.array(
                     [
-                        self.env.get_wrapper_attr("longitudes")[1]
-                        - self.env.get_wrapper_attr("longitudes")[0],
-                        self.env.get_wrapper_attr("latitudes")[0]
-                        - self.env.get_wrapper_attr("latitudes")[1],
+                        self.env.unwrapped.longitudes[1]
+                        - self.env.unwrapped.longitudes[0],
+                        self.env.unwrapped.latitudes[0]
+                        - self.env.unwrapped.latitudes[1],
                     ]
                 )
             )
             self.offset = np.array(
                 [
-                    self.env.get_wrapper_attr("longitudes")[0],
-                    self.env.get_wrapper_attr("latitudes")[0],
+                    self.env.unwrapped.longitudes[0],
+                    self.env.unwrapped.latitudes[0],
                 ]
             )
             self.screen = None
@@ -384,10 +384,10 @@ class AdaptedVisualizer(Visualizer):
             )
             if hasattr(self.env.unwrapped, "delta_bikes"):
                 print(
-                    f"Old bikes distr: {observation[self.env.get_wrapper_attr('map_obs')['bikes_distr']]}"
-                    f"Delta_bikes: {self.env.get_wrapper_attr('delta_bikes')} \n"
-                    f"Pre-new_bikes distr: {self.env.get_wrapper_attr('previous_bikes_distr')} \n"
-                    f"New bikes distr: {new_obs[self.env.get_wrapper_attr('map_obs')['bikes_distr']]}"
+                    f"Old bikes distr: {observation[self.env.unwrapped.map_obs['bikes_distr']]}"
+                    f"Delta_bikes: {self.env.unwrapped.delta_bikes} \n"
+                    f"Pre-new_bikes distr: {self.env.unwrapped.previous_bikes_distr} \n"
+                    f"New bikes distr: {new_obs[self.env.unwrapped.map_obs['bikes_distr']]}"
                 )
 
             observation = new_obs
@@ -417,10 +417,10 @@ class AdaptedVisualizer(Visualizer):
             )
             if hasattr(self.env.unwrapped, "delta_bikes"):
                 print(
-                    f"Old bikes distr: {model_observation[self.env.get_wrapper_attr('map_obs')['bikes_distr']]}"
-                    f"Delta_bikes: {model_observation_[self.env.get_wrapper_attr('map_obs')['bikes_distr']] - model_observation[self.env.get_wrapper_attr('map_obs')['bikes_distr']]} \n"
-                    f"Pre-new_bikes distr: {model_observation_[self.env.get_wrapper_attr('map_obs')['bikes_distr']]} \n"
-                    f"New bikes distr: {next_observs[self.env.get_wrapper_attr('map_obs')['bikes_distr']]}"
+                    f"Old bikes distr: {model_observation[self.env.unwrapped.map_obs['bikes_distr']]}"
+                    f"Delta_bikes: {model_observation_[self.env.unwrapped.map_obs['bikes_distr']] - model_observation[self.env.unwrapped.map_obs['bikes_distr']]} \n"
+                    f"Pre-new_bikes distr: {model_observation_[self.env.unwrapped.map_obs['bikes_distr']]} \n"
+                    f"New bikes distr: {next_observs[self.env.unwrapped.map_obs['bikes_distr']]}"
                 )
 
         env_states = [traj[0] for traj in real_trajectories]
@@ -814,11 +814,11 @@ class AdaptedVisualizer(Visualizer):
             )
         )
         city_offset = np.array([city_real_dim[0], city_real_dim[2]])
-        x = (self.env.get_wrapper_attr("longitudes") - city_offset[0]) * city_scale[0]
+        x = (self.env.unwrapped.longitudes - city_offset[0]) * city_scale[0]
         # Warning: pygame has a reversed y axis
         y = (
             city_size[1]
-            - (self.env.get_wrapper_attr("latitudes") - city_offset[1]) * city_scale[1]
+            - (self.env.unwrapped.latitudes - city_offset[1]) * city_scale[1]
         )
         cropped_region = (x[0], y[1], x[1] - x[0], y[0] - y[1])
         city_map = city_map.subsurface(cropped_region)
@@ -830,12 +830,12 @@ class AdaptedVisualizer(Visualizer):
             font_size = 10
             font = pygame.font.SysFont("Arial", font_size)
             depot_coord = (self.screen_dim[0] - 50, self.screen_dim[1] - 50)
-            if self.env.get_wrapper_attr("delta_bikes") is not None:
+            if self.env.unwrapped.delta_bikes is not None:
                 for i, added_bikes in enumerate(
-                    self.env.get_wrapper_attr("delta_bikes")
+                    self.env.unwrapped.delta_bikes
                 ):
                     if added_bikes > 0:
-                        coord = self.env.get_wrapper_attr("centroid_coords")[i]
+                        coord = self.env.unwrapped.centroid_coords[i]
                         coord = (coord[1], coord[0])
                         new_coord = (coord - self.offset) * self.scale
                         new_coord[1] = self.screen_dim[1] - new_coord[1]
@@ -864,16 +864,16 @@ class AdaptedVisualizer(Visualizer):
                 txtsurf,
                 (depot_coord[0] - font_size / 1.5, depot_coord[1] - font_size / 1.5),
             )
-            real_next_distr = self.env.get_wrapper_attr("previous_bikes_distr")
+            real_next_distr = self.env.unwrapped.previous_bikes_distr
         else:
-            real_next_distr = self.env.get_wrapper_attr("state")["bikes_distr"]
+            real_next_distr = self.env.unwrapped.state["bikes_distr"]
 
         # Predicted bikes_distr vs real bikes_distr
         font_size = 15
         font = pygame.font.SysFont("Arial", font_size)
         model_next_distr = np.round(model_next_distr).astype(int)
         for coord, real_bikes, model_bikes in zip(
-            self.env.get_wrapper_attr("centroid_coords"),
+            self.env.unwrapped.centroid_coords,
             real_next_distr,
             model_next_distr,
         ):
@@ -895,15 +895,15 @@ class AdaptedVisualizer(Visualizer):
         shift = self.env.unwrapped.get_timeshift()
         title_str = (
             (
-                f"Shift {shift[0]}:{shift[1]} Day: {int(self.env.get_wrapper_attr('state')['day'])} "
-                f"({int(self.env.get_wrapper_attr('state')['day_of_week'])}/7) "
-                f"Month: {int(self.env.get_wrapper_attr('state')['month'])}"
+                f"Shift {shift[0]}:{shift[1]} Day: {int(self.env.unwrapped.state['day'])} "
+                f"({int(self.env.unwrapped.state['day_of_week'])}/7) "
+                f"Month: {int(self.env.unwrapped.state['month'])}"
             )
             if shift is not None
             else (
-                f"Shift: {shift} Day: {int(self.env.get_wrapper_attr('state')['day'])} "
-                f"({int(self.env.get_wrapper_attr('state')['day_of_week'])}/7) "
-                f"Month: {int(self.env.get_wrapper_attr('state')['month'])}"
+                f"Shift: {shift} Day: {int(self.env.unwrapped.state['day'])} "
+                f"({int(self.env.unwrapped.state['day_of_week'])}/7) "
+                f"Month: {int(self.env.unwrapped.state['month'])}"
             )
         )
         title = font.render(title_str, True, BLACK)
@@ -937,7 +937,7 @@ class AdaptedVisualizer(Visualizer):
             print(f"Total env step: {env_step} Episode step: {episode_step}")
 
             # Take action
-            action = self.env.get_wrapper_attr("action_space").sample()
+            action = self.env.unwrapped.action_space.sample()
             model_observation = {
                 "obs": np.expand_dims(observation.copy(), axis=0),
                 "propagation_indices": None,
@@ -951,10 +951,10 @@ class AdaptedVisualizer(Visualizer):
             )
             preprocessed_obs = preprocessed_obs.clone().detach().numpy()[0].astype(int)
             pre_bikes_distr = preprocessed_obs[
-                self.env.get_wrapper_attr("map_obs")["bikes_distr"]
+                self.env.unwrapped.map_obs["bikes_distr"]
             ]
             assert np.all(
-                pre_bikes_distr == self.env.get_wrapper_attr("previous_bikes_distr")
+                pre_bikes_distr == self.env.unwrapped.previous_bikes_distr
             )
             (
                 next_model_observs,
@@ -1001,8 +1001,8 @@ class AdaptedVisualizer(Visualizer):
             next_obs, reward, terminated, truncated, info = self.env.step(action)
 
             self.render_bikes(
-                model_obs[self.env.get_wrapper_attr("map_obs")["bikes_distr"]]
-                + self.env.get_wrapper_attr("delta_bikes"),
+                model_obs[self.env.unwrapped.map_obs["bikes_distr"]]
+                + self.env.unwrapped.delta_bikes,
                 pre_obs=True,
             )
             # sleep(2)
@@ -1030,9 +1030,9 @@ class AdaptedVisualizer(Visualizer):
             )
 
             next_model_distr = np.round(
-                next_model_obs[self.env.get_wrapper_attr("map_obs")["bikes_distr"]]
+                next_model_obs[self.env.unwrapped.map_obs["bikes_distr"]]
             )
-            next_distr = self.env.get_wrapper_attr("state")["bikes_distr"]
+            next_distr = self.env.unwrapped.state["bikes_distr"]
             n_failed_bikes = np.sum(np.abs(next_model_distr - next_distr))
             total_failed_bikes += n_failed_bikes
 
