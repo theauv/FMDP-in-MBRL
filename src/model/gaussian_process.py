@@ -59,6 +59,53 @@ class ExactGPModel(gpytorch.models.ExactGP):
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
+class DirichletGPModel(gpytorch.models.ExactGP):
+    def __init__(
+        self,
+        train_x,
+        train_y,
+        likelihood,
+        num_classes,
+        mean: Optional[Mean] = None,
+        kernel: Optional[Kernel] = None,
+        scale_kernel: bool = True,
+        in_size: Optional[int] = None,
+    ):
+        super(DirichletGPModel, self).__init__(train_x, train_y, likelihood)
+        self.mean_module = mean if mean is not None else gpytorch.means.ConstantMean(batch_shape=torch.Size((num_classes,)))
+        self.covar_module = (
+            kernel if kernel is not None else gpytorch.kernels.RBFKernel()
+        )
+        if isinstance(self.mean_module, str):
+            if self.mean_module == "Constant":
+                self.mean_module = gpytorch.means.ConstantMean(batch_shape=torch.Size((num_classes,)))
+            elif self.mean_module == "Linear":
+                if in_size is None:
+                    raise ValueError("You chose a linear mean but the in_size is None")
+                self.mean_module = gpytorch.means.LinearMean(in_size, batch_shape=torch.Size((num_classes,)))
+            else:
+                raise ValueError(
+                    f"No mean module named {self.mean_module}. You can added here if needed"
+                )
+        if isinstance(self.covar_module, str):
+            if self.covar_module == "RBF":
+                self.covar_module = gpytorch.kernels.RBFKernel(batch_shape=torch.Size((num_classes,)))
+            elif self.covar_module == "Matern":
+                self.covar_module = gpytorch.kernels.MaternKernel(batch_shape=torch.Size((num_classes,)))
+            elif self.covar_module == "Linear":
+                self.covar_module = gpytorch.kernels.LinearKernel(batch_shape=torch.Size((num_classes,)))
+            else:
+                ValueError(
+                    f"No kernel named {self.covar_module}. You can added here if needed"
+                )
+        if scale_kernel:
+            self.covar_module = gpytorch.kernels.ScaleKernel(self.covar_module, batch_shape=torch.Size((num_classes,)),)
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+
 
 class MultiOutputGP(Model):
     # TODO: make sure that the reset_target and input are fine (like that it is actually DONE and see
@@ -304,3 +351,145 @@ class FactoredMultiOutputGP(MultiOutputGP):
                 sub_x = x.index_select(-1, torch.tensor(self.model_factors[i][0]))
                 out.append(model(sub_x))
         return out
+
+
+class FactoredMultiOutputGPClassif(MultiOutputGP):
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+        device: Union[str, torch.device],
+        factors: Optional[List]=None,
+        mean: Optional[Mean] = None,
+        kernel: Optional[Kernel] = None,
+        scale_kernel: bool = True,
+        reward_factors: Optional[List] = None,
+    ):
+        """
+        :param raw_factors: Adjacency list for which each entry i is a tuple or a List of the inputs the output i
+        depends on
+        """
+
+        Model.__init__(self, device)
+
+        self.mean = mean
+        self.kernel = kernel
+        self.scale_kernel = scale_kernel
+
+        self.in_size = in_size+1
+        self.out_size = out_size
+
+        self.factors = factors
+        self.reward_factors = reward_factors
+
+        self.learn_reward = True if self.out_size == len(self.factors) + 1 else False
+        if self.learn_reward:
+            if self.reward_factors is None:
+                self.factors.append([i for i in range(self.in_size)])
+            else:  # TODO: DOES NOT WORK FOR NOW
+                raise ValueError("Factored reward not supported yet")
+                self.reward_model_factors = self.get_model_factors(reward_factors)
+                self.reward_models = self.get_factored_models(
+                    hid_size=hid_size,
+                    num_layers=num_layers,
+                    activation_fn_cfg=activation_fn_cfg,
+                    model_factors=self.reward_model_factors,
+                )
+
+        if factors:
+            self.model_factors = self.get_model_factors(self.factors)
+            self.models = self.get_factored_models()
+        else:
+            self.models = []
+            for i in range(out_size):
+                fake_target = torch.ones(out_size)
+                likelihood=gpytorch.likelihoods.DirichletClassificationLikelihood(fake_target, learn_additional_noise=True)
+                self.models.append(
+                    DirichletGPModel(
+                        None,
+                        None,
+                        likelihood,
+                        likelihood.num_classes,
+                        mean,
+                        kernel,
+                        scale_kernel,
+                        in_size,
+                    )
+                )
+
+        self.gp = gpytorch.models.IndependentModelList(*self.models)
+        self.likelihood = gpytorch.likelihoods.LikelihoodList(
+            *[submodel.likelihood for submodel in self.models]
+        )
+        self.mll = gpytorch.mlls.SumMarginalLogLikelihood(self.likelihood, self.gp)
+
+    @staticmethod
+    def get_model_factors(raw_factors_):
+        """Compute the scope (input) for each single factor (output)"""
+        raw_factors = deepcopy(raw_factors_)
+        factors = []
+        for output, inputs in enumerate(raw_factors):
+            inputs = list(inputs)
+            out = [output]
+            factors.append((inputs, out))
+        return factors
+
+    def get_factored_models(
+        self,
+    ):
+        models = []
+        total_out_size = 0
+        for model_factor in self.model_factors:
+            assert len(model_factor) == 2
+            in_size = len(model_factor[0])
+            total_out_size += 1
+            fake_target = torch.ones(len(model_factor)[0])
+            likelihood=gpytorch.likelihoods.DirichletClassificationLikelihood(fake_target, learn_additional_noise=True)
+            model=DirichletGPModel(
+                None,
+                None,
+                likelihood,
+                likelihood.num_classes,
+                self.mean,
+                self.kernel,
+                self.scale_kernel,
+                in_size,
+            )
+            models.append(model)
+
+        print(total_out_size, self.out_size)
+        assert total_out_size == self.out_size
+        return models
+
+    def set_train_data(self, train_x=None, train_y=None, strict=False):
+        for i, model in enumerate(self.gp.models):
+            input_idx, output_idx = self.model_factors[i]
+            train_y_i = train_y[:, i]
+            train_x_i = train_x.index_select(-1, torch.tensor(self.model_factors[i][0]))
+            if model.train_inputs is not None:
+                # TODO: Those assertions might not even be useful if we have a
+                # model that updates its factors over time... (So not useful in general)
+                assert train_x_i.shape[-1] == model.train_inputs[0].shape[-1]
+                assert train_y_i.ndim == model.train_targets.ndim == 1
+            model.set_train_data(train_x_i, train_y_i, strict=strict)
+
+    def forward(
+        self, x: torch.Tensor = None
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        if x is None:
+            for x_i in x:
+                pass
+            out = self.gp(*self.gp.train_inputs)
+        else:
+            assert len(self.gp.models) == len(self.model_factors)
+            out = []
+            for i, model in enumerate(self.gp.models):
+                sub_x = x.index_select(-1, torch.tensor(self.model_factors[i][0]))
+                out.append(model(sub_x))
+
+        [out]
+        return out
+
+
+
+

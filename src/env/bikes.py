@@ -1121,10 +1121,8 @@ class Bikes(DictSpacesEnv):
         proba_distr = torch.nn.functional.softmax(
             batch_new_obs[..., self.map_obs["bikes_distr"]], dim=-1, dtype=torch.float64
         )
-
-        new_distr = torch.zeros(proba_distr.shape).squeeze()
+        new_distr = torch.zeros(proba_distr.shape)
         new_distr = self.proba_repeat_along_dim(new_distr, proba_distr, tot_n_bikes)
-
         batch_new_obs[..., self.map_obs["bikes_distr"]] = new_distr
 
         return batch_new_obs
