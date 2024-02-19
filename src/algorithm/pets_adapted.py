@@ -102,13 +102,6 @@ def train(
         {},
         replay_buffer=replay_buffer,
     )
-    # mbrl.util.common.rollout_agent_trajectories(
-    #     env,
-    #     initial_exploration_steps//2,
-    #     GoodBikesHeuristic(cfg.overrides.env_config, env),
-    #     {},
-    #     replay_buffer=replay_buffer,
-    # )
     replay_buffer.save(work_dir)
     if env_is_bikes:
         base_env.set_next_day_method(cfg.overrides.env_config.next_day_method)
@@ -126,8 +119,8 @@ def train(
     model_trainer = hydra.utils.instantiate(
         cfg.dynamics_model.model_trainer,
         dynamics_model,
-        optim_lr=cfg.dynamics_model.model_lr,
-        weight_decay=cfg.dynamics_model.model_wd,
+        # optim_lr=cfg.dynamics_model.model_lr,
+        # weight_decay=cfg.dynamics_model.model_wd,
         logger=logger,
     )
 
@@ -178,6 +171,7 @@ def train(
                     work_dir=work_dir,
                     callback=callbacks.model_train_callback,
                     callback_sparsity=callbacks.model_sparsity,
+                    split_callback=callbacks.split_model_train_callback if cfg.experiment.plot_split_reward_dynamics else None,
                 )
                 if env_steps == 0 and hasattr(dynamics_model.model, "factors"):
                     callbacks.model_dbn(dynamics_model.model.factors)

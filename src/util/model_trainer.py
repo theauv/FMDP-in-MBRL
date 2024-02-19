@@ -24,8 +24,10 @@ from mbrl.models.model_trainer import (
 
 from lassonet import LassoNet
 
-from src.model.simple import FactoredSimple
+#from src.model.simple import FactoredSimple
 from src.model.lasso_net import LassoNetAdapted
+from src.model.simple import FactoredSimple
+from src.model.model_mixture import MixtureModel
 
 SPARSITY_LOG_FORMAT = [
     ("lambda", "L", "float"),
@@ -76,6 +78,7 @@ class ModelTrainerOverriden(ModelTrainer):
         improvement_threshold: float = 0.01,
         callback: Optional[Callable] = None,
         batch_callback: Optional[Callable] = None,
+        split_callback: Optional[Callable] = None,
         evaluate: bool = True,
         silent: bool = False,
         debug: bool = False,
@@ -170,9 +173,16 @@ class ModelTrainerOverriden(ModelTrainer):
             eval_score = None
             model_val_score = 0
             if evaluate:
-                eval_score, r2 = self.evaluate(
-                    eval_dataset, batch_callback=batch_callback_epoch
-                )
+                if split_callback:
+                    dyn_eval_score, rew_eval_score, dyn_r2, rew_r2 = self.evaluate(
+                        eval_dataset, batch_callback=batch_callback_epoch, split=True
+                    )
+                    eval_score = torch.mean(torch.cat([dyn_eval_score, rew_eval_score], axis=-1), dim=-1)
+                    r2 = np.mean([dyn_r2, rew_r2])
+                else:
+                    eval_score, r2 = self.evaluate(
+                        eval_dataset, batch_callback=batch_callback_epoch
+                    )
                 val_scores.append(eval_score.mean().item())
                 if r2:
                     eval_r2_scores.append(r2)
@@ -231,6 +241,16 @@ class ModelTrainerOverriden(ModelTrainer):
                     train_r2_scores[-1] if train_r2_scores else None,
                     eval_r2_scores[-1] if eval_r2_scores else None,
                 )
+            if split_callback:
+                split_callback(
+                    self._train_iteration,
+                    epoch,
+                    dyn_eval_score, 
+                    rew_eval_score, 
+                    dyn_r2, 
+                    rew_r2,
+                )
+
 
             if patience and epochs_since_update >= patience:
                 break
@@ -243,7 +263,7 @@ class ModelTrainerOverriden(ModelTrainer):
         return training_losses, val_scores, train_r2_scores, eval_r2_scores
 
     def evaluate(
-        self, dataset: TransitionIterator, batch_callback: Optional[Callable] = None
+        self, dataset: TransitionIterator, batch_callback: Optional[Callable] = None, split: bool = False
     ) -> torch.Tensor:
         """Evaluates the model on the validation dataset.
 
@@ -267,12 +287,20 @@ class ModelTrainerOverriden(ModelTrainer):
             dataset.toggle_bootstrap()
 
         batch_scores_list = []
-        batch_r2_scores = []
+        if split:
+            dyn_batch_r2_scores = []
+            rew_batch_r2_scores = []
+        else:
+            batch_r2_scores = []
         for batch in dataset:
             batch_score, meta = self.model.eval_score(batch)
             batch_scores_list.append(batch_score)
             if "outputs" in meta and "targets" in meta:
-                batch_r2_scores.append(r2_score(meta["outputs"], meta["targets"]))
+                if split:
+                    dyn_batch_r2_scores.append(r2_score(meta["outputs"][...,:-1], meta["targets"][...,:-1]))
+                    rew_batch_r2_scores.append(r2_score(meta["outputs"][...,-1], meta["targets"][...,-1]))
+                else:
+                    batch_r2_scores.append(r2_score(meta["outputs"], meta["targets"]))
             if batch_callback:
                 batch_callback(batch_score.mean(), meta, "eval")
         try:
@@ -289,21 +317,29 @@ class ModelTrainerOverriden(ModelTrainer):
             dataset.toggle_bootstrap()
 
         mean_axis = 1 if batch_scores.ndim == 2 else (1, 2)
+        if split:
+            dyn_batch_scores = batch_scores[..., :-1]
+            rew_batch_scores = batch_scores[..., -1][...,None]
+            dyn_batch_scores=dyn_batch_scores.mean(dim=mean_axis)
+            rew_batch_scores=rew_batch_scores.mean(dim=mean_axis)
+            dyn_r2 = np.mean(dyn_batch_r2_scores) if dyn_batch_r2_scores else None
+            rew_r2 = np.mean(rew_batch_r2_scores) if rew_batch_r2_scores else None
+            return dyn_batch_scores, rew_batch_scores, dyn_r2, rew_r2
+        
         batch_scores = batch_scores.mean(dim=mean_axis)
-
         r2 = np.mean(batch_r2_scores) if batch_r2_scores else None
-
         return batch_scores, r2
 
-
-# TODO: Make sure it actually makes sense to have one optimizer by submodel or not
-class MultiModelsTrainer(ModelTrainerOverriden):
+class MixtureModelsTrainer(ModelTrainerOverriden):
     def __init__(
         self,
         model: Model,
-        optim_lr: float = 1e-4,
-        weight_decay: float = 1e-5,
-        optim_eps: float = 1e-8,
+        rew_optim_lr: float = 1e-1,
+        dyn_optim_lr: float = 1e-4,
+        rew_weight_decay: float = 0.,
+        dyn_weight_decay: float = 1e-5,
+        rew_optim_eps: float = 1e-8,
+        dyn_optim_eps: float = 1e-8,
         logger: Optional[Logger] = None,
     ):
         self.model = model
@@ -315,21 +351,25 @@ class MultiModelsTrainer(ModelTrainerOverriden):
                 self._LOG_GROUP_NAME, MODEL_LOG_FORMAT, color="blue", dump_frequency=1
             )
 
-        assert hasattr(
-            self.model.model, "models"
-        ), "This Model Trainer only works for models having multiple submodels \
+        assert isinstance(self.model, MixtureModel), "This Model Trainer only works for models having multiple submodels \
             in a list attribute 'models' e.g. FactoredSimple"
 
-        self.optimizer = []
-        for model in self.model.model.models:
-            optimizer = optim.Adam(
-                model.parameters(),
-                lr=optim_lr,
-                weight_decay=weight_decay,
-                eps=optim_eps,
+        self.optimizer = [
+            optim.Adam(
+                self.model.dyn_model.parameters(),
+                lr=dyn_optim_lr,
+                weight_decay=dyn_weight_decay,
+                eps=dyn_optim_eps,
             )
-            self.optimizer.append(optimizer)
-
+        ]
+        self.optimizer.append(
+            optim.Adam(
+                self.model.rew_model.parameters(),
+                lr=rew_optim_lr,
+                weight_decay=rew_weight_decay,
+                eps=rew_optim_eps,
+            )
+        )
 
 class LassoModelTrainer(ModelTrainer):
     _SPARSITY_LOG_GROUP_NAME = "lasso_sparsity"

@@ -10,7 +10,6 @@ import pathlib
 import torch
 from torch import nn
 from torch.functional import F
-from torcheval.metrics.functional import r2_score
 
 from mbrl.models.model import Model
 from mbrl.models.util import truncated_normal_init
@@ -346,7 +345,7 @@ class FactoredSimple(Simple):
     def update(
         self,
         model_in: ModelInput,
-        optimizers: List[torch.optim.Optimizer],
+        optimizer: torch.optim.Optimizer,
         target: Optional[torch.Tensor] = None,
         mode: str = "mean",
     ) -> Tuple[float, Dict[str, Any]]:
@@ -363,7 +362,7 @@ class FactoredSimple(Simple):
             sub_target = target.index_select(-1, torch.tensor(self.model_factors[i][1]))
 
             loss, meta = model.update(
-                sub_model_in, optimizer=optimizers[i], target=sub_target
+                sub_model_in, optimizer=optimizer, target=sub_target
             )
             all_loss.append(loss)
             if i == 0:

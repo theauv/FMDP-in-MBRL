@@ -26,6 +26,7 @@ def train_model_and_save_model_and_data_overriden(
     work_dir: Optional[Union[str, pathlib.Path]] = None,
     callback: Optional[Callable] = None,
     callback_sparsity: Optional[Callable] = None,
+    split_callback: Optional[Callable] = None,
     debug: bool = False,
 ):
     """
@@ -60,6 +61,7 @@ def train_model_and_save_model_and_data_overriden(
             patience=cfg.get("patience", 1),
             improvement_threshold=cfg.get("improvement_threshold", 0.01),
             callback=callback,
+            split_callback=split_callback,
             debug=debug,
         )
     if work_dir is not None:

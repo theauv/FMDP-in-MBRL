@@ -2,6 +2,7 @@
 with_tracking: true
 plot_local: false
 api_name: wandb
+plot_split_reward_dynamics: true
 run_configs:
   project: hucrl_fmdp
   group:  null #correct_bikes_test #null

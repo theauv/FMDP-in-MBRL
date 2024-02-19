@@ -151,6 +151,44 @@ class CallbackWandb:
 
         wandb.log(tracked_values)
 
+    def split_model_train_callback(
+        self,
+        train_iter: int,
+        epoch: int,
+        dyn_eval_score: float,
+        rew_eval_score: float, 
+        dyn_r2: float, 
+        rew_r2: float,
+    ):
+        """
+        Plot the training scores of the model
+        This function is meant to be pass to the ModelTrainer as an argument
+        """
+
+        if not self.with_tracking:
+            return
+
+        tracked_values = {
+            "dynamics_eval_score": dyn_eval_score,
+            "reward_eval_score": rew_eval_score,
+            "train_iteration": train_iter,
+        }
+
+        if dyn_r2 is not None:
+            tracked_values.update(
+                {
+                    "dynamics_r2": dyn_r2,
+                }
+            )
+        if rew_r2 is not None:
+            tracked_values.update(
+                {
+                    "reward_r2": rew_r2,
+                }
+            )
+
+        wandb.log(tracked_values)
+
     def model_train_callback_per_epoch(
         self,
         model: Model,
@@ -377,7 +415,7 @@ class CallbackWandb:
                         tot_n_bikes = next_obs[..., self.map_obs["tot_n_bikes"]]
                         error_key = f"Missclassified pred_{key} ratio"
                         errors[error_key] = (
-                            np.sum(np.abs(real_out - model_out)) / tot_n_bikes
+                            np.sum(np.abs(real_out - model_out)) / 2*tot_n_bikes
                             if tot_n_bikes > 0
                             else np.nan
                         )

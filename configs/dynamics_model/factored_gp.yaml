@@ -1,6 +1,8 @@
 # @package _group_
 model_trainer:
   _target_: src.util.model_trainer.ModelTrainerOverriden
+  optim_lr: 0.05
+  weight_decay: 0.
 model:
   _target_: src.model.gaussian_process.MultiOutputGP
   device: ${device}
@@ -12,5 +14,3 @@ model:
   reward_factors: null
 
 batch_size: ${overrides.dataset_size}
-model_lr: 0.05
-model_wd: 0.

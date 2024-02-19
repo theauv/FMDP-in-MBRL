@@ -1086,6 +1086,8 @@ class Bikes(DictSpacesEnv):
         In our case, we only need to increment the time_counter
         :return: postprocessed new_observation
         """
+        from time import time
+        start = time()
         batch_new_obs[..., self.map_obs["time_counter"]] += 1
 
         tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
@@ -1102,6 +1104,7 @@ class Bikes(DictSpacesEnv):
         new_distr = torch.round(new_distr)
         batch_new_obs[..., self.map_obs["bikes_distr"]] = new_distr
 
+        print("time", time()-start)
         return batch_new_obs
 
     def obs_postprocess_pred_proba(
@@ -1115,45 +1118,57 @@ class Bikes(DictSpacesEnv):
         In our case, we only need to increment the time_counter
         :return: postprocessed new_observation
         """
+        from time import time
+        start = time()
+        print("batch_new_obs", batch_new_obs)
         batch_new_obs[..., self.map_obs["time_counter"]] += 1
 
         tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
         proba_distr = torch.nn.functional.softmax(
-            batch_new_obs[..., self.map_obs["bikes_distr"]], dim=-1
+            batch_new_obs[..., self.map_obs["bikes_distr"]], dim=-1, dtype=torch.float64
         )
 
-        def compute_new_distr(bikes_distr, proba_distr, tot_n_bikes):
-            centroid_idx = np.random.choice(
-                np.arange(self.num_centroids), int(tot_n_bikes), p=proba_distr
-            )
-            unq, counts = np.unique(centroid_idx, return_counts=True)
-            bikes_distr[unq] += counts.astype(np.float32)
-            return bikes_distr
-
-        def repeat_along_dim(bikes_distr, proba_distr, tot_n_bikes):
-            if bikes_distr.ndim > 2:
-                return torch.stack(
-                    [
-                        repeat_along_dim(x_i, proba_distr[i], tot_n_bikes[i])
-                        for i, x_i in enumerate(torch.unbind(bikes_distr, dim=0), 0)
-                    ],
-                    dim=0,
-                )
-            else:
-                return torch.stack(
-                    [
-                        compute_new_distr(x_i, proba_distr[i], tot_n_bikes[i])
-                        for i, x_i in enumerate(torch.unbind(bikes_distr, dim=0), 0)
-                    ],
-                    dim=0,
-                )
-
         new_distr = torch.zeros(proba_distr.shape).squeeze()
-        new_distr = repeat_along_dim(new_distr, proba_distr, tot_n_bikes)
+        new_distr = self.proba_repeat_along_dim(new_distr, proba_distr, tot_n_bikes)
 
         batch_new_obs[..., self.map_obs["bikes_distr"]] = new_distr
+        print("batch_new_obs", batch_new_obs)
+        print("time", time()-start)
 
         return batch_new_obs
+
+    def compute_new_distr(self, bikes_distr, proba_distr, tot_n_bikes):
+        from time import time
+        start = time()
+        proba_distr /= torch.sum(proba_distr)
+        #print("1", time()-start)
+        centroid_idx = np.random.choice(
+            np.arange(self.num_centroids), int(tot_n_bikes), p=proba_distr
+        )
+        # print("2", time()-start)
+        unq, counts = np.unique(centroid_idx, return_counts=True)
+        # print("3", time()-start)
+        bikes_distr[unq] += counts.astype(np.float32)
+        # print("4", time()-start)
+        return bikes_distr
+
+    def proba_repeat_along_dim(self, bikes_distr, proba_distr, tot_n_bikes):
+        if bikes_distr.ndim > 2:
+            return torch.stack(
+                [
+                    self.proba_repeat_along_dim(x_i, proba_distr[i], tot_n_bikes[i])
+                    for i, x_i in enumerate(torch.unbind(bikes_distr, dim=0), 0)
+                ],
+                dim=0,
+            )
+        else:
+            return torch.stack(
+                [
+                    self.compute_new_distr(x_i, proba_distr[i], tot_n_bikes[i])
+                    for i, x_i in enumerate(torch.unbind(bikes_distr, dim=0), 0)
+                ],
+                dim=0,
+            )
 
 
 class Rentals_Simulator:

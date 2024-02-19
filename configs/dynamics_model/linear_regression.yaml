@@ -1,6 +1,8 @@
 # @package _group_
 model_trainer:
   _target_: src.util.model_trainer.ModelTrainerOverriden
+  model_lr: 0.01
+  model_wd: 0.
 model:
   _target_: src.model.linear_regression.LinearRegression
   device: ${device}
@@ -8,5 +10,3 @@ model:
   out_size: ???
 
 batch_size: ${overrides.dataset_size}
-model_lr: 0.01
-model_wd: 0.
