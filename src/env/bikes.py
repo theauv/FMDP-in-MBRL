@@ -1086,8 +1086,6 @@ class Bikes(DictSpacesEnv):
         In our case, we only need to increment the time_counter
         :return: postprocessed new_observation
         """
-        from time import time
-        start = time()
         batch_new_obs[..., self.map_obs["time_counter"]] += 1
 
         tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
@@ -1104,7 +1102,6 @@ class Bikes(DictSpacesEnv):
         new_distr = torch.round(new_distr)
         batch_new_obs[..., self.map_obs["bikes_distr"]] = new_distr
 
-        print("time", time()-start)
         return batch_new_obs
 
     def obs_postprocess_pred_proba(
@@ -1118,9 +1115,6 @@ class Bikes(DictSpacesEnv):
         In our case, we only need to increment the time_counter
         :return: postprocessed new_observation
         """
-        from time import time
-        start = time()
-        print("batch_new_obs", batch_new_obs)
         batch_new_obs[..., self.map_obs["time_counter"]] += 1
 
         tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
@@ -1132,24 +1126,16 @@ class Bikes(DictSpacesEnv):
         new_distr = self.proba_repeat_along_dim(new_distr, proba_distr, tot_n_bikes)
 
         batch_new_obs[..., self.map_obs["bikes_distr"]] = new_distr
-        print("batch_new_obs", batch_new_obs)
-        print("time", time()-start)
 
         return batch_new_obs
 
     def compute_new_distr(self, bikes_distr, proba_distr, tot_n_bikes):
-        from time import time
-        start = time()
         proba_distr /= torch.sum(proba_distr)
-        #print("1", time()-start)
         centroid_idx = np.random.choice(
             np.arange(self.num_centroids), int(tot_n_bikes), p=proba_distr
         )
-        # print("2", time()-start)
         unq, counts = np.unique(centroid_idx, return_counts=True)
-        # print("3", time()-start)
         bikes_distr[unq] += counts.astype(np.float32)
-        # print("4", time()-start)
         return bikes_distr
 
     def proba_repeat_along_dim(self, bikes_distr, proba_distr, tot_n_bikes):
