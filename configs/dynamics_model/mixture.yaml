@@ -1,0 +1,23 @@
+# @package _group_
+model_trainer:
+  _target_: src.util.model_trainer.MixtureModelsTrainer
+  rew_optim_lr: 0.05
+  dyn_optim_lr: 0.0001
+  rew_weight_decay: 0.
+  dyn_weight_decay: 0.00001
+model:
+  _target_: src.model.model_mixture.MixtureModel
+  device: ${device}
+  in_size: ???
+  out_size: ???
+  mean: Linear
+  kernel: Matern
+  scale_kernel: true
+  num_layers: 2
+  hid_size: 200
+  activation_fn_cfg:
+    _target_: torch.nn.SiLU
+  factors: ???
+  reward_factors: null
+
+batch_size: ${overrides.dataset_size}
