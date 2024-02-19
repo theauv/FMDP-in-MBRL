@@ -193,7 +193,6 @@ class MultiOutputGP(Model):
         model_in: torch.Tensor,
         target: Optional[torch.Tensor],
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
-        # if self.models.train_inputs ar all None -> None
         assert model_in.ndim == 2 and target.ndim == 2
         pred_output = self.pred_distribution(model_in)
         pred_mean = torch.cat(
@@ -323,7 +322,6 @@ class FactoredMultiOutputGP(MultiOutputGP):
             )
             models.append(model)
 
-        print(total_out_size, self.out_size)
         assert total_out_size == self.out_size
         return models
 
@@ -457,7 +455,6 @@ class FactoredMultiOutputGPClassif(MultiOutputGP):
             )
             models.append(model)
 
-        print(total_out_size, self.out_size)
         assert total_out_size == self.out_size
         return models
 

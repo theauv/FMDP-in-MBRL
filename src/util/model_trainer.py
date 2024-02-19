@@ -351,12 +351,11 @@ class MixtureModelsTrainer(ModelTrainerOverriden):
                 self._LOG_GROUP_NAME, MODEL_LOG_FORMAT, color="blue", dump_frequency=1
             )
 
-        assert isinstance(self.model, MixtureModel), "This Model Trainer only works for models having multiple submodels \
-            in a list attribute 'models' e.g. FactoredSimple"
+        assert isinstance(self.model.model, MixtureModel), f"But you are using model {self.model.__class__.__name__}"
 
         self.optimizer = [
             optim.Adam(
-                self.model.dyn_model.parameters(),
+                self.model.model.dyn_model.parameters(),
                 lr=dyn_optim_lr,
                 weight_decay=dyn_weight_decay,
                 eps=dyn_optim_eps,
@@ -364,7 +363,7 @@ class MixtureModelsTrainer(ModelTrainerOverriden):
         ]
         self.optimizer.append(
             optim.Adam(
-                self.model.rew_model.parameters(),
+                self.model.model.reward_model.parameters(),
                 lr=rew_optim_lr,
                 weight_decay=rew_weight_decay,
                 eps=rew_optim_eps,

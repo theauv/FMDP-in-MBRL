@@ -237,13 +237,6 @@ class FactoredSimple(Simple):
         for output, inputs in enumerate(raw_factors):
             inputs = list(inputs)
             out = [output]
-            j = output + 1
-            while j < len(raw_factors):
-                other_inputs = list(raw_factors[j])
-                if inputs == other_inputs:
-                    out.append(j)
-                    raw_factors.pop(j)
-                j += 1
             factors.append((inputs, out))
         return factors
 
@@ -274,7 +267,7 @@ class FactoredSimple(Simple):
             models.append(model)
 
         assert total_out_size == self.out_size
-        return models
+        return nn.ModuleList(models)
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         assert len(x.shape) == 2

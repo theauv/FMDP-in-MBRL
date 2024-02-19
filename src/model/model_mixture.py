@@ -48,21 +48,6 @@ class MixtureModel(Model):
         self.factors = factors
         self.reward_factors = reward_factors
 
-        # In case we are learning the reward too
-        self.learn_reward = True if self.out_size == len(self.factors) + 1 else False
-        if self.learn_reward:
-            if self.reward_factors is None:
-                self.factors.append([i for i in range(self.in_size)])
-            else:  # TODO: DOES NOT WORK FOR NOW
-                raise ValueError("Factored reward not supported yet")
-                self.reward_model_factors = self.get_model_factors(reward_factors)
-                self.reward_models = self.get_factored_models(
-                    hid_size=hid_size,
-                    num_layers=num_layers,
-                    activation_fn_cfg=activation_fn_cfg,
-                    model_factors=self.reward_model_factors,
-                )
-
         self.reward_model = FactoredMultiOutputGP(
             in_size,
             1,
@@ -106,7 +91,8 @@ class MixtureModel(Model):
         batch_size = x.shape[0]
         pred = torch.empty(batch_size, self.out_size)
         pred[..., :-1] = self.dyn_model.forward(x)
-        pred[..., -1] = self.reward_model.forward(x)
+        pred_reward = self.reward_model.pred_distribution(x)
+        pred[..., -1] = pred_reward[0].mean
         return pred
 
     def eval_score(
@@ -115,13 +101,13 @@ class MixtureModel(Model):
         assert model_in.ndim == 2 and target.ndim == 2
 
         batch_size = model_in.shape[0]
-        dyn_eval_score, meta = self.dyn_model.eval_score(model_in, target)
-        rew_eval_score, rew_meta = self.reward_model.eval_score(model_in, target)
+        dyn_eval_score, meta = self.dyn_model.eval_score(model_in, target[...,:-1])
+        rew_eval_score, rew_meta = self.reward_model.eval_score(model_in, target[...,-1][...,None])
 
         eval_score = torch.cat([dyn_eval_score, rew_eval_score], dim=-1)
-        for key, value in meta:
+        for key, value in meta.items():
             if key in rew_meta:
-                value = torch.tensor([value, rew_meta[key]], dim=-1)
+                value = torch.cat([value, rew_meta[key]], dim=-1)
 
         return eval_score, meta
 
@@ -136,13 +122,16 @@ class MixtureModel(Model):
         assert len(optimizers) == 2
 
         batch_size = model_in.shape[0]
-        dyn_loss, meta = self.dyn_model.update(model_in, optimizers[0], target, mode=mode)
-        rew_loss, rew_meta = self.reward_model.update(model_in, optimizers[1], target)
+        all_loss, meta = self.dyn_model.update(model_in, optimizers[0], target[...,:-1], mode='separate')
+        rew_loss, rew_meta = self.reward_model.update(model_in, optimizers[1], target[...,-1][...,None])
 
-        all_loss = np.concatenate([dyn_loss, rew_loss], axis=-1)
-        for key, value in meta:
+        all_loss.append(rew_loss)
+        for key, value in meta.items():
             if key in rew_meta:
-                value = torch.tensor([value, rew_meta[key]], dim=-1)
+                if torch.is_tensor(value):
+                    value = torch.cat([value, rew_meta[key]], dim=-1)
+                else:
+                    value += rew_meta[key]
 
         if mode == "mean":
             return np.mean(all_loss), meta
@@ -156,18 +145,18 @@ class MixtureModel(Model):
     def update_only_dynamics(
         self,
         model_in: ModelInput,
-        optimizer: List[torch.optim.Optimizer],
+        optimizers: List[torch.optim.Optimizer],
         target: Optional[torch.Tensor] = None,
         mode: str = "mean",
     ) -> Tuple[float, Dict[str, Any]]:
         assert model_in.ndim == 2 and target.ndim == 2
-        dyn_loss, meta = self.dyn_model.update(model_in, optimizer, target, mode='separate')
-        rew_loss, rew_meta = self.reward_model.loss(model_in, target)
+        all_loss, meta = self.dyn_model.update(model_in, optimizers[0], target[...,:-1], mode='separate')
+        rew_loss, rew_meta = self.reward_model.loss(model_in, target[...,-1][..., None])
 
-        all_loss = np.concatenate([dyn_loss, rew_loss], axis=-1)
-        for key, value in meta:
+        all_loss.append(rew_loss.detach().item())
+        for key, value in meta.items():
             if key in rew_meta:
-                value = torch.tensor([value, rew_meta[key]], dim=-1)
+                value = torch.cat([value, rew_meta[key]], dim=-1)
 
         if mode == "mean":
             return np.mean(all_loss), meta
@@ -188,3 +177,31 @@ class MixtureModel(Model):
         for i in range(self.freq_train_reward):
             loss, meta = self.update_only_dynamics(model_in, optimizers, target, mode)
         return self.update_all(model_in, optimizers, target, mode)
+    
+    def loss(self, model_in: torch.Tensor, target: torch.Tensor = None) -> torch.Tensor:
+        assert model_in.ndim == 2 and target.ndim == 2
+        dyn_loss, meta = self.dyn_model.loss(model_in, target)
+        rew_loss, rew_meta = self.reward_model.loss(model_in, target)
+        loss = np.mean([dyn_loss, rew_loss])
+        for key, value in meta.items():
+            if key in rew_meta:
+                value = torch.cat([value, rew_meta[key]], dim=-1)
+        return loss, meta
+    
+    def reset_1d(
+        self, obs: torch.Tensor, rng: Optional[torch.Generator] = None
+    ) -> Dict[str, torch.Tensor]:
+        assert rng is not None
+        propagation_indices = None
+        return {"obs": obs, "propagation_indices": propagation_indices}
+
+    def sample_1d(
+        self,
+        model_input: torch.Tensor,
+        model_state: Dict[str, torch.Tensor],
+        deterministic: bool = False,
+        rng: Optional[torch.Generator] = None,
+    ) -> Tuple[torch.Tensor, Optional[Dict[str, torch.Tensor]]]:
+        return (self.forward(model_input), model_state)
+
+

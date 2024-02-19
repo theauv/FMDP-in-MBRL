@@ -170,7 +170,6 @@ def getBack(var_grad_fn):
                 print(n[0])
                 print("Tensor with grad found:", tensor)
                 print(" - gradient:", tensor.grad)
-                print()
             except AttributeError as e:
                 getBack(n[0])
 

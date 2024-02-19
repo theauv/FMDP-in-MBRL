@@ -15,7 +15,7 @@ for i in {1..3}
     do
     sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=512 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true overrides=${overrides} agent='random' group_name=${group_name}"
     sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=512 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true overrides=${overrides} agent='good_heuristic' group_name=${group_name}"
-    for model in 'factored_gp' 'gaussian_process'
+    for model in 'mixture' 'factored_gp' 'gaussian_process'
         do
         for target_is_delta in true false
             do
@@ -34,7 +34,7 @@ for i in {1..3}
     do
     sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=512 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true overrides=${overrides} agent='random' group_name=${group_name}"
     sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=512 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true overrides=${overrides} agent='good_heuristic' group_name=${group_name}"
-    for model in 'factored_gp' 'gaussian_process'
+    for model in 'mixture' 'factored_gp' 'gaussian_process'
         do
         for target_is_delta in true false
             do
