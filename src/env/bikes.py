@@ -1089,6 +1089,15 @@ class Bikes(DictSpacesEnv):
                 dim=0,
             )
 
+    def from_exp_to_distr(self, expected_number_of_bikes: torch.Tensor):
+        expected_number_of_bikes[expected_number_of_bikes<0] = 0.
+        mask = torch.any(expected_number_of_bikes>0, dim=-1)
+        proba_distr = torch.ones(expected_number_of_bikes.shape, dtype=torch.float64)/expected_number_of_bikes.shape[-1]
+        proba_distr[mask] = expected_number_of_bikes[mask]/torch.sum(
+            expected_number_of_bikes, dim=-1, dtype=torch.float64
+        ).unsqueeze(-1)[mask]
+        return proba_distr
+
     def obs_postprocess_fn(self, batch_new_obs: torch.Tensor):
         """
         As we only want to learn the rentals dynamics, the learnable model
@@ -1100,9 +1109,7 @@ class Bikes(DictSpacesEnv):
         batch_new_obs[..., self.map_obs["time_counter"]] += 1
 
         tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
-        proba_distr = batch_new_obs[..., self.map_obs["bikes_distr"]] / torch.sum(
-            batch_new_obs[..., self.map_obs["bikes_distr"]], dim=-1
-        ).unsqueeze(-1)
+        proba_distr = self.from_exp_to_distr(batch_new_obs[..., self.map_obs["bikes_distr"]])
 
         new_distr = proba_distr * tot_n_bikes
         round_new_distr = torch.round(new_distr)
@@ -1126,9 +1133,7 @@ class Bikes(DictSpacesEnv):
         batch_new_obs[..., self.map_obs["time_counter"]] += 1
 
         tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
-        proba_distr = batch_new_obs[..., self.map_obs["bikes_distr"]] / torch.sum(
-            batch_new_obs[..., self.map_obs["bikes_distr"]], dim=-1, dtype=torch.float64
-        ).unsqueeze(-1)
+        proba_distr = self.from_exp_to_distr(batch_new_obs[..., self.map_obs["bikes_distr"]])
 
         new_distr = torch.zeros(proba_distr.shape)
         new_distr = self.proba_repeat_along_dim(new_distr, proba_distr, tot_n_bikes)

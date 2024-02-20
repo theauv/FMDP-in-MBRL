@@ -26,7 +26,7 @@ num_steps: 100000000 #Number of env steps before end of training
 num_episodes: 10000 #Number of env episodes before end of training
 render_mode: human #null|rgb_array|human
 model_path: null #/mnt/c/Users/theau/OneDrive/Documents/theau_epfl/12.PDM/code/HUCRL_for_FMDP/exp/pets_adapted/wandb/hypergrid/2023.10.06/154944
-#obs_postprocess_fn: obs_postprocess_pred_proba
+obs_postprocess_fn: obs_postprocess_pred_proba
 
 #num_elites: 5
 model_batch_size: 256

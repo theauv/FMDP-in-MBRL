@@ -25,7 +25,7 @@
 #     done
 # done
 
-group_name='art_4step_20centroid'
+group_name='art_4step_20centroid_corrected'
 overrides='pets_bikes_20centroid'
 rescale_input=true
 rescale_output=true
@@ -34,9 +34,9 @@ for i in {1..3}
     do
     sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=512 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true overrides=${overrides} agent='random' group_name=${group_name}"
     sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=512 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true overrides=${overrides} agent='good_heuristic' group_name=${group_name}"
-    for model in 'mixture' 'factored_gp' 'gaussian_process'
+    for model in 'factored_gp' 'gaussian_process' 'mixture'
         do
-        for target_is_delta in true false
+        for target_is_delta in false true
             do
             for obs_postprocess_fn in 'obs_postprocess_fn' 'obs_postprocess_pred_proba'
                 do

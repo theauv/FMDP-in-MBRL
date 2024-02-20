@@ -22,7 +22,7 @@ class MixtureModel(Model):
         device: Union[str, torch.device],
         factors: Optional[List] = None,
         reward_factors: Optional[List] = None,
-        freq_train_reward: Optional[int] = 5,
+        freq_train_reward: Optional[int] = 10,
         num_layers: int = 4,
         hid_size: int = 200,
         activation_fn_cfg: Optional[Union[Dict, omegaconf.DictConfig]] = None,
