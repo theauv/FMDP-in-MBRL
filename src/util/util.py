@@ -102,9 +102,7 @@ def get_base_dir_path():
     return base_dir
 
 
-def get_run_kwargs(
-    configs: omegaconf.DictConfig,
-) -> Dict:
+def get_run_kwargs(configs: omegaconf.DictConfig,) -> Dict:
     """
     Gather the important informations to initialize the wandb api
 

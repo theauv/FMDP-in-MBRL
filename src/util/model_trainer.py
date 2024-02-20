@@ -24,7 +24,7 @@ from mbrl.models.model_trainer import (
 
 from lassonet import LassoNet
 
-#from src.model.simple import FactoredSimple
+# from src.model.simple import FactoredSimple
 from src.model.lasso_net import LassoNetAdapted
 from src.model.simple import FactoredSimple
 from src.model.model_mixture import MixtureModel
@@ -41,10 +41,7 @@ SPARSITY_LOG_FORMAT = [
     ("num_factors", "F", "int"),
 ]
 
-ADD_MODEL_LOG_FORMAT = [
-    ("train_R2", "TR2", "float"),
-    ("eval_R2", "VR2", "float"),
-]
+ADD_MODEL_LOG_FORMAT = [("train_R2", "TR2", "float"), ("eval_R2", "VR2", "float")]
 
 MODEL_LOG_FORMAT += ADD_MODEL_LOG_FORMAT
 
@@ -177,7 +174,9 @@ class ModelTrainerOverriden(ModelTrainer):
                     dyn_eval_score, rew_eval_score, dyn_r2, rew_r2 = self.evaluate(
                         eval_dataset, batch_callback=batch_callback_epoch, split=True
                     )
-                    eval_score = torch.mean(torch.cat([dyn_eval_score, rew_eval_score], axis=-1), dim=-1)
+                    eval_score = torch.mean(
+                        torch.cat([dyn_eval_score, rew_eval_score], axis=-1), dim=-1
+                    )
                     r2 = np.mean([dyn_r2, rew_r2])
                 else:
                     eval_score, r2 = self.evaluate(
@@ -245,12 +244,11 @@ class ModelTrainerOverriden(ModelTrainer):
                 split_callback(
                     self._train_iteration,
                     epoch,
-                    dyn_eval_score, 
-                    rew_eval_score, 
-                    dyn_r2, 
+                    dyn_eval_score,
+                    rew_eval_score,
+                    dyn_r2,
                     rew_r2,
                 )
-
 
             if patience and epochs_since_update >= patience:
                 break
@@ -263,7 +261,10 @@ class ModelTrainerOverriden(ModelTrainer):
         return training_losses, val_scores, train_r2_scores, eval_r2_scores
 
     def evaluate(
-        self, dataset: TransitionIterator, batch_callback: Optional[Callable] = None, split: bool = False
+        self,
+        dataset: TransitionIterator,
+        batch_callback: Optional[Callable] = None,
+        split: bool = False,
     ) -> torch.Tensor:
         """Evaluates the model on the validation dataset.
 
@@ -297,8 +298,12 @@ class ModelTrainerOverriden(ModelTrainer):
             batch_scores_list.append(batch_score)
             if "outputs" in meta and "targets" in meta:
                 if split:
-                    dyn_batch_r2_scores.append(r2_score(meta["outputs"][...,:-1], meta["targets"][...,:-1]))
-                    rew_batch_r2_scores.append(r2_score(meta["outputs"][...,-1], meta["targets"][...,-1]))
+                    dyn_batch_r2_scores.append(
+                        r2_score(meta["outputs"][..., :-1], meta["targets"][..., :-1])
+                    )
+                    rew_batch_r2_scores.append(
+                        r2_score(meta["outputs"][..., -1], meta["targets"][..., -1])
+                    )
                 else:
                     batch_r2_scores.append(r2_score(meta["outputs"], meta["targets"]))
             if batch_callback:
@@ -319,16 +324,17 @@ class ModelTrainerOverriden(ModelTrainer):
         mean_axis = 1 if batch_scores.ndim == 2 else (1, 2)
         if split:
             dyn_batch_scores = batch_scores[..., :-1]
-            rew_batch_scores = batch_scores[..., -1][...,None]
-            dyn_batch_scores=dyn_batch_scores.mean(dim=mean_axis)
-            rew_batch_scores=rew_batch_scores.mean(dim=mean_axis)
+            rew_batch_scores = batch_scores[..., -1][..., None]
+            dyn_batch_scores = dyn_batch_scores.mean(dim=mean_axis)
+            rew_batch_scores = rew_batch_scores.mean(dim=mean_axis)
             dyn_r2 = np.mean(dyn_batch_r2_scores) if dyn_batch_r2_scores else None
             rew_r2 = np.mean(rew_batch_r2_scores) if rew_batch_r2_scores else None
             return dyn_batch_scores, rew_batch_scores, dyn_r2, rew_r2
-        
+
         batch_scores = batch_scores.mean(dim=mean_axis)
         r2 = np.mean(batch_r2_scores) if batch_r2_scores else None
         return batch_scores, r2
+
 
 class MixtureModelsTrainer(ModelTrainerOverriden):
     def __init__(
@@ -336,7 +342,7 @@ class MixtureModelsTrainer(ModelTrainerOverriden):
         model: Model,
         rew_optim_lr: float = 1e-1,
         dyn_optim_lr: float = 1e-4,
-        rew_weight_decay: float = 0.,
+        rew_weight_decay: float = 0.0,
         dyn_weight_decay: float = 1e-5,
         rew_optim_eps: float = 1e-8,
         dyn_optim_eps: float = 1e-8,
@@ -351,7 +357,9 @@ class MixtureModelsTrainer(ModelTrainerOverriden):
                 self._LOG_GROUP_NAME, MODEL_LOG_FORMAT, color="blue", dump_frequency=1
             )
 
-        assert isinstance(self.model.model, MixtureModel), f"But you are using model {self.model.__class__.__name__}"
+        assert isinstance(
+            self.model.model, MixtureModel
+        ), f"But you are using model {self.model.__class__.__name__}"
 
         self.optimizer = [
             optim.Adam(
@@ -369,6 +377,7 @@ class MixtureModelsTrainer(ModelTrainerOverriden):
                 eps=rew_optim_eps,
             )
         )
+
 
 class LassoModelTrainer(ModelTrainer):
     _SPARSITY_LOG_GROUP_NAME = "lasso_sparsity"

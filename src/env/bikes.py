@@ -209,7 +209,7 @@ class Bikes(DictSpacesEnv):
                 high=self.num_centroids - 1,
                 shape=(self.num_trucks,),
                 dtype=np.float32,
-            ),
+            )
         }
         if not env_config.fix_bikes_per_truck:
             action_space["truck_num_bikes"] = spaces.Box(
@@ -794,6 +794,20 @@ class Bikes(DictSpacesEnv):
                             width,
                             2 + min(5 * width, 10 + width),
                         )
+                        txtsurf = font.render(str(centroid_j), True, DARK_BLUE)
+                        alpha = uniform(0.25, 0.5)
+                        text_coord = (
+                            start_pos + alpha * (end_pos - start_pos)
+                            if (end_pos - start_pos != 0).all()
+                            else start_pos + (0, -15)
+                        )
+                        self.surf.blit(
+                            txtsurf,
+                            (
+                                text_coord[0] - font_size / 3.5,
+                                text_coord[1] - font_size / 1.5,
+                            ),
+                        )
 
         # Demand bikes
         font_size = 10
@@ -1075,10 +1089,7 @@ class Bikes(DictSpacesEnv):
                 dim=0,
             )
 
-    def obs_postprocess_fn(
-        self,
-        batch_new_obs: torch.Tensor,
-    ):
+    def obs_postprocess_fn(self, batch_new_obs: torch.Tensor):
         """
         As we only want to learn the rentals dynamics, the learnable model
         will only return the new bike distribution but we need to return the whole
@@ -1089,9 +1100,9 @@ class Bikes(DictSpacesEnv):
         batch_new_obs[..., self.map_obs["time_counter"]] += 1
 
         tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
-        proba_distr = torch.nn.functional.softmax(
+        proba_distr = batch_new_obs[..., self.map_obs["bikes_distr"]] / torch.sum(
             batch_new_obs[..., self.map_obs["bikes_distr"]], dim=-1
-        )
+        ).unsqueeze(-1)
 
         new_distr = proba_distr * tot_n_bikes
         round_new_distr = torch.round(new_distr)
@@ -1104,10 +1115,7 @@ class Bikes(DictSpacesEnv):
 
         return batch_new_obs
 
-    def obs_postprocess_pred_proba(
-        self,
-        batch_new_obs: torch.Tensor,
-    ):
+    def obs_postprocess_pred_proba(self, batch_new_obs: torch.Tensor):
         """
         As we only want to learn the rentals dynamics, the learnable model
         will only return the new bike distribution but we need to return the whole
@@ -1118,9 +1126,10 @@ class Bikes(DictSpacesEnv):
         batch_new_obs[..., self.map_obs["time_counter"]] += 1
 
         tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
-        proba_distr = torch.nn.functional.softmax(
+        proba_distr = batch_new_obs[..., self.map_obs["bikes_distr"]] / torch.sum(
             batch_new_obs[..., self.map_obs["bikes_distr"]], dim=-1, dtype=torch.float64
-        )
+        ).unsqueeze(-1)
+
         new_distr = torch.zeros(proba_distr.shape)
         new_distr = self.proba_repeat_along_dim(new_distr, proba_distr, tot_n_bikes)
         batch_new_obs[..., self.map_obs["bikes_distr"]] = new_distr
@@ -1339,7 +1348,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
             trip_duration,
         )
         np.random.seed(seed)
-        self.std = 0.1  # Factor of random noise in the bike distribution
+        self.std = 0.  # randomness
         self.threshold = 0.5
         self.timestep = time_step  # hours
         self.rush_hours = [4, 8, 12, 16, 20]  # [2, 4, 8, 10, 12, 16, 18, 22]
@@ -1375,9 +1384,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         demand = np.multiply(demand, self.station_dependencies)
         return np.nonzero(demand)
 
-    def compute_mu_ij(
-        self,
-    ):
+    def compute_mu_ij(self,):
         """
         Gives the mean rush hour of each connection centroid_i -> crntroid_j
         mu_ij = normal(rush_hour, 1) and the rush_hour is randomly assigned for each
@@ -1506,6 +1513,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
                     num_met_trips += 1
                     # trips per centroid
                     met_trips_per_centroid[idx_start_centroid] += 1
+                    tot_demand_per_centroid[idx_start_centroid] += 1
                 else:
                     tot_demand_per_centroid[idx_start_centroid] += 1
 
@@ -1516,7 +1524,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         return (
             new_bikes_ditr,
             tot_num_trips,
-            tot_num_trips,  # feasible trips but theu are all feasible
+            tot_num_trips,  # feasible trips but they are all feasible
             num_met_trips,
             tot_demand_per_centroid,
             met_trips_per_centroid,

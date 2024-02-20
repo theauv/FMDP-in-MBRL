@@ -171,7 +171,9 @@ def train(
                     work_dir=work_dir,
                     callback=callbacks.model_train_callback,
                     callback_sparsity=callbacks.model_sparsity,
-                    split_callback=callbacks.split_model_train_callback if cfg.experiment.plot_split_reward_dynamics else None,
+                    split_callback=callbacks.split_model_train_callback
+                    if cfg.experiment.plot_split_reward_dynamics
+                    else None,
                 )
                 if env_steps == 0 and hasattr(dynamics_model.model, "factors"):
                     callbacks.model_dbn(dynamics_model.model.factors)

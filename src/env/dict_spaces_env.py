@@ -15,9 +15,7 @@ import torch
 
 
 class DictSpacesEnv(ABC, gym.Env):
-    def __init__(
-        self,
-    ):
+    def __init__(self,):
         # TODO: Use a structured np.array instead of map_obs and map_act dictionaries
         self._dict_observation_space = spaces.Dict({"abstract": spaces.MultiBinary(1)})
         self._dict_action_space = spaces.Dict({"abstract": spaces.MultiBinary(1)})

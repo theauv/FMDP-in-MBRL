@@ -6,30 +6,30 @@
 # conda activate pdm-env
 # pip install -e .
 
-group_name='art_4step_5centroid'
-overrides='pets_bikes_5centroid'
-rescale_input=true
-rescale_output=true
-obs_postprocess_fn='obs_postprocess_pred_proba'
-for i in {1..3}
-    do
-    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=512 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true overrides=${overrides} agent='random' group_name=${group_name}"
-    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=512 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true overrides=${overrides} agent='good_heuristic' group_name=${group_name}"
-    for model in 'mixture' 'factored_gp' 'gaussian_process'
-        do
-        for target_is_delta in true false
-            do
-            run_name="${model}_${obs_postprocess_fn}_targetdelta_${target_is_delta}_${i}"
-            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=${overrides} overrides.obs_postprocess_fn=${obs_postprocess_fn} dynamics_model=${model} algorithm.rescale_input=${rescale_input} algorithm.rescale_output=${rescale_output} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
-        done
-    done
-done
+# group_name='art_4step_5centroid'
+# overrides='pets_bikes_5centroid'
+# rescale_input=true
+# rescale_output=true
+# obs_postprocess_fn='obs_postprocess_pred_proba'
+# for i in {1..3}
+#     do
+#     sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=512 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true overrides=${overrides} agent='random' group_name=${group_name}"
+#     sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=512 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true overrides=${overrides} agent='good_heuristic' group_name=${group_name}"
+#     for model in 'mixture' 'factored_gp' 'gaussian_process'
+#         do
+#         for target_is_delta in true false
+#             do
+#             run_name="${model}_${obs_postprocess_fn}_targetdelta_${target_is_delta}_${i}"
+#             sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=${overrides} overrides.obs_postprocess_fn=${obs_postprocess_fn} dynamics_model=${model} algorithm.rescale_input=${rescale_input} algorithm.rescale_output=${rescale_output} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+#         done
+#     done
+# done
 
 group_name='art_4step_20centroid'
 overrides='pets_bikes_20centroid'
 rescale_input=true
 rescale_output=true
-obs_postprocess_fn='obs_postprocess_pred_proba'
+#obs_postprocess_fn='obs_postprocess_pred_proba'
 for i in {1..3}
     do
     sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=512 --output="output/%J" --wrap="python3 run_scripts/benchmark_run.py with_tracking=true overrides=${overrides} agent='random' group_name=${group_name}"
@@ -38,8 +38,11 @@ for i in {1..3}
         do
         for target_is_delta in true false
             do
-            run_name="${model}_${obs_postprocess_fn}_targetdelta_${target_is_delta}_${i}"
-            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=2048 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=${overrides} overrides.obs_postprocess_fn=${obs_postprocess_fn} dynamics_model=${model} algorithm.rescale_input=${rescale_input} algorithm.rescale_output=${rescale_output} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+            for obs_postprocess_fn in 'obs_postprocess_fn' 'obs_postprocess_pred_proba'
+                do
+                run_name="${model}_${obs_postprocess_fn}_targetdelta_${target_is_delta}_${i}"
+                sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=2048 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=${overrides} overrides.obs_postprocess_fn=${obs_postprocess_fn} dynamics_model=${model} algorithm.rescale_input=${rescale_input} algorithm.rescale_output=${rescale_output} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+            done
         done
     done
 done

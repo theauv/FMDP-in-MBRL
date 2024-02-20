@@ -129,24 +129,13 @@ class CallbackWandb:
         }
 
         if train_r2_score is not None:
-            tracked_values.update(
-                {
-                    "train_r2_score": train_r2_score,
-                }
-            )
+            tracked_values.update({"train_r2_score": train_r2_score})
         if eval_r2_score is not None:
-            tracked_values.update(
-                {
-                    "eval_r2_score": eval_r2_score,
-                }
-            )
+            tracked_values.update({"eval_r2_score": eval_r2_score})
 
         if self.num_epochs_train_model is not None:
             tracked_values.update(
-                {
-                    "train_epoch": epoch
-                    + int(train_iter * self.num_epochs_train_model),
-                }
+                {"train_epoch": epoch + int(train_iter * self.num_epochs_train_model)}
             )
 
         wandb.log(tracked_values)
@@ -156,8 +145,8 @@ class CallbackWandb:
         train_iter: int,
         epoch: int,
         dyn_eval_score: float,
-        rew_eval_score: float, 
-        dyn_r2: float, 
+        rew_eval_score: float,
+        dyn_r2: float,
         rew_r2: float,
     ):
         """
@@ -175,17 +164,9 @@ class CallbackWandb:
         }
 
         if dyn_r2 is not None:
-            tracked_values.update(
-                {
-                    "dynamics_r2": dyn_r2,
-                }
-            )
+            tracked_values.update({"dynamics_r2": dyn_r2})
         if rew_r2 is not None:
-            tracked_values.update(
-                {
-                    "reward_r2": rew_r2,
-                }
-            )
+            tracked_values.update({"reward_r2": rew_r2})
 
         wandb.log(tracked_values)
 
@@ -216,17 +197,9 @@ class CallbackWandb:
         }
 
         if train_r2_score is not None:
-            tracked_values.update(
-                {
-                    "train_r2_score": train_r2_score,
-                }
-            )
+            tracked_values.update({"train_r2_score": train_r2_score})
         if eval_r2_score is not None:
-            tracked_values.update(
-                {
-                    "eval_r2_score": eval_r2_score,
-                }
-            )
+            tracked_values.update({"eval_r2_score": eval_r2_score})
 
         wandb.log(tracked_values)
 
@@ -361,8 +334,8 @@ class CallbackWandb:
             net.add_node(
                 i,
                 label=i,
-                x=centroid_coord[0] * graph_size**2,
-                y=(graph_size - centroid_coord[1]) * graph_size**2,
+                x=centroid_coord[0] * graph_size ** 2,
+                y=(graph_size - centroid_coord[1]) * graph_size ** 2,
                 color="blue",
                 size=100,
             )
@@ -415,7 +388,7 @@ class CallbackWandb:
                         tot_n_bikes = next_obs[..., self.map_obs["tot_n_bikes"]]
                         error_key = f"Missclassified pred_{key} ratio"
                         errors[error_key] = (
-                            np.sum(np.abs(real_out - model_out)) / 2*tot_n_bikes
+                            np.sum(np.abs(real_out - model_out)) / (2 * tot_n_bikes)
                             if tot_n_bikes > 0
                             else np.nan
                         )

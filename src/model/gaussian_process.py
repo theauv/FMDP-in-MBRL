@@ -59,6 +59,7 @@ class ExactGPModel(gpytorch.models.ExactGP):
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
+
 class DirichletGPModel(gpytorch.models.ExactGP):
     def __init__(
         self,
@@ -72,34 +73,50 @@ class DirichletGPModel(gpytorch.models.ExactGP):
         in_size: Optional[int] = None,
     ):
         super(DirichletGPModel, self).__init__(train_x, train_y, likelihood)
-        self.mean_module = mean if mean is not None else gpytorch.means.ConstantMean(batch_shape=torch.Size((num_classes,)))
+        self.mean_module = (
+            mean
+            if mean is not None
+            else gpytorch.means.ConstantMean(batch_shape=torch.Size((num_classes,)))
+        )
         self.covar_module = (
             kernel if kernel is not None else gpytorch.kernels.RBFKernel()
         )
         if isinstance(self.mean_module, str):
             if self.mean_module == "Constant":
-                self.mean_module = gpytorch.means.ConstantMean(batch_shape=torch.Size((num_classes,)))
+                self.mean_module = gpytorch.means.ConstantMean(
+                    batch_shape=torch.Size((num_classes,))
+                )
             elif self.mean_module == "Linear":
                 if in_size is None:
                     raise ValueError("You chose a linear mean but the in_size is None")
-                self.mean_module = gpytorch.means.LinearMean(in_size, batch_shape=torch.Size((num_classes,)))
+                self.mean_module = gpytorch.means.LinearMean(
+                    in_size, batch_shape=torch.Size((num_classes,))
+                )
             else:
                 raise ValueError(
                     f"No mean module named {self.mean_module}. You can added here if needed"
                 )
         if isinstance(self.covar_module, str):
             if self.covar_module == "RBF":
-                self.covar_module = gpytorch.kernels.RBFKernel(batch_shape=torch.Size((num_classes,)))
+                self.covar_module = gpytorch.kernels.RBFKernel(
+                    batch_shape=torch.Size((num_classes,))
+                )
             elif self.covar_module == "Matern":
-                self.covar_module = gpytorch.kernels.MaternKernel(batch_shape=torch.Size((num_classes,)))
+                self.covar_module = gpytorch.kernels.MaternKernel(
+                    batch_shape=torch.Size((num_classes,))
+                )
             elif self.covar_module == "Linear":
-                self.covar_module = gpytorch.kernels.LinearKernel(batch_shape=torch.Size((num_classes,)))
+                self.covar_module = gpytorch.kernels.LinearKernel(
+                    batch_shape=torch.Size((num_classes,))
+                )
             else:
                 ValueError(
                     f"No kernel named {self.covar_module}. You can added here if needed"
                 )
         if scale_kernel:
-            self.covar_module = gpytorch.kernels.ScaleKernel(self.covar_module, batch_shape=torch.Size((num_classes,)),)
+            self.covar_module = gpytorch.kernels.ScaleKernel(
+                self.covar_module, batch_shape=torch.Size((num_classes,))
+            )
 
     def forward(self, x):
         mean_x = self.mean_module(x)
@@ -175,10 +192,7 @@ class MultiOutputGP(Model):
             pred_mean = torch.cat(
                 [pred.mean.unsqueeze(-1) for pred in pred_mean], axis=-1
             )
-            meta = {
-                "outputs": pred_mean,
-                "targets": target,
-            }
+            meta = {"outputs": pred_mean, "targets": target}
         return -self.mll(pred_out, self.gp.train_targets), meta
 
     def pred_distribution(
@@ -189,19 +203,14 @@ class MultiOutputGP(Model):
             return self.likelihood(*self.forward(model_in))
 
     def eval_score(
-        self,
-        model_in: torch.Tensor,
-        target: Optional[torch.Tensor],
+        self, model_in: torch.Tensor, target: Optional[torch.Tensor]
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         assert model_in.ndim == 2 and target.ndim == 2
         pred_output = self.pred_distribution(model_in)
         pred_mean = torch.cat(
             [pred.mean.unsqueeze(-1) for pred in pred_output], axis=-1
         )
-        meta = {
-            "outputs": pred_mean,
-            "targets": target,
-        }
+        meta = {"outputs": pred_mean, "targets": target}
         return F.mse_loss(pred_mean, target, reduction="none").unsqueeze(0), meta
 
     def save(self, save_dir: Union[str, pathlib.Path]):
@@ -301,9 +310,7 @@ class FactoredMultiOutputGP(MultiOutputGP):
             factors.append((inputs, out))
         return factors
 
-    def get_factored_models(
-        self,
-    ):
+    def get_factored_models(self,):
         models = []
         total_out_size = 0
         for model_factor in self.model_factors:
@@ -357,7 +364,7 @@ class FactoredMultiOutputGPClassif(MultiOutputGP):
         in_size: int,
         out_size: int,
         device: Union[str, torch.device],
-        factors: Optional[List]=None,
+        factors: Optional[List] = None,
         mean: Optional[Mean] = None,
         kernel: Optional[Kernel] = None,
         scale_kernel: bool = True,
@@ -374,7 +381,7 @@ class FactoredMultiOutputGPClassif(MultiOutputGP):
         self.kernel = kernel
         self.scale_kernel = scale_kernel
 
-        self.in_size = in_size+1
+        self.in_size = in_size + 1
         self.out_size = out_size
 
         self.factors = factors
@@ -401,7 +408,9 @@ class FactoredMultiOutputGPClassif(MultiOutputGP):
             self.models = []
             for i in range(out_size):
                 fake_target = torch.ones(out_size)
-                likelihood=gpytorch.likelihoods.DirichletClassificationLikelihood(fake_target, learn_additional_noise=True)
+                likelihood = gpytorch.likelihoods.DirichletClassificationLikelihood(
+                    fake_target, learn_additional_noise=True
+                )
                 self.models.append(
                     DirichletGPModel(
                         None,
@@ -432,9 +441,7 @@ class FactoredMultiOutputGPClassif(MultiOutputGP):
             factors.append((inputs, out))
         return factors
 
-    def get_factored_models(
-        self,
-    ):
+    def get_factored_models(self,):
         models = []
         total_out_size = 0
         for model_factor in self.model_factors:
@@ -442,8 +449,10 @@ class FactoredMultiOutputGPClassif(MultiOutputGP):
             in_size = len(model_factor[0])
             total_out_size += 1
             fake_target = torch.ones(len(model_factor)[0])
-            likelihood=gpytorch.likelihoods.DirichletClassificationLikelihood(fake_target, learn_additional_noise=True)
-            model=DirichletGPModel(
+            likelihood = gpytorch.likelihoods.DirichletClassificationLikelihood(
+                fake_target, learn_additional_noise=True
+            )
+            model = DirichletGPModel(
                 None,
                 None,
                 likelihood,
@@ -486,7 +495,3 @@ class FactoredMultiOutputGPClassif(MultiOutputGP):
 
         [out]
         return out
-
-
-
-

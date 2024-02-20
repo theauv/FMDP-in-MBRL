@@ -8,12 +8,7 @@ from mbrl.models import Model
 
 
 class LinearRegression(Model):
-    def __init__(
-        self,
-        in_size: int,
-        out_size: int,
-        device: Union[str, torch.device],
-    ):
+    def __init__(self, in_size: int, out_size: int, device: Union[str, torch.device]):
         super().__init__(device)
         self.linear1 = torch.nn.Linear(in_size, in_size)
         self.linear2 = torch.nn.Linear(in_size, out_size)
@@ -34,24 +29,16 @@ class LinearRegression(Model):
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         assert model_in.ndim == 2 and target.ndim == 2
         pred_out = self.forward(model_in)
-        meta = {
-            "outputs": pred_out,
-            "targets": target,
-        }
+        meta = {"outputs": pred_out, "targets": target}
         return self.criterion(pred_out, target), meta
 
     def eval_score(
-        self,
-        model_in: torch.Tensor,
-        target: Optional[torch.Tensor] = None,
+        self, model_in: torch.Tensor, target: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         assert model_in.ndim == 2 and target.ndim == 2
         with torch.no_grad():
             pred_output = self.forward(model_in)
-            meta = {
-                "outputs": pred_output,
-                "targets": target,
-            }
+            meta = {"outputs": pred_output, "targets": target}
             return F.mse_loss(pred_output, target, reduction="none").unsqueeze(0), meta
 
     def save(self, save_dir: Union[str, pathlib.Path]):
