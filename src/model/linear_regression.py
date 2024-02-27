@@ -8,21 +8,20 @@ from mbrl.models import Model
 
 
 class LinearRegression(Model):
-    def __init__(self, in_size: int, out_size: int, device: Union[str, torch.device]):
+    def __init__(self, in_size: int, out_size: int, device: Union[str, torch.device], logistic: bool = False):
         super().__init__(device)
-        self.linear1 = torch.nn.Linear(in_size, in_size)
-        self.linear2 = torch.nn.Linear(in_size, out_size)
+        self.linear = torch.nn.Linear(in_size, out_size)
         self.criterion = torch.nn.MSELoss()
         self.in_size = in_size
         self.out_size = out_size
+        self.logistic = logistic
 
-    def forward(self, x, proba=True):
-        x = self.linear1(x)
-        out = self.linear2(x)
-        if proba:
-            return torch.sigmoid(out)
+    def forward(self, x):
+        x = self.linear(x)
+        if self.logistic:
+            return torch.sigmoid(x)
         else:
-            out
+            return x
 
     def loss(
         self, model_in: torch.Tensor, target: torch.Tensor = None
