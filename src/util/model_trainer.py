@@ -831,6 +831,7 @@ class LassoModelTrainer(ModelTrainer):
         batch_callback: Optional[Callable] = None,
         evaluate: bool = True,
         silent: bool = False,
+        debug: bool = False, #Unused for now anyway
     ) -> Tuple[List[float], List[float]]:
         if self._train_iteration == 0:
             self.find_sparse_model(
