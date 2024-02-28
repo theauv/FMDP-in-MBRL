@@ -27,22 +27,48 @@
 
 group_name='run_hypergrid'
 overrides='pets_hypergrid'
-#for i in {1..3}
-for dim in 2 5 10
+model='linear_regression'
+num_epochs_train_model=30
+for dim in 2 5
     do
-    for model in 'linear_regression' 'gaussian_process' 'simple'
-        do
-        for target_is_delta in true false
-            do 
-            for lr in 0.1 0.01 0.0001
-                do
-                run_name="${model}_lr_${lr}_targetdelta_${target_is_delta}_dim_${dim}"
-                sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
-            done
+    for target_is_delta in true false
+        do 
+        for lr in 0.1 0.01 0.001
+            do
+            run_name="${model}_lr_${lr}_targetdelta_${target_is_delta}_dim_${dim}"
+            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
         done
     done
 done
 
+model='gaussian_process'
+num_epochs_train_model=10
+for dim in 2 5
+    do
+    for target_is_delta in true false
+        do 
+        for lr in 0.1 0.01 0.001
+            do
+            run_name="${model}_lr_${lr}_targetdelta_${target_is_delta}_dim_${dim}"
+            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+        done
+    done
+done
+
+model='simple'
+dim=5
+num_epochs_train_model=10
+for i in {1..3}
+    do
+    for target_is_delta in true false
+        do 
+        for lr in 0.01 0.005 0.001
+            do
+            run_name="${model}_lr_${lr}_targetdelta_${target_is_delta}_dim_${dim}_${i}"
+            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+        done
+    done
+done
 # group_name='art_4step_20centroid_corrected'
 # overrides='pets_bikes_20centroid'
 # rescale_input=true

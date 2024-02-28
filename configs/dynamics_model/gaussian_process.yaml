@@ -8,8 +8,8 @@ model:
   device: ${device}
   in_size: ???
   out_size: ???
-  mean: Constant #Linear
-  kernel: Linear #Matern
-  scale_kernel: False #true
+  mean: Linear
+  kernel: Matern
+  scale_kernel: true
 
 batch_size: ${overrides.dataset_size}
