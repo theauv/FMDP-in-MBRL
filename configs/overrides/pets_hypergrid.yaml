@@ -11,7 +11,7 @@ env_config:
 model_wrapper:
   _target_: mbrl.models.OneDTransitionRewardModel
 learned_rewards: false #Not supported yet
-trial_length: 100 #Max length episode
+trial_length: 500 #Max length episode
 num_steps: 500000 #Number of env steps before end of training
 num_episodes: 500 #Number of env episodes before end of training
 render_mode: human #null|rgb_array|human

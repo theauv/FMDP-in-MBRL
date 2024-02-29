@@ -267,7 +267,9 @@ class CallbackWandb:
         self, which_lassonet=None, fig_loss=None, fig_theta=None, factors=None
     ):
         if not self.with_tracking:
+            matplotlib.use("TkAgg")
             print(f"Lassonet {which_lassonet}")
+            plt.show()
             return
 
         if which_lassonet is not None:

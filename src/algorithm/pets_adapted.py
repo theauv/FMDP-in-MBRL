@@ -177,7 +177,6 @@ def train(
                 )
                 if env_steps == 0 and hasattr(dynamics_model.model, "factors"):
                     callbacks.model_dbn(dynamics_model.model.factors)
-
             # --- Doing env step using the agent and adding to model dataset ---
             callbacks.env_step += 1
             (

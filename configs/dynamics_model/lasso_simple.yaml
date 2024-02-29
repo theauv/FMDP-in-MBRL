@@ -5,8 +5,8 @@ model_trainer:
   weight_decay: 0.00001
   lambda_start: 0.
   lambda_max: 50.
-  lambda_step: 0.3
-  num_pretraining_epochs: 50
+  lambda_step: 0.1
+  num_pretraining_epochs: 100
   take_best_factors: 2 #int|null
   theta_tol: 0.01
   reinit: false

@@ -4,13 +4,14 @@ model_trainer:
   optim_lr: 0.05
   weight_decay: 0.
 model:
-  _target_: src.model.gaussian_process.MultiOutputGP
+  _target_: src.model.gaussian_process.FactoredMultiOutputGP
   device: ${device}
   in_size: ???
   out_size: ???
   mean: Linear
   kernel: Matern
   scale_kernel: true
+  factors: ???
   reward_factors: null
 
 batch_size: ${overrides.dataset_size}
