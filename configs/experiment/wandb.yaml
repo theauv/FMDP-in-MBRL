@@ -1,6 +1,6 @@
 # @package _group_
 with_tracking: false
-plot_local: true
+plot_local: false
 api_name: wandb
 plot_split_reward_dynamics: true
 run_configs:
