@@ -10,7 +10,6 @@ import tqdm
 import torch
 from torch import optim
 from torcheval.metrics.functional import r2_score
-import matplotlib
 from matplotlib import pyplot as plt
 
 import mbrl
@@ -744,7 +743,6 @@ class LassoModelTrainer(ModelTrainer):
                     break
 
         def create_callback_plots():
-            matplotlib.use("TkAgg")
             plt.close("all")
             lambdas = np.arange(self.lambda_start, self.lambda_max, self.lambda_step)
             # Plot eval/training losses
