@@ -51,6 +51,7 @@ def train_model_and_save_model_and_data_overriden(
             improvement_threshold=cfg.get("improvement_threshold", 0.01),
             callback=callback,
             callback_sparsity=callback_sparsity,
+            split_callback=split_callback,
             debug=debug,
         )
     else:

@@ -159,7 +159,8 @@ class LassoSimple(Simple):
         assert target.shape[-1] == 1
 
         pred_out = lassonet.forward(model_in)
-        return F.mse_loss(pred_out, target, reduction="none").mean(-1).mean(), {}
+        meta = {"outputs": pred_out, "targets": target}
+        return F.mse_loss(pred_out, target, reduction="none").mean(-1).mean(), meta
 
     def lassonet_eval_score(
         self,
@@ -183,9 +184,8 @@ class LassoSimple(Simple):
                 + lambda_ * lassonet.l1_regularization_skip().item()
                 + self.gamma * lassonet.l2_regularization().item()
                 + self.gamma_skip * lassonet.l2_regularization_skip().item()
-            )
-            meta = {}
-
+            ).unsqueeze(0)
+            meta = {"outputs": pred_out, "targets": target}
         return loss, meta
 
     def eval_score(
@@ -202,7 +202,7 @@ class LassoSimple(Simple):
         assert target.shape[-1] == len(self.lassonets)
 
         eval_scores = []
-        metas = []
+        metas = {}
         # Compute the loss for each single output and its associated lassonet model
         for i, lassonet in enumerate(self.lassonets):
             sub_target = target[:, i].unsqueeze(-1)
@@ -210,12 +210,18 @@ class LassoSimple(Simple):
                 lassonet, model_in, sub_target, lambda_
             )
             eval_scores.append(eval_score)
-            metas.append(meta)
+            if i == 0:
+                metas = meta
+            else:
+                metas = {
+                    key: torch.cat([value, meta[key]], dim=-1)
+                    for key, value in metas.items()
+                }
 
         n_outputs = len(eval_scores)
         assert n_outputs == self.out_size
 
-        return torch.cat(eval_scores, dim=-1), {}
+        return torch.cat(eval_scores, dim=-1), metas
 
     def lassonet_update(
         self,
@@ -288,7 +294,7 @@ class LassoSimple(Simple):
         self.train()
 
         all_ans = []
-        all_meta = []
+        metas = {}
         for i, lassonet in enumerate(self.lassonets):
             sub_target = target[:, i].unsqueeze(-1)
             ans, meta = self.lassonet_update(
@@ -299,14 +305,23 @@ class LassoSimple(Simple):
                 lambda_=lambda_,
             )
             all_ans.append(ans)
-            all_meta.append(meta)
+            if i == 0:
+                metas = meta
+            else:
+                metas = {
+                    key: torch.cat([value, meta[key]], dim=-1)
+                    if hasattr(value, "__len__")
+                    else value + meta[key]
+                    for key, value in metas.items()
+                }
+
 
         n_outputs = len(all_ans)
         assert n_outputs == self.out_size
         if mode == "mean":
-            return np.mean(all_ans), {}
+            return np.mean(all_ans), metas
         elif mode == "separate":
-            return all_ans, all_meta
+            return all_ans, metas
         else:
             raise ValueError(
                 f"There is no {mode} mode for the SimpleLasso eval_score method"

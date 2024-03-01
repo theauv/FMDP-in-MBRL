@@ -11,6 +11,7 @@ import torch
 from torch import optim
 from torcheval.metrics.functional import r2_score
 from matplotlib import pyplot as plt
+import matplotlib
 
 import mbrl
 from mbrl.models.model_trainer import (
@@ -379,7 +380,7 @@ class MixtureModelsTrainer(ModelTrainerOverriden):
         )
 
 
-class LassoModelTrainer(ModelTrainer):
+class LassoModelTrainer(ModelTrainerOverriden):
     _SPARSITY_LOG_GROUP_NAME = "lasso_sparsity"
 
     def __init__(
@@ -743,7 +744,7 @@ class LassoModelTrainer(ModelTrainer):
                     break
 
         def create_callback_plots():
-            plt.close("all")
+            matplotlib.use('Agg')
             lambdas = np.arange(self.lambda_start, self.lambda_max, self.lambda_step)
             # Plot eval/training losses
             fig_loss, axs = plt.subplots(1, 2)
@@ -829,9 +830,10 @@ class LassoModelTrainer(ModelTrainer):
         callback: Optional[Callable] = None,
         callback_sparsity: Optional[Callable] = None,
         batch_callback: Optional[Callable] = None,
+        split_callback: Optional[Callable] = None,
         evaluate: bool = True,
         silent: bool = False,
-        debug: bool = False, #Unused for now anyway
+        debug: bool = False,  # Unused for now anyway
     ) -> Tuple[List[float], List[float]]:
         if self._train_iteration == 0:
             self.find_sparse_model(
@@ -839,13 +841,14 @@ class LassoModelTrainer(ModelTrainer):
             )
 
         return super().train(
-            dataset_train,
-            dataset_val,
-            num_epochs,
-            patience,
-            improvement_threshold,
-            callback,
-            batch_callback,
-            evaluate,
-            silent,
+            dataset_train=dataset_train,
+            dataset_val=dataset_val,
+            num_epochs=num_epochs,
+            patience=patience,
+            improvement_threshold=improvement_threshold,
+            callback=callback,
+            batch_callback=batch_callback,
+            split_callback=split_callback,
+            evaluate=evaluate,
+            silent=silent,
         )

@@ -8,7 +8,13 @@ from mbrl.models import Model
 
 
 class LinearRegression(Model):
-    def __init__(self, in_size: int, out_size: int, device: Union[str, torch.device], logistic: bool = False):
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+        device: Union[str, torch.device],
+        logistic: bool = False,
+    ):
         super().__init__(device)
         self.linear = torch.nn.Linear(in_size, out_size)
         self.criterion = torch.nn.MSELoss()
