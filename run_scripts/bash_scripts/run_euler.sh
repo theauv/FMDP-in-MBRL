@@ -49,7 +49,7 @@ for i in {1..3}
         for lr in 0.01 0.005 0.001
             do
             run_name="${model}_lr_${lr}_targetdelta_${target_is_delta}_dim_${dim}_${i}"
-            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=false overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.initial_exploration_steps=${initial_exploration_steps} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.initial_exploration_steps=${initial_exploration_steps} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
         done
     done
 done
@@ -57,7 +57,7 @@ done
 group_name='hypergrid_GP'
 overrides='pets_hypergrid'
 dim=5
-num_epochs_train_model=3
+num_epochs_train_model=10
 target_is_delta=true
 initial_exploration_steps=50
 for i in {1..3}
@@ -67,7 +67,7 @@ for i in {1..3}
         for lr in 0.01 0.005 0.001
             do
             run_name="${model}_lr_${lr}_targetdelta_${target_is_delta}_dim_${dim}_${i}"
-            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=false overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.initial_exploration_steps=${initial_exploration_steps} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.initial_exploration_steps=${initial_exploration_steps} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
         done
     done
 done
