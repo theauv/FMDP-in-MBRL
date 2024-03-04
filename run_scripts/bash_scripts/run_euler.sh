@@ -29,7 +29,7 @@
 #######################################################
 group_name='hypergrid'
 overrides='pets_hypergrid'
-lr=0.05
+lr=0.001
 num_epochs_train_model=30
 target_is_delta=true
 initial_exploration_steps=100
@@ -58,7 +58,7 @@ done
 
 planning_horizon=100
 dim=10
-lr=0.001
+lr=0.0001
 for i in {1..3}
     do
     for model in 'factored_simple' 'simple'
@@ -69,7 +69,7 @@ for i in {1..3}
 done
 
 overrides='pets_hypergrid'
-lr=0.01
+lr=0.001
 num_epochs_train_model=10
 target_is_delta=true
 initial_exploration_steps=50
