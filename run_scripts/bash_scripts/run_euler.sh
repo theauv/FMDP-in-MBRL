@@ -33,45 +33,51 @@ lr=0.05
 num_epochs_train_model=30
 target_is_delta=true
 initial_exploration_steps=100
+dim=5
 for i in {1..3}
     do
-    for model in 'grid_factored_simple' 'factored_simple' 'simple'
+    for model in 'factored_simple' 'simple'
         do
-        for dim in 2 5 10
-            do
-            run_name="${model}_lr_${lr}_targetdelta_${target_is_delta}_dim_${dim}_${i}"
-            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py seed=${i} experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.initial_exploration_steps=${initial_exploration_steps} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
-        done
+        run_name="${model}_lr_${lr}_targetdelta_${target_is_delta}_dim_${dim}_${i}"
+        sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py seed=${i} experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.initial_exploration_steps=${initial_exploration_steps} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
     done
 done
 model='lasso_simple'
 for i in {1..3}
     do
-    for dim in 2 5
+    run_name="${model}_lr_${lr}_targetdelta_${target_is_delta}_dim_${dim}_${i}"
+    sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py seed=${i} experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+done
+
+planning_horizon=100
+dim=10
+for i in {1..3}
+    do
+    for model in 'factored_simple' 'simple'
         do
         run_name="${model}_lr_${lr}_targetdelta_${target_is_delta}_dim_${dim}_${i}"
-        sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py seed=${i} experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+        sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=1024 --output="output/%J" --wrap="python3 run_scripts/train.py seed=${i} experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} overrides.planning_horizon=${overrides} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.initial_exploration_steps=${initial_exploration_steps} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
     done
 done
 
 
-# group_name='hypergrid_GP'
-# overrides='pets_hypergrid'
-# lr=0.01
-# num_epochs_train_model=10
-# target_is_delta=true
-# initial_exploration_steps=50
-# for i in {1..3}
-#     do
-#     for model in 'factored_gp' 'gaussian_process'
-#         do
-#         for dim in 2 5 10
-#             do
-#             run_name="${model}_lr_${lr}_targetdelta_${target_is_delta}_dim_${dim}_${i}"
-#             sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=2048 --output="output/%J" --wrap="python3 run_scripts/train.py seed=${i} experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.initial_exploration_steps=${initial_exploration_steps} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
-#         done
-#     done
-# done
+group_name='hypergrid_GP'
+overrides='pets_hypergrid'
+lr=0.01
+num_epochs_train_model=10
+target_is_delta=true
+initial_exploration_steps=50
+for i in {1..3}
+    do
+    for model in 'factored_gp' 'gaussian_process'
+        do
+        for dim in 2 5
+            do
+            run_name="${model}_lr_${lr}_targetdelta_${target_is_delta}_dim_${dim}_${i}"
+            sbatch -n 1 --cpus-per-task=2 --time=24:00:00 --mem-per-cpu=2048 --output="output/%J" --wrap="python3 run_scripts/train.py seed=${i} experiment.with_tracking=true overrides=${overrides} overrides.env_config.grid_dim=${dim} overrides.num_epochs_train_model=${num_epochs_train_model} dynamics_model=${model} dynamics_model.model_trainer.optim_lr=${lr} algorithm.initial_exploration_steps=${initial_exploration_steps} algorithm.target_is_delta=${target_is_delta} experiment.run_configs.name=${run_name} experiment.run_configs.group=${group_name}"
+        done
+    done
+done
 
 
 # group_name='run_hypergrid'
