@@ -14,4 +14,4 @@ model:
   factors: ???
   reward_factors: null
 
-batch_size: 500 #${overrides.dataset_size}
+batch_size: 1000 #${overrides.dataset_size}
