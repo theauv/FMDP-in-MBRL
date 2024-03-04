@@ -1,4 +1,4 @@
-# Halucinated Upper Confidence Bound Reinforcement Learning (HUCRL) for Factored Markov Decision Processes (FMDP)
+# Factored Markov Decision Processes (FMDP) in Model-Based Reinforcement Learning (MBRL)
 
 This repository contains all the code associated to Théau Vannier's master thesis, student in Computational Sciences and Engineering at EPFL, doing a master's thesis at ETHZ.
 
