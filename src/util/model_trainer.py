@@ -730,6 +730,7 @@ class LassoModelTrainer(ModelTrainerOverriden):
             factors = np.argwhere(
                 np.array(best_epoch_thetas) > self.theta_tol
             ).squeeze()
+            print(factors)
             if self.take_best_factors is not None:
                 if len(factors) <= self.take_best_factors:
                     print(f"Found the {self.take_best_factors} factors: {factors}")
