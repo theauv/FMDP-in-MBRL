@@ -9,7 +9,7 @@ model_trainer:
   num_pretraining_epochs: 100
   take_best_factors: 2 #int|null
   theta_tol: 0.01
-  reinit: false
+  reinit: true
 model:
   _target_: src.model.lasso_net.LassoSimple
   device: ${device}

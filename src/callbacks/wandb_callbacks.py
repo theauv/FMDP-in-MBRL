@@ -61,6 +61,7 @@ class CallbackWandb:
 
             # DEBUG Bikes Benchmark only
             wandb.define_metric("env_step", hidden=True)
+            wandb.define_metric("env_episode", step_metric="env_step")
             wandb.define_metric("step_reward", step_metric="env_step")
             wandb.define_metric("step_time_0_6", hidden=True)
             wandb.define_metric("step_reward_0_6", step_metric="step_time_0_6")
