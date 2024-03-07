@@ -1249,10 +1249,12 @@ class Rentals_Simulator:
             # check if any bikes that were in transit have completed there trip, and add them back to the system
             # Note that for now taken bikes is always empty for simplification all bikes finish there
             # trips at the end of the timeshift
-            for bike in self.taken_bikes:
-                if bike[0] <= start_time:
-                    new_x[bike[1]] += 1
-                    self.taken_bikes.remove(bike)
+
+            #Not used for now
+            # for bike in self.taken_bikes:
+            #     if bike[0] <= start_time:
+            #         new_x[bike[1]] += 1
+            #         self.taken_bikes.remove(bike)
 
             # Find the potential starting centroids
             start_loc = np.array([trip.StartLatitude, trip.StartLongitude])
@@ -1324,7 +1326,7 @@ class Rentals_Simulator:
         feasible_trips = sum(feasible_trips)
         for bike in self.taken_bikes:
             new_x[bike[1]] += 1
-            self.taken_bikes.remove(bike)
+        self.taken_bikes = []
         assert tot_num_trips >= feasible_trips
         assert num_met_trips <= feasible_trips
         assert np.all(tot_demand_per_centroid >= met_trips_per_centroid)
@@ -1497,10 +1499,11 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         assert not self.taken_bikes
 
         for time in np.arange(start, end, self.timestep):
-            for bike in self.taken_bikes:
-                if bike[0] <= time:
-                    new_bikes_ditr[bike[1]] += 1
-                    self.taken_bikes.remove(bike)
+            # Not used for now
+            # for bike in self.taken_bikes:
+            #     if bike[0] <= time:
+            #         new_bikes_ditr[bike[1]] += 1
+            #         self.taken_bikes.remove(bike)
 
             demands = self.trip_bikes(time)
             tot_num_trips += len(demands[0])
