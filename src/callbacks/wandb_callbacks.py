@@ -217,6 +217,7 @@ class CallbackWandb:
             "episode_steps": episode_steps,
             "episode_reward": episode_reward,
             "env_episode": episode,
+            "env_step": self.env_step,
         }
 
         self.episodes_steps = episode_steps
@@ -265,7 +266,7 @@ class CallbackWandb:
         wandb.log(tracked_values)
 
     def model_sparsity(
-        self, which_lassonet=None, fig_loss=None, fig_theta=None, factors=None
+        self, which_lassonet=None, fig_loss=None, fig_theta=None, thetas=None
     ):
         if not self.with_tracking:
             matplotlib.use("TkAgg")

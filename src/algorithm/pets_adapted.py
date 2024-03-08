@@ -196,7 +196,7 @@ def train(
                 agent_uses_low_dim_obs=cfg.overrides.get(
                     "agent_uses_low_dim_obs", False
                 ),
-                dynamics_callback=callbacks.pred_dynamics_callback,
+                #dynamics_callback=callbacks.pred_dynamics_callback,
             )
 
             obs = next_obs

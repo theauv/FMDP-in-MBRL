@@ -88,6 +88,14 @@ def get_env_factors(cfg: omegaconf.DictConfig, env: Optional[gym.Env]):
         )
     return factors
 
+def uniquify(path):
+    filename, extension = os.path.splitext(path)
+    counter = 1
+    while os.path.exists(path):
+        path = filename + " (" + str(counter) + ")" + extension
+        counter += 1
+    return path
+
 
 def get_base_dir_path():
     cwd = os.getcwd()

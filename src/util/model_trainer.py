@@ -4,6 +4,7 @@ import itertools
 from math import ceil
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import warnings
+import pathlib
 
 import numpy as np
 import tqdm
@@ -29,6 +30,7 @@ from lassonet import LassoNet
 from src.model.lasso_net import LassoNetAdapted
 from src.model.simple import FactoredSimple
 from src.model.model_mixture import MixtureModel
+from src.util.util import get_base_dir_path, uniquify
 
 SPARSITY_LOG_FORMAT = [
     ("lambda", "L", "float"),
@@ -778,6 +780,12 @@ class LassoModelTrainer(ModelTrainerOverriden):
         best_lambda = (
             self.lambda_start + best_idx * self.lambda_step
         )  # TODO: check if correct
+        my_dir=f"{get_base_dir_path()}thetas/dim_{lassonet.in_size//2}"
+        name=f"factor_{which_output}"
+        pathlib.Path(my_dir).mkdir(parents=True, exist_ok=True)
+        np.save(uniquify(f"{my_dir}/{name}.npy"), all_thetas)
+        print("YEAAAAAAAAAAAAAAAAH")
+        print(uniquify(f"{my_dir}/{name}.npy"), f"{my_dir}/{name}.npy")
         best_train_loss = all_train_loss[best_idx]
         best_eval_loss = all_eval[best_idx]
         best_thetas = all_thetas[:, best_idx]
