@@ -1365,7 +1365,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
             trip_duration,
         )
         np.random.seed(seed)
-        self.std = 0.0  # randomness
+        self.std = 0.1 #0.1  # randomness
         self.threshold = 0.5
         self.timestep = time_step  # hours
         self.rush_hours = [4, 8, 12, 16, 20]  # [2, 4, 8, 10, 12, 16, 18, 22]

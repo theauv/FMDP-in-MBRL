@@ -6,8 +6,8 @@
 # conda activate pdm-env
 # pip install -e .
 
-group_name='art_4step_20_centroid'
-overrides='pets_bikes_20centroid'
+group_name='art_4step_stoch'
+overrides='pets_bikes'
 rescale_input=true
 rescale_output=true
 target_is_delta=true
@@ -26,8 +26,8 @@ for i in {1..3}
     done
 done
 
-group_name='real_4step'
-overrides='pets_bikes'
+group_name='real_4step_20centroid'
+overrides='pets_bikes_20centroid'
 trips_data="src/env/bikes_data/all_trips_LouVelo_merged.csv"
 weather_data="src/env/bikes_data/weather_data.csv"
 for i in {1..3}
