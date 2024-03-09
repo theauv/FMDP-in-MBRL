@@ -382,7 +382,7 @@ class CallbackWandb:
         for key, value in self.map_obs.items():
             if key != "length":
                 if key not in output_keys:
-                    assert next_obs[..., value] == next_model_obs[value]
+                    assert np.all(next_obs[..., value] == next_model_obs[value])
                 else:
                     real_out = next_obs[..., value]
                     model_out = next_model_obs[..., value]
