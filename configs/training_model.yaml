@@ -1,8 +1,8 @@
 defaults:
   - action_optimizer: cem
   - algorithm: pets_adapted
-  - dynamics_model: linear_regression #gaussian_process|simple|gaussian_mlp_ensemble
-  - overrides: pets_bikes #pets_bikes
+  - dynamics_model: linear_regression #gaussian_process|ffnn|gaussian_mlp_ensemble
+  - overrides: pets_bikes
   - experiment: wandb
 
 seed: 0

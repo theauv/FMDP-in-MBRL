@@ -1,14 +1,14 @@
 -------------ENV INFO-------------
-Observation space keys: KeysView(Dict('bikes_distr': Box(0.0, 56.0, (20,), float32), 'day': Box(1.0, 31.0, (1,), float32), 'day_of_week': Box(1.0, 7.0, (1,), float32), 'month': Box(1.0, 12.0, (1,), float32), 'time_counter': Box(1.0, 5.0, (1,), float32)))
+Observation space keys: KeysView(Dict('bike_allocations': Box(0.0, 56.0, (20,), float32), 'day': Box(1.0, 31.0, (1,), float32), 'day_of_week': Box(1.0, 7.0, (1,), float32), 'month': Box(1.0, 12.0, (1,), float32), 'time_counter': Box(1.0, 5.0, (1,), float32)))
 Action space keys: KeysView(Dict('truck_centroid': Box(0.0, 19.0, (2,), float32)))
 Using artificial rentals dynamics
 Number of centroids: 20
 Centroid induced dependencies file: src/env/bikes_data/20_centroids/factors_radius_2.npy
 Results will be saved at /cluster/home/tvannier/HUCRL_for_FMDP/exp/wandb/bikes/pets_adapted/2024.02.11/225900_rescalein_true_rescaleout_true_targetdelta_true.
 --------------MODEL INFO----------------
-Model obs input keys: ['bikes_distr', 'time_counter']
+Model obs input keys: ['bike_allocations', 'time_counter']
 Model action input keys: []
-Model output keys: ['bikes_distr']
+Model output keys: ['bike_allocations']
 Rescale input: True
 Rescale output: True
 Target is delta: True

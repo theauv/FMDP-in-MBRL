@@ -1,5 +1,5 @@
 -------------ENV INFO-------------
-Observation space keys: KeysView(Dict('bikes_distr': Box(0.0, 20.0, (5,), float32), 'day': Box(1.0, 31.0, (1,), float32), 'day_of_week': Box(1.0, 7.0, (1,), float32), 'demands': Box(0.0, 1.0, (4,), float32), 'month': Box(1.0, 12.0, (1,), float32), 'time_counter': Box(1.0, 5.0, (1,), float32)))
+Observation space keys: KeysView(Dict('bike_allocations': Box(0.0, 20.0, (5,), float32), 'day': Box(1.0, 31.0, (1,), float32), 'day_of_week': Box(1.0, 7.0, (1,), float32), 'demands': Box(0.0, 1.0, (4,), float32), 'month': Box(1.0, 12.0, (1,), float32), 'time_counter': Box(1.0, 5.0, (1,), float32)))
 Action space keys: KeysView(Dict('truck_centroid': Box(0.0, 4.0, (1,), float32)))
 Total number of used days in the year 2019: 301
 Total number of trips: 365424
@@ -8,9 +8,9 @@ Number of centroids: 5
 Centroid induced dependencies file: src/env/bikes_data/5_centroids/factors_radius_4.npy
 Results will be saved at /cluster/home/tvannier/HUCRL_for_FMDP/exp/wandb/bikes/pets_adapted/2024.02.09/001801_test_factored_gp_lr_0.1.
 --------------MODEL INFO----------------
-Model obs input keys: ['bikes_distr', 'demands', 'time_counter']
+Model obs input keys: ['bike_allocations', 'demands', 'time_counter']
 Model action input keys: []
-Model output keys: ['bikes_distr']
+Model output keys: ['bike_allocations']
 Normalize output: False
 Rescale input: True
 Target is delta: True

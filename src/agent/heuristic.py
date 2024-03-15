@@ -41,7 +41,7 @@ class StubbornAgent(Agent):
 class GoodBikesHeuristic(Agent):
     """
     TODO: Does not take into account taken_bikes
-    TODO: Greedily solve each timeshift but not the whole day
+    TODO: Greedily solve each time_interval but not the whole day
     TODO: Does not take into account demand of a centroid being > bikes_per_truck
     TODO: Put as much as bikes as possible each time (does not try to minimize the number
     of bikes)
@@ -49,7 +49,7 @@ class GoodBikesHeuristic(Agent):
 
     def __init__(self, env_config, env: Bikes) -> None:
         self.all_trips_data = env.all_trips_data
-        self.action_timeshifts = env.action_timeshifts
+        self.action_time_intervals = env.action_time_intervals
         self.centroids = env.centroid_coords
         self.start_walk_dist_max = env_config.start_walk_dist_max
         self.end_walk_dist_max = env_config.end_walk_dist_max
@@ -59,18 +59,18 @@ class GoodBikesHeuristic(Agent):
         self.bikes_per_truck = env_config.bikes_per_truck
         self.action_shape = env.action_space.shape
 
-    def get_timeshift(self, counter):
+    def get_time_interval(self, counter):
         """
-        get the current timeshift, namely the time between
+        get the current time_interval, namely the time between
         2 actions (the one we take now and the next one).
 
         :param counter: number of actions took so far. As the total
-        number of actions per day is fixed we can find the timeshift from it.
-        :return: current timeshift
+        number of actions per day is fixed we can find the time_interval from it.
+        :return: current time_interval
         """
-        if counter < len(self.action_timeshifts):
-            return self.action_timeshifts[counter - 1 : counter + 1]
-        elif counter >= len(self.action_timeshifts):
+        if counter < len(self.action_time_intervals):
+            return self.action_time_intervals[counter - 1 : counter + 1]
+        elif counter >= len(self.action_time_intervals):
             return None
 
     def get_current_trips_data(self, month, day, time_counter):
@@ -84,9 +84,9 @@ class GoodBikesHeuristic(Agent):
         current_trips = self.all_trips_data[mask]
 
         # Keep only the trip at times we care:
-        timeshift = self.get_timeshift(time_counter)
-        start_time = timeshift[0]
-        end_time = timeshift[1]
+        time_interval = self.get_time_interval(time_counter)
+        start_time = time_interval[0]
+        end_time = time_interval[1]
         time_mask = [
             float(time.replace(":", ".").split(".")[0]) >= start_time
             and float(time.replace(":", ".").split(".")[0]) <= end_time
@@ -96,16 +96,16 @@ class GoodBikesHeuristic(Agent):
 
         return current_trips
 
-    def get_centroids_demand(self, bikes_distribution, current_trips):
+    def get_centroids_demand(self, bike_allocationsibution, current_trips):
         """
         Compute the bikes needed for each centroid to complete as many trips
         as possible
 
-        :param bikes_distribution: _description_
+        :param bike_allocationsibution: _description_
         :param current_trips: _description_
         """
 
-        demand = -np.array(bikes_distribution).copy()
+        demand = -np.array(bike_allocationsibution).copy()
         for i in range(len(current_trips)):
             trip = current_trips.iloc[i]
             start_loc = np.array([trip.StartLatitude, trip.StartLongitude])
@@ -137,13 +137,13 @@ class GoodBikesHeuristic(Agent):
         month = int(obs[self.map_obs["month"]][0])
         day = int(obs[self.map_obs["day"]][0])
         time_counter = int(obs[self.map_obs["time_counter"]][0])
-        bikes_distribution = obs[self.map_obs["bikes_distr"]]
+        bike_allocationsibution = obs[self.map_obs["bike_allocations"]]
 
         current_trips = self.get_current_trips_data(
             month=month, day=day, time_counter=time_counter
         )
         demand = self.get_centroids_demand(
-            bikes_distribution=bikes_distribution, current_trips=current_trips
+            bike_allocationsibution=bike_allocationsibution, current_trips=current_trips
         )
         best_centroids_idx = np.argpartition(demand, -self.num_trucks)[
             -self.num_trucks :
@@ -160,7 +160,7 @@ class GoodBikesHeuristic(Agent):
 class ArtificialGoodBikesHeuristic(Agent):
     """
     TODO: Does not take into account taken_bikes
-    TODO: Greedily solve each timeshift but not the whole day
+    TODO: Greedily solve each time_interval but not the whole day
     TODO: Does not take into account demand of a centroid being > bikes_per_truck
     TODO: Put as much as bikes as possible each time (does not try to minimize the number
     of bikes)
@@ -169,7 +169,7 @@ class ArtificialGoodBikesHeuristic(Agent):
     def __init__(self, env) -> None:
         self.get_demand = env.sim.trip_bikes
         self.time_step = env.sim.timestep
-        self.action_timeshifts = env.action_timeshifts
+        self.action_time_intervals = env.action_time_intervals
         self.num_trucks = env.num_trucks
         self.bikes_per_truck = env.bikes_per_truck
         self.map_obs = env.map_obs
@@ -177,22 +177,24 @@ class ArtificialGoodBikesHeuristic(Agent):
         self.action_shape = env.action_space.shape
         self.num_centroids = env.num_centroids
 
-    def get_timeshift(self, counter):
+    def get_time_interval(self, counter):
         """
-        get the current timeshift, namely the time between
+        get the current time_interval, namely the time between
         2 actions (the one we take now and the next one).
 
         :param counter: number of actions took so far. As the total
-        number of actions per day is fixed we can find the timeshift from it.
-        :return: current timeshift
+        number of actions per day is fixed we can find the time_interval from it.
+        :return: current time_interval
         """
-        if counter < len(self.action_timeshifts):
-            return self.action_timeshifts[counter - 1 : counter + 1]
-        elif counter >= len(self.action_timeshifts):
+        if counter < len(self.action_time_intervals):
+            return self.action_time_intervals[counter - 1 : counter + 1]
+        elif counter >= len(self.action_time_intervals):
             return None
 
     def act(self, obs: np.ndarray, **_kwargs) -> np.ndarray:
-        timeshift = self.get_timeshift(int(obs[self.map_obs["time_counter"]][0]))
+        time_interval = self.get_time_interval(
+            int(obs[self.map_obs["time_counter"]][0])
+        )
         time_chunks = np.arange(timeshift[0], timeshift[1], self.time_step)
         demands = np.zeros(self.num_centroids)
         for time in time_chunks:

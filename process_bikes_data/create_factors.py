@@ -13,6 +13,8 @@ from pyvis.network import Network
 from scipy.spatial.distance import cdist
 import geopy.distance
 
+from src.util.util import get_base_dir_path
+
 
 def create_local_factor(centroid_coords, radius):
     num_centroids = len(centroid_coords)
@@ -39,8 +41,8 @@ def draw_map_factors(centroid_coords, adjacency):
         net.add_node(
             i,
             label=i,
-            x=centroid_coord[0] * graph_size**2,
-            y=(graph_size - centroid_coord[1]) * graph_size**2,
+            x=centroid_coord[0] * graph_size ** 2,
+            y=(graph_size - centroid_coord[1]) * graph_size ** 2,
             color="blue",
             size=200,
         )
@@ -52,6 +54,7 @@ def draw_map_factors(centroid_coords, adjacency):
     for n in net.nodes:
         n["font"] = {"size": 1000}
 
+    # webbrowser.open(get_base_dir_path()+"adjacency_factor_vis.html")
     net.show("adjacency_factor_vis.html", notebook=False)
 
 

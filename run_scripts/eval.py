@@ -47,9 +47,7 @@ class PerfectHypergridModel(mbrl.models.Model):
         return x[..., input_dim // 2 :]  # x[..., :input_dim//2]+x[..., input_dim//2:]
 
     def loss(
-        self,
-        model_in,
-        target: Optional[torch.Tensor] = None,
+        self, model_in, target: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         assert model_in.ndim == 2 and target.ndim == 2
         pred_out = self.forward(model_in)
@@ -284,10 +282,7 @@ class AdaptedVisualizer(Visualizer):
                 )
             )
             self.offset = np.array(
-                [
-                    self.env.unwrapped.longitudes[0],
-                    self.env.unwrapped.latitudes[0],
-                ]
+                [self.env.unwrapped.longitudes[0], self.env.unwrapped.latitudes[0]]
             )
             self.screen = None
             self.clock = None
@@ -384,10 +379,10 @@ class AdaptedVisualizer(Visualizer):
             )
             if hasattr(self.env.unwrapped, "delta_bikes"):
                 print(
-                    f"Old bikes distr: {observation[self.env.unwrapped.map_obs['bikes_distr']]}"
+                    f"Old bikes distr: {observation[self.env.unwrapped.map_obs['bike_allocations']]}"
                     f"Delta_bikes: {self.env.unwrapped.delta_bikes} \n"
-                    f"Pre-new_bikes distr: {self.env.unwrapped.previous_bikes_distr} \n"
-                    f"New bikes distr: {new_obs[self.env.unwrapped.map_obs['bikes_distr']]}"
+                    f"Pre-new_bikes distr: {self.env.unwrapped.previous_bike_allocations} \n"
+                    f"New bikes distr: {new_obs[self.env.unwrapped.map_obs['bike_allocations']]}"
                 )
 
             observation = new_obs
@@ -417,10 +412,10 @@ class AdaptedVisualizer(Visualizer):
             )
             if hasattr(self.env.unwrapped, "delta_bikes"):
                 print(
-                    f"Old bikes distr: {model_observation[self.env.unwrapped.map_obs['bikes_distr']]}"
-                    f"Delta_bikes: {model_observation_[self.env.unwrapped.map_obs['bikes_distr']] - model_observation[self.env.unwrapped.map_obs['bikes_distr']]} \n"
-                    f"Pre-new_bikes distr: {model_observation_[self.env.unwrapped.map_obs['bikes_distr']]} \n"
-                    f"New bikes distr: {next_observs[self.env.unwrapped.map_obs['bikes_distr']]}"
+                    f"Old bikes distr: {model_observation[self.env.unwrapped.map_obs['bike_allocations']]}"
+                    f"Delta_bikes: {model_observation_[self.env.unwrapped.map_obs['bike_allocations']] - model_observation[self.env.unwrapped.map_obs['bike_allocations']]} \n"
+                    f"Pre-new_bikes distr: {model_observation_[self.env.unwrapped.map_obs['bike_allocations']]} \n"
+                    f"New bikes distr: {next_observs[self.env.unwrapped.map_obs['bike_allocations']]}"
                 )
 
         env_states = [traj[0] for traj in real_trajectories]
@@ -831,9 +826,7 @@ class AdaptedVisualizer(Visualizer):
             font = pygame.font.SysFont("Arial", font_size)
             depot_coord = (self.screen_dim[0] - 50, self.screen_dim[1] - 50)
             if self.env.unwrapped.delta_bikes is not None:
-                for i, added_bikes in enumerate(
-                    self.env.unwrapped.delta_bikes
-                ):
+                for i, added_bikes in enumerate(self.env.unwrapped.delta_bikes):
                     if added_bikes > 0:
                         coord = self.env.unwrapped.centroid_coords[i]
                         coord = (coord[1], coord[0])
@@ -864,18 +857,16 @@ class AdaptedVisualizer(Visualizer):
                 txtsurf,
                 (depot_coord[0] - font_size / 1.5, depot_coord[1] - font_size / 1.5),
             )
-            real_next_distr = self.env.unwrapped.previous_bikes_distr
+            real_next_distr = self.env.unwrapped.previous_bike_allocations
         else:
-            real_next_distr = self.env.unwrapped.state["bikes_distr"]
+            real_next_distr = self.env.unwrapped.state["bike_allocations"]
 
-        # Predicted bikes_distr vs real bikes_distr
+        # Predicted bike_allocations vs real bike_allocations
         font_size = 15
         font = pygame.font.SysFont("Arial", font_size)
         model_next_distr = np.round(model_next_distr).astype(int)
         for coord, real_bikes, model_bikes in zip(
-            self.env.unwrapped.centroid_coords,
-            real_next_distr,
-            model_next_distr,
+            self.env.unwrapped.centroid_coords, real_next_distr, model_next_distr
         ):
             coord = (coord[1], coord[0])
             new_coord = (coord - self.offset) * self.scale
@@ -892,7 +883,7 @@ class AdaptedVisualizer(Visualizer):
         # Legend:
         font_size = 15
         font = pygame.font.SysFont("Arial", font_size)
-        shift = self.env.unwrapped.get_timeshift()
+        shift = self.env.unwrapped.get_time_interval()
         title_str = (
             (
                 f"Shift {shift[0]}:{shift[1]} Day: {int(self.env.unwrapped.state['day'])} "
@@ -950,11 +941,11 @@ class AdaptedVisualizer(Visualizer):
                 model_observation["obs"].copy(), model_action.copy()
             )
             preprocessed_obs = preprocessed_obs.clone().detach().numpy()[0].astype(int)
-            pre_bikes_distr = preprocessed_obs[
-                self.env.unwrapped.map_obs["bikes_distr"]
+            pre_bike_allocations = preprocessed_obs[
+                self.env.unwrapped.map_obs["bike_allocations"]
             ]
             assert np.all(
-                pre_bikes_distr == self.env.unwrapped.previous_bikes_distr
+                pre_bike_allocations == self.env.unwrapped.previous_bike_allocations
             )
             (
                 next_model_observs,
@@ -1001,7 +992,7 @@ class AdaptedVisualizer(Visualizer):
             next_obs, reward, terminated, truncated, info = self.env.step(action)
 
             self.render_bikes(
-                model_obs[self.env.unwrapped.map_obs["bikes_distr"]]
+                model_obs[self.env.unwrapped.map_obs["bike_allocations"]]
                 + self.env.unwrapped.delta_bikes,
                 pre_obs=True,
             )
@@ -1030,9 +1021,9 @@ class AdaptedVisualizer(Visualizer):
             )
 
             next_model_distr = np.round(
-                next_model_obs[self.env.unwrapped.map_obs["bikes_distr"]]
+                next_model_obs[self.env.unwrapped.map_obs["bike_allocations"]]
             )
-            next_distr = self.env.unwrapped.state["bikes_distr"]
+            next_distr = self.env.unwrapped.state["bike_allocations"]
             n_failed_bikes = np.sum(np.abs(next_model_distr - next_distr))
             total_failed_bikes += n_failed_bikes
 

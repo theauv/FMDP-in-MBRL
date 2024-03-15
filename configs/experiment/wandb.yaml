@@ -5,7 +5,7 @@ api_name: wandb
 plot_split_reward_dynamics: true
 run_configs:
   project: hucrl_fmdp
-  group:  null #correct_bikes_test #null
-  name: test #n_bikes_2_large
+  group:  null 
+  name: test 
   settings: null
   tags: null

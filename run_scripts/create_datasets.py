@@ -79,9 +79,7 @@ def create_dataset(
         )
     else:
         dataset_dir = Path(
-            base_dir,
-            cfg.dataset_folder_name,
-            f"{base_env.__class__.__name__}",
+            base_dir, cfg.dataset_folder_name, f"{base_env.__class__.__name__}"
         )
     data_path = None
     if dataset_dir.exists() and dataset_dir.is_dir():

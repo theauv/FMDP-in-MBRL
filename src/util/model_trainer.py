@@ -26,9 +26,9 @@ from mbrl.models.model_trainer import (
 
 from lassonet import LassoNet
 
-# from src.model.simple import FactoredSimple
+# from src.model.neural_network import FactoredFFNN
 from src.model.lasso_net import LassoNetAdapted
-from src.model.simple import FactoredSimple
+from src.model.neural_network import FactoredFFNN
 from src.model.model_mixture import MixtureModel
 from src.util.util import get_base_dir_path, uniquify
 
@@ -454,7 +454,7 @@ class LassoModelTrainer(ModelTrainerOverriden):
 
     def _reinit(self):
         # TODO: Write it better
-        assert isinstance(self.unwrapped_model, FactoredSimple)
+        assert isinstance(self.unwrapped_model, FactoredFFNN)
         self.sub_models = self.unwrapped_model.models
         self.unwrapped_model.lassonets = None
 
@@ -473,7 +473,7 @@ class LassoModelTrainer(ModelTrainerOverriden):
     def fix_model_sparsity(self, factors, reinit: bool = False) -> None:
         self.unwrapped_model.set_factors(factors)
         if reinit:
-            model = FactoredSimple(
+            model = FactoredFFNN(
                 in_size=self.unwrapped_model.in_size,
                 out_size=self.unwrapped_model.out_size,
                 factors=factors,
@@ -746,7 +746,7 @@ class LassoModelTrainer(ModelTrainerOverriden):
                     break
 
         def create_callback_plots():
-            matplotlib.use('Agg')
+            matplotlib.use("Agg")
             lambdas = np.arange(self.lambda_start, self.lambda_max, self.lambda_step)
             # Plot eval/training losses
             fig_loss, axs = plt.subplots(1, 2)
@@ -780,8 +780,8 @@ class LassoModelTrainer(ModelTrainerOverriden):
         best_lambda = (
             self.lambda_start + best_idx * self.lambda_step
         )  # TODO: check if correct
-        my_dir=f"{get_base_dir_path()}thetas/dim_{lassonet.in_size//2}"
-        name=f"factor_{which_output}"
+        my_dir = f"{get_base_dir_path()}thetas/dim_{lassonet.in_size//2}"
+        name = f"factor_{which_output}"
         pathlib.Path(my_dir).mkdir(parents=True, exist_ok=True)
         np.save(uniquify(f"{my_dir}/{name}.npy"), all_thetas)
         print("YEAAAAAAAAAAAAAAAAH")

@@ -387,7 +387,7 @@ class CallbackWandb:
                     real_out = next_obs[..., value]
                     model_out = next_model_obs[..., value]
                     if (
-                        key == "bikes_distr"
+                        key == "bike_allocations"
                     ):  # TODO: not great to have it like this but can't think of a better way
                         tot_n_bikes = next_obs[..., self.map_obs["tot_n_bikes"]]
                         error_key = f"Missclassified pred_{key} ratio"

@@ -20,9 +20,9 @@ env_config:
   station_dependencies: src/env/bikes_data/LouVelo_centroids/factors_radius_1-2.npy #src/env/bikes_data/acbo_centroids/factors_radius_3.npy #src/env/bikes_data/LouVelo_centroids/factors_radius_1-2.npy
 model_wrapper:
   _target_: src.model.dict_model_wrapper.OneDTransitionRewardModelDictSpace
-  model_input_obs_key: ["bikes_distr", "tot_n_bikes", "time_counter"] #["bikes_distr", "time_counter", "tot_n_bikes", "demands", "day_of_week", "month"]
+  model_input_obs_key: ["bike_allocations", "tot_n_bikes", "time_counter"] #["bike_allocations", "time_counter", "tot_n_bikes", "demands", "day_of_week", "month"]
   model_input_act_key: []
-  model_output_key: ["bikes_distr"]
+  model_output_key: ["bike_allocations"]
 learned_rewards: true
 trial_length: ${overrides.env_config.action_per_day} #Max length episode
 initial_exploration_steps: 50
@@ -41,8 +41,8 @@ num_epochs_train_model: 10 #Generally need more if using NN instead of GP
 dataset_size: 10000
 
 planning_horizon: ${overrides.env_config.action_per_day}
-cem_num_iters: 20 #20
+cem_num_iters: 20
 cem_elite_ratio: 0.1
 cem_population_size: 350
-cem_alpha: 0.1 #0.1 ??
+cem_alpha: 0.1
 cem_clipped_normal: false

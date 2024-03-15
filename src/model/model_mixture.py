@@ -11,7 +11,7 @@ from mbrl.models.model import Model
 from mbrl.models.util import truncated_normal_init
 
 from src.model.gaussian_process import MultiOutputGP, FactoredMultiOutputGP
-from src.model.simple import Simple, FactoredSimple
+from src.model.neural_network import FFNN, FactoredFFNN
 
 
 class MixtureModel(Model):
@@ -54,7 +54,7 @@ class MixtureModel(Model):
             else MultiOutputGP(in_size, 1, device, mean, kernel, scale_kernel)
         )
         self.dyn_model = (
-            FactoredSimple(
+            FactoredFFNN(
                 in_size,
                 out_size - 1,
                 device,
@@ -64,7 +64,7 @@ class MixtureModel(Model):
                 activation_fn_cfg=activation_fn_cfg,
             )
             if factors
-            else Simple(
+            else FFNN(
                 in_size, out_size - 1, device, num_layers, hid_size, activation_fn_cfg
             )
         )
@@ -133,7 +133,7 @@ class MixtureModel(Model):
             return all_loss, meta
         else:
             raise ValueError(
-                f"There is no {mode} mode for the SimpleLasso eval_score method"
+                f"There is no {mode} mode for the FFNNLasso eval_score method"
             )
 
     def update_only_dynamics(
@@ -162,7 +162,7 @@ class MixtureModel(Model):
             return all_loss, meta
         else:
             raise ValueError(
-                f"There is no {mode} mode for the SimpleLasso eval_score method"
+                f"There is no {mode} mode for the FFNNLasso eval_score method"
             )
 
     def update(

@@ -10,7 +10,6 @@ import geopy.distance
 import gymnasium as gym
 from gymnasium import logger, spaces
 import numpy as np
-from numpy.core.multiarray import array as array
 import omegaconf
 import pandas as pd
 import pygame
@@ -48,7 +47,7 @@ class Bikes(DictSpacesEnv):
         self.action_per_day = env_config.action_per_day
         self.day_start = 0.0
         self.day_end = 24.0
-        self.action_timeshifts = list(
+        self.time_intervals = list(
             np.linspace(self.day_start, self.day_end, self.action_per_day + 1)
         )
         self.next_day_method = env_config.next_day_method
@@ -137,15 +136,15 @@ class Bikes(DictSpacesEnv):
             self.all_weather_data = None
 
         # Station dependencies data (induced sparsity)
-        self.station_dependencies_file = env_config.get("station_dependencies", None)
-        station_dependencies = (
-            np.load(self.base_dir + self.station_dependencies_file)
-            if self.station_dependencies_file is not None
+        self.station_neighbours_file = env_config.get("station_neighbours", None)
+        station_neighbours = (
+            np.load(self.base_dir + self.station_neighbours_file)
+            if self.station_neighbours_file is not None
             else None
         )
         if (
-            self.station_dependencies_file is not None
-            and len(station_dependencies) != self.num_centroids
+            self.station_neighbours_file is not None
+            and len(station_neighbours) != self.num_centroids
         ):
             raise ValueError(
                 "Given station dependencies file does not match the number of centroids"
@@ -153,22 +152,22 @@ class Bikes(DictSpacesEnv):
 
         # Rentals simulator
         if self.all_trips_data is None:
-            self.sim = ArtificialRentals_Simulator(
+            self.sim = ArtificialRentalsSimulator(
                 self.centroid_coords,
                 start_walk_dist_max=env_config.start_walk_dist_max,
                 end_walk_dist_max=env_config.end_walk_dist_max,
-                station_dependencies=station_dependencies,
+                station_neighbours=station_neighbours,
                 trip_duration=env_config.trip_duration,
                 n_hubs_per_rushhour=env_config.get("n_hubs_per_rushhour", 1),
                 n_edge_per_hub=env_config.get("n_edge_per_hub", 5),
                 rushhour_std=env_config.get("rushhour_std", 1),
             )
         else:
-            self.sim = Rentals_Simulator(
+            self.sim = HistoricalRentalsSimulator(
                 self.centroid_coords,
                 start_walk_dist_max=env_config.start_walk_dist_max,
                 end_walk_dist_max=env_config.end_walk_dist_max,
-                station_dependencies=station_dependencies,
+                station_neighbours=station_neighbours,
                 trip_duration=env_config.trip_duration,
                 # TODO: Not sure if good idea to give shift_duration but induce more sparsity
             )
@@ -176,7 +175,7 @@ class Bikes(DictSpacesEnv):
         # State-Action space
         # TODO: temperature, precipitation and demand in obs space ??
         obs_space = {
-            "bikes_distr": spaces.Box(
+            "bike_allocations": spaces.Box(
                 low=0,
                 high=self.n_bikes * self.action_per_day,
                 shape=(self.num_centroids,),
@@ -260,7 +259,7 @@ class Bikes(DictSpacesEnv):
 
         for key, value in self.map_obs.items():
             if key != "length":
-                if key == "bikes_distr":
+                if key == "bike_allocations":
                     high = tot_n_bikes
                 else:
                     high = self.dict_observation_space[key].high
@@ -295,13 +294,13 @@ class Bikes(DictSpacesEnv):
             ]
         return sum(embedding)
 
-    def get_timeshift(self, state=None):
+    def get_time_interval(self, state=None):
         if state is None:
             state = self.state
         counter = int(state["time_counter"])
-        if counter < len(self.action_timeshifts):
-            return self.action_timeshifts[counter - 1 : counter + 1]
-        elif counter >= len(self.action_timeshifts):
+        if counter < len(self.time_intervals):
+            return self.time_intervals[counter - 1 : counter + 1]
+        elif counter >= len(self.time_intervals):
             return None
 
     def get_env_info(self):
@@ -317,7 +316,7 @@ class Bikes(DictSpacesEnv):
         else:
             print("Using artificial rentals dynamics")
         print(f"Number of centroids: {self.num_centroids}")
-        print(f"Centroid induced dependencies file: {self.station_dependencies_file}")
+        print(f"Centroid induced dependencies file: {self.station_neighbours_file}")
 
     def get_max_demands(self):
         assert self.all_trips_data is not None, "Makes sense only using trips data"
@@ -333,9 +332,9 @@ class Bikes(DictSpacesEnv):
             current_trips = self.all_trips_data[mask]
 
             for j in range(0, self.action_per_day):
-                timeshift = self.action_timeshifts[j : j + 2]
-                start_time = timeshift[0]
-                end_time = timeshift[1]
+                time_interval = self.time_intervals[j : j + 2]
+                start_time = time_interval[0]
+                end_time = time_interval[1]
                 time_mask = [
                     float(time.replace(":", ".").split(".")[0]) >= start_time
                     and float(time.replace(":", ".").split(".")[0]) <= end_time
@@ -356,9 +355,9 @@ class Bikes(DictSpacesEnv):
         current_trips = self.all_trips_data[mask]
 
         for j in range(0, self.action_per_day):
-            timeshift = self.action_timeshifts[j : j + 2]
-            start_time = timeshift[0]
-            end_time = timeshift[1]
+            time_interval = self.time_intervals[j : j + 2]
+            start_time = time_interval[0]
+            end_time = time_interval[1]
             time_mask = [
                 float(time.replace(":", ".").split(".")[0]) >= start_time
                 and float(time.replace(":", ".").split(".")[0]) <= end_time
@@ -372,9 +371,9 @@ class Bikes(DictSpacesEnv):
         if x is None:
             x = self.state
 
-        timeshift = self.get_timeshift(x)
-        start_time = timeshift[0]
-        end_time = timeshift[1]
+        time_interval = self.get_time_interval(x)
+        start_time = time_interval[0]
+        end_time = time_interval[1]
 
         if self.all_trips_data is not None:
             mask = (self.all_trips_data["Day"] == x["day"]) & (
@@ -388,7 +387,7 @@ class Bikes(DictSpacesEnv):
             ]
             current_trips = current_trips[time_mask]
 
-            # Compute the new state and all relevant informations about trips occuring during this timeshift
+            # Compute the new state and all relevant informations about trips occuring during this time_interval
             (
                 new_bikes_dist_after_shift,
                 self.tot_num_trips,
@@ -397,7 +396,7 @@ class Bikes(DictSpacesEnv):
                 self.tot_demand_per_centroid,
                 self.met_trips_per_centroid,
                 self.adjacency,
-            ) = self.sim.simulate_rentals(current_trips, x["bikes_distr"])
+            ) = self.sim.simulate_rentals(current_trips, x["bike_allocations"])
 
         else:
             (
@@ -408,7 +407,7 @@ class Bikes(DictSpacesEnv):
                 self.tot_demand_per_centroid,
                 self.met_trips_per_centroid,
                 self.adjacency,
-            ) = self.sim.simulate_rentals(x["bikes_distr"], start_time, end_time)
+            ) = self.sim.simulate_rentals(x["bike_allocations"], start_time, end_time)
 
         # TODO: Here we have an incremental reward computed at each time-step, but might make sense
         # to have just a final one (more accurate by harder for the RL agent to interpret)
@@ -496,13 +495,13 @@ class Bikes(DictSpacesEnv):
             ]
 
         # Update obs
-        self.state["bikes_distr"] += self.delta_bikes
+        self.state["bike_allocations"] += self.delta_bikes
         self.state["tot_n_bikes"] += sum(self.delta_bikes)
-        self.previous_bikes_distr = self.state["bikes_distr"]
+        self.previous_bike_allocations = self.state["bike_allocations"]
 
         # Let all the vehicules being used during the day
         new_bikes_dist_after_shift, reward = self.trips_steps()
-        self.state["bikes_distr"] = new_bikes_dist_after_shift
+        self.state["bike_allocations"] = new_bikes_dist_after_shift
 
         # Render the environment
         if self.render_mode == "human":
@@ -512,7 +511,7 @@ class Bikes(DictSpacesEnv):
         self.state["time_counter"] += 1
 
         # Check if terminated
-        terminated = self.get_timeshift() is None
+        terminated = self.get_time_interval() is None
 
         # Sanity check if we did not carry on after a finishing step
         if terminated:
@@ -536,7 +535,7 @@ class Bikes(DictSpacesEnv):
             {},
         )  # observation, reward, end, truncated, info
 
-    def get_initial_bikes_distribution(self) -> np.array:
+    def get_initial_bike_allocationsibution(self) -> np.array:
         if self.initial_distribution == "uniform":
             x = np.zeros(self.num_centroids, dtype=int)
             for i, bike in enumerate(range(self.n_bikes)):
@@ -606,15 +605,15 @@ class Bikes(DictSpacesEnv):
             else:
                 day, month, day_of_week = self.get_next_day()
 
-            init_bikes_distr = self.get_initial_bikes_distribution()
+            init_bike_allocations = self.get_initial_bike_allocationsibution()
             self.state = {
-                "bikes_distr": init_bikes_distr,
+                "bike_allocations": init_bike_allocations,
                 "day": day,
                 "day_of_week": day_of_week,
                 "month": month,
                 "time_counter": 1,
                 "demands": self.get_demands(day, month),
-                "tot_n_bikes": sum(init_bikes_distr),
+                "tot_n_bikes": sum(init_bike_allocations),
             }
 
         else:
@@ -636,14 +635,14 @@ class Bikes(DictSpacesEnv):
                     else 1
                 )
 
-            init_bikes_distr = self.get_initial_bikes_distribution()
+            init_bike_allocations = self.get_initial_bike_allocationsibution()
             self.state = {
-                "bikes_distr": init_bikes_distr,
+                "bike_allocations": init_bike_allocations,
                 "day": day,
                 "day_of_week": day_of_week,
                 "month": month,
                 "time_counter": 1,
-                "tot_n_bikes": sum(init_bikes_distr),
+                "tot_n_bikes": sum(init_bike_allocations),
             }
 
         self.tot_num_trips = None
@@ -653,7 +652,7 @@ class Bikes(DictSpacesEnv):
         self.met_trips_per_centroid = None
         self.adjacency = None
         self.delta_bikes = None
-        self.previous_bikes_distr = None
+        self.previous_bike_allocations = None
         self.sim.reset()
 
         self.steps_beyond_terminated = None
@@ -754,7 +753,7 @@ class Bikes(DictSpacesEnv):
         )
         offset_bikes_render = 5
         new_centroid_coords = []
-        for coord, bikes in zip(self.centroid_coords, self.state["bikes_distr"]):
+        for coord, bikes in zip(self.centroid_coords, self.state["bike_allocations"]):
             coord = (coord[1], coord[0])
             new_coord = (coord - self.offset) * self.scale
             new_coord[1] = self.screen_dim[1] - new_coord[1]
@@ -822,7 +821,7 @@ class Bikes(DictSpacesEnv):
         # Legend:
         font_size = 15
         font = pygame.font.SysFont("Arial", font_size)
-        shift = self.get_timeshift()
+        shift = self.get_time_interval()
         title_str = (
             (
                 f"Shift {shift[0]}:{shift[1]} Day: {int(self.state['day'])} "
@@ -1020,7 +1019,7 @@ class Bikes(DictSpacesEnv):
 
         ensemble_size = batch_obs.shape[0]
         batch_size = batch_obs.shape[1]
-        distr_size = len(batch_obs[0, 0, self.map_obs["bikes_distr"]])
+        distr_size = len(batch_obs[0, 0, self.map_obs["bike_allocations"]])
 
         # Compute delta_bikes in a parallel way
         delta_bikes = np.zeros((ensemble_size, batch_size, distr_size), dtype=int)
@@ -1050,26 +1049,26 @@ class Bikes(DictSpacesEnv):
             batch_obs = batch_obs.reshape((batch_size, -1))
 
         # Update obs
-        batch_obs[..., self.map_obs["bikes_distr"]] += delta_bikes
+        batch_obs[..., self.map_obs["bike_allocations"]] += delta_bikes
         batch_obs[..., self.map_obs["tot_n_bikes"]] += np.sum(delta_bikes, axis=-1)[
             ..., None
         ]
 
         return batch_obs
 
-    def add_missing_bikes(self, bikes_distr, k):
+    def add_missing_bikes(self, bike_allocations, k):
         k = k.item()
         if k > 0:
             idx = torch.topk(
-                bikes_distr - torch.round(bikes_distr), k, sorted=False
+                bike_allocations - torch.round(bike_allocations), k, sorted=False
             ).indices
-            bikes_distr[idx] += 1
+            bike_allocations[idx] += 1
         if k < 0:
             idx = torch.topk(
-                torch.round(bikes_distr) - bikes_distr, abs(k), sorted=False
+                torch.round(bike_allocations) - bike_allocations, abs(k), sorted=False
             ).indices
-            bikes_distr[idx] -= 1
-        return bikes_distr
+            bike_allocations[idx] -= 1
+        return bike_allocations
 
     def repeat_along_dim(self, pred, delta_tot_bikes):
         if pred.ndim > 2:
@@ -1116,7 +1115,7 @@ class Bikes(DictSpacesEnv):
 
         tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
         proba_distr = self.from_exp_to_distr(
-            batch_new_obs[..., self.map_obs["bikes_distr"]]
+            batch_new_obs[..., self.map_obs["bike_allocations"]]
         )
 
         new_distr = proba_distr * tot_n_bikes
@@ -1126,7 +1125,7 @@ class Bikes(DictSpacesEnv):
 
         new_distr = self.repeat_along_dim(new_distr, delta_tot_bikes)
         new_distr = torch.round(new_distr)
-        batch_new_obs[..., self.map_obs["bikes_distr"]] = new_distr
+        batch_new_obs[..., self.map_obs["bike_allocations"]] = new_distr
 
         return batch_new_obs
 
@@ -1142,30 +1141,30 @@ class Bikes(DictSpacesEnv):
 
         tot_n_bikes = batch_new_obs[..., self.map_obs["tot_n_bikes"]]
         proba_distr = self.from_exp_to_distr(
-            batch_new_obs[..., self.map_obs["bikes_distr"]]
+            batch_new_obs[..., self.map_obs["bike_allocations"]]
         )
 
         new_distr = torch.zeros(proba_distr.shape)
         new_distr = self.proba_repeat_along_dim(new_distr, proba_distr, tot_n_bikes)
-        batch_new_obs[..., self.map_obs["bikes_distr"]] = new_distr
+        batch_new_obs[..., self.map_obs["bike_allocations"]] = new_distr
 
         return batch_new_obs
 
-    def compute_new_distr(self, bikes_distr, proba_distr, tot_n_bikes):
+    def compute_new_distr(self, bike_allocations, proba_distr, tot_n_bikes):
         proba_distr /= torch.sum(proba_distr)
         centroid_idx = np.random.choice(
             np.arange(self.num_centroids), int(tot_n_bikes), p=proba_distr
         )
         unq, counts = np.unique(centroid_idx, return_counts=True)
-        bikes_distr[unq] += counts.astype(np.float32)
-        return bikes_distr
+        bike_allocations[unq] += counts.astype(np.float32)
+        return bike_allocations
 
-    def proba_repeat_along_dim(self, bikes_distr, proba_distr, tot_n_bikes):
-        if bikes_distr.ndim > 2:
+    def proba_repeat_along_dim(self, bike_allocations, proba_distr, tot_n_bikes):
+        if bike_allocations.ndim > 2:
             return torch.stack(
                 [
                     self.proba_repeat_along_dim(x_i, proba_distr[i], tot_n_bikes[i])
-                    for i, x_i in enumerate(torch.unbind(bikes_distr, dim=0), 0)
+                    for i, x_i in enumerate(torch.unbind(bike_allocations, dim=0), 0)
                 ],
                 dim=0,
             )
@@ -1173,13 +1172,13 @@ class Bikes(DictSpacesEnv):
             return torch.stack(
                 [
                     self.compute_new_distr(x_i, proba_distr[i], tot_n_bikes[i])
-                    for i, x_i in enumerate(torch.unbind(bikes_distr, dim=0), 0)
+                    for i, x_i in enumerate(torch.unbind(bike_allocations, dim=0), 0)
                 ],
                 dim=0,
             )
 
 
-class Rentals_Simulator:
+class HistoricalRentalsSimulator:
     """Class used to simulate rentals in the city from historic data."""
 
     def __init__(
@@ -1187,28 +1186,30 @@ class Rentals_Simulator:
         centroids,
         start_walk_dist_max=1,
         end_walk_dist_max=1,
-        station_dependencies: Optional[np.array] = None,
+        station_neighbours: Optional[np.array] = None,
         trip_duration: Optional[float] = None,
+        bikes_move_once: bool = True,
     ):
         self.centroids = centroids
         self.num_centroids = len(centroids)
         self.start_walk_dist_max = start_walk_dist_max
         self.end_walk_dist_max = end_walk_dist_max
-        self.taken_bikes = []
-        self.station_dependencies = station_dependencies
-        self.station_dependencies_ll = self.station_dependencies_linked_list()
+        self.transient_bikes = []
+        self.station_neighbours = station_neighbours
+        self.station_neighbours_ll = self.station_neighbours_linked_list()
         self.trip_duration = trip_duration if trip_duration else 0.5
+        self.bikes_move_once = bikes_move_once
 
     def reset(self):
-        self.taken_bikes = []
+        self.transient_bikes = []
 
-    def station_dependencies_linked_list(self):
-        if self.station_dependencies is None:
+    def station_neighbours_linked_list(self):
+        if self.station_neighbours is None:
             return None
         else:
             return [
                 [i for i, e in enumerate(station) if e > 0]
-                for station in self.station_dependencies
+                for station in self.station_neighbours
             ]
 
     def simulate_rentals(self, trips, X):
@@ -1231,13 +1232,14 @@ class Rentals_Simulator:
         adjacency_matrix = np.zeros((self.num_centroids, self.num_centroids), dtype=int)
 
         # TODO: maybe not a fixed time for every trip ?
-        # TODO: Penser à si dans un meme timeshift velos finissent leur trip
+        # TODO: Penser à si dans un meme time_interval velos finissent leur trip
         # Does it make sense for the current reward ? Does it make sense for what we are doing ?
         # BIKE_SPEED = 20  # km/h
 
         total_walking_distance = 0
 
-        assert not self.taken_bikes
+        if self.bikes_move_once:
+            assert not self.transient_bikes
 
         for i in range(tot_num_trips):
             trip = trips.iloc[i]
@@ -1248,13 +1250,13 @@ class Rentals_Simulator:
 
             # check if any bikes that were in transit have completed there trip, and add them back to the system
             # Note that for now taken bikes is always empty for simplification all bikes finish there
-            # trips at the end of the timeshift
+            # trips at the end of the time_interval
 
-            #Not used for now
-            # for bike in self.taken_bikes:
-            #     if bike[0] <= start_time:
-            #         new_x[bike[1]] += 1
-            #         self.taken_bikes.remove(bike)
+            if not self.bikes_move_once:
+                for bike in self.transient_bikes:
+                    if bike[0] <= start_time:
+                        new_x[bike[1]] += 1
+                        self.transient_bikes.remove(bike)
 
             # Find the potential starting centroids
             start_loc = np.array([trip.StartLatitude, trip.StartLongitude])
@@ -1273,11 +1275,11 @@ class Rentals_Simulator:
                 if total_walking_distance > self.start_walk_dist_max:
                     break
                 # Find the potential ending
-                if self.station_dependencies_ll is not None:
-                    if not self.station_dependencies_ll[idx_start_centroid]:
+                if self.station_neighbours_ll is not None:
+                    if not self.station_neighbours_ll[idx_start_centroid]:
                         break
                     potential_ending_centroids = self.centroids[
-                        self.station_dependencies_ll[idx_start_centroid]
+                        self.station_neighbours_ll[idx_start_centroid]
                     ]
                 else:
                     potential_ending_centroids = self.centroids
@@ -1287,8 +1289,8 @@ class Rentals_Simulator:
                     metric="euclidean",
                 )
                 idx_end_centroid = np.argmin(ending_distances)
-                if self.station_dependencies_ll:
-                    idx_end_centroid = self.station_dependencies_ll[idx_start_centroid][
+                if self.station_neighbours_ll:
+                    idx_end_centroid = self.station_neighbours_ll[idx_start_centroid][
                         idx_end_centroid
                     ]
                 geo_ending_dist = geopy.distance.distance(
@@ -1312,7 +1314,7 @@ class Rentals_Simulator:
                         # else:
                         #     delta_t = distance_trip / BIKE_SPEED + uniform(0.1, 0.2)
 
-                        self.taken_bikes.append(
+                        self.transient_bikes.append(
                             (start_time + self.trip_duration, idx_end_centroid)
                         )
                         adjacency_matrix[idx_start_centroid, idx_end_centroid] += 1
@@ -1324,9 +1326,10 @@ class Rentals_Simulator:
                         break
 
         feasible_trips = sum(feasible_trips)
-        for bike in self.taken_bikes:
-            new_x[bike[1]] += 1
-        self.taken_bikes = []
+        if self.bikes_move_once:
+            for bike in self.transient_bikes:
+                new_x[bike[1]] += 1
+            self.transient_bikes = []
         assert tot_num_trips >= feasible_trips
         assert num_met_trips <= feasible_trips
         assert np.all(tot_demand_per_centroid >= met_trips_per_centroid)
@@ -1341,7 +1344,7 @@ class Rentals_Simulator:
         )
 
 
-class ArtificialRentals_Simulator(Rentals_Simulator):
+class ArtificialRentalsSimulator(HistoricalRentalsSimulator):
     """Class used to simulate fake rentals in the city."""
 
     def __init__(
@@ -1349,23 +1352,25 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         centroids,
         start_walk_dist_max=1,
         end_walk_dist_max=1,
-        station_dependencies: Optional[np.array] = None,
+        station_neighbours: Optional[np.array] = None,
         trip_duration: Optional[float] = None,
         time_step: Optional[float] = 1,
         n_hubs_per_rushhour: Optional[int] = 1,
         n_edge_per_hub: Optional[int] = 5,
         rushhour_std: Optional[float] = 1,
         seed: Optional[int] = 0,
+        bikes_move_once=True,
     ):
         super().__init__(
             centroids,
             start_walk_dist_max,
             end_walk_dist_max,
-            station_dependencies,
+            station_neighbours,
             trip_duration,
+            bikes_move_once,
         )
         np.random.seed(seed)
-        self.std = 0.1 #0.1  # randomness
+        self.std = 0.1  # 0.1  # randomness
         self.threshold = 0.5
         self.timestep = time_step  # hours
         self.rush_hours = [4, 8, 12, 16, 20]  # [2, 4, 8, 10, 12, 16, 18, 22]
@@ -1373,10 +1378,8 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         self.n_edge_per_hub = n_edge_per_hub
         self.rushhour_std = rushhour_std
 
-        if self.station_dependencies is None:
-            self.station_dependencies = np.ones(
-                (self.num_centroids, self.num_centroids)
-            )
+        if self.station_neighbours is None:
+            self.station_neighbours = np.ones((self.num_centroids, self.num_centroids))
         self.mu, self.intensity = self.compute_mu_ij()  # Fixed
         self.sigma = self.compute_sigma_ij()  # Fixed
         # self.intensity = self.compute_intensity() #Fixed
@@ -1398,7 +1401,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         mean = self.gaussian(time, self.mu, self.sigma, self.intensity)
         random = np.random.normal(mean, self.std)  # A checker
         demand = random > self.threshold
-        demand = np.multiply(demand, self.station_dependencies)
+        demand = np.multiply(demand, self.station_neighbours)
         return np.nonzero(demand)
 
     def compute_mu_ij(self,):
@@ -1416,21 +1419,18 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         np.random.shuffle(indices)
         for i in range(len(self.rush_hours)):
             idx = indices[int(split_size * i) : int(split_size * (i + 1))]
-            a[idx] = self.rush_hours[
-                i
-            ]  # np.random.normal(rush_hours[i], 1, (len(idx), dim))
+            a[idx] = self.rush_hours[i]
             intensity_idx = np.random.choice(idx, self.n_hubs_per_rushhour)
             for i in intensity_idx:
                 hub_edges = (
-                    self.station_dependencies_ll[i]
-                    if self.station_dependencies_ll is not None
+                    self.station_neighbours_ll[i]
+                    if self.station_neighbours_ll is not None
                     else np.arange(dim)
                 )
                 edge_idx = np.random.choice(hub_edges, self.n_edge_per_hub)
                 intensity[i, edge_idx] = np.random.normal(
                     0.7, 0.1, (1, self.n_edge_per_hub)
                 )
-        # mu = np.round(a).T
         mu = np.round(a)
         return mu, intensity
 
@@ -1438,12 +1438,13 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         """return sigma_ij n_centroids x n_centroids with each entry is how wide the rush hour is
         for this connection could depend on day of week but start with constant one
         """
-        # sigma = np.random.uniform(0.1, 1, (self.num_centroids, self.num_centroids))
         sigma = np.ones((self.num_centroids, self.num_centroids)) * self.rushhour_std
         return sigma
 
     def compute_intensity(self):
-        """Each centroid has an intensity value defining how much likely it is to
+        """
+        Note: No used in the current implementation
+        Each centroid has an intensity value defining how much likely it is to
         send a bike to its connections.
         """
         dim = self.num_centroids
@@ -1465,8 +1466,8 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
             [intensity_big, intensity_medium, intensity_small, intensity_not_used]
         )
         # intensity = np.random.normal(0.5, 0.1, dim)
-        if not np.all(self.station_dependencies == 1):
-            best_hubs = np.sum(self.station_dependencies, axis=0)
+        if not np.all(self.station_neighbours == 1):
+            best_hubs = np.sum(self.station_neighbours, axis=0)
             best_hubs_idx = np.argsort(-best_hubs)
             intensity = intensity[best_hubs_idx]
         else:
@@ -1476,7 +1477,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         # intensity = np.repeat(intensity[None, ...], dim, axis=0)
         return intensity
 
-    def simulate_rentals(self, bikes_distr, start, end):
+    def simulate_rentals(self, bike_allocations, start, end):
         """
         Simulate daily rentals when X[i] bikes are positioned in each region i at
         the beginning of the day on daynum of month.
@@ -1484,7 +1485,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
         a list of the starting coordinates of the trips that were unmet.
         """
 
-        new_bikes_ditr = np.array(bikes_distr).copy()
+        new_bikes_ditr = np.array(bike_allocations).copy()
 
         # All trips
         tot_num_trips = 0
@@ -1496,14 +1497,16 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
 
         adjacency_matrix = np.zeros((self.num_centroids, self.num_centroids), dtype=int)
 
-        assert not self.taken_bikes
+        if self.bikes_move_once:
+            assert not self.transient_bikes
 
         for time in np.arange(start, end, self.timestep):
-            # Not used for now
-            # for bike in self.taken_bikes:
-            #     if bike[0] <= time:
-            #         new_bikes_ditr[bike[1]] += 1
-            #         self.taken_bikes.remove(bike)
+
+            if not self.bikes_move_once:
+                for bike in self.transient_bikes:
+                    if bike[0] <= time:
+                        new_bikes_ditr[bike[1]] += 1
+                        self.transient_bikes.remove(bike)
 
             demands = self.trip_bikes(time)
             tot_num_trips += len(demands[0])
@@ -1522,7 +1525,7 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
                     # else:
                     #     delta_t = distance_trip / BIKE_SPEED + uniform(0.1, 0.2)
 
-                    self.taken_bikes.append(
+                    self.transient_bikes.append(
                         (time + self.trip_duration, idx_end_centroid)
                     )
                     adjacency_matrix[idx_start_centroid, idx_end_centroid] += 1
@@ -1535,9 +1538,10 @@ class ArtificialRentals_Simulator(Rentals_Simulator):
                 else:
                     tot_demand_per_centroid[idx_start_centroid] += 1
 
-        for bike in self.taken_bikes:
-            new_bikes_ditr[bike[1]] += 1
-        self.taken_bikes = []
+        if self.bikes_move_once:
+            for bike in self.transient_bikes:
+                new_bikes_ditr[bike[1]] += 1
+            self.transient_bikes = []
 
         return (
             new_bikes_ditr,

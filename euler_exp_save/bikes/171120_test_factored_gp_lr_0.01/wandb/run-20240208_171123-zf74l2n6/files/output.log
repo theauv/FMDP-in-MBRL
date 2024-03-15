@@ -1,5 +1,5 @@
 -------------ENV INFO-------------
-Observation space keys: KeysView(Dict('bikes_distr': Box(0.0, 20.0, (5,), float32), 'day': Box(1.0, 31.0, (1,), float32), 'day_of_week': Box(1.0, 7.0, (1,), float32), 'month': Box(1.0, 12.0, (1,), float32), 'time_counter': Box(1.0, 5.0, (1,), float32)))
+Observation space keys: KeysView(Dict('bike_allocations': Box(0.0, 20.0, (5,), float32), 'day': Box(1.0, 31.0, (1,), float32), 'day_of_week': Box(1.0, 7.0, (1,), float32), 'month': Box(1.0, 12.0, (1,), float32), 'time_counter': Box(1.0, 5.0, (1,), float32)))
 Action space keys: KeysView(Dict('truck_centroid': Box(0.0, 4.0, (1,), float32)))
 Using artificial rentals dynamics
 Number of centroids: 5

@@ -15,7 +15,7 @@ from mbrl.types import ModelInput
 
 from lassonet import LassoNet
 
-from src.model.simple import Simple
+from src.model.neural_network import FFNN
 
 
 class LassoNetAdapted(LassoNet):
@@ -96,7 +96,7 @@ class LassoNetAdapted(LassoNet):
         self.register_buffer("mask", mask)
 
 
-class LassoSimple(Simple):
+class LassoFFNN(FFNN):
     """
     This Model takes all its sense to be use with the associated LassoModelTrainer (and Wrapper).
     """
@@ -315,7 +315,6 @@ class LassoSimple(Simple):
                     for key, value in metas.items()
                 }
 
-
         n_outputs = len(all_ans)
         assert n_outputs == self.out_size
         if mode == "mean":
@@ -324,5 +323,5 @@ class LassoSimple(Simple):
             return all_ans, metas
         else:
             raise ValueError(
-                f"There is no {mode} mode for the SimpleLasso eval_score method"
+                f"There is no {mode} mode for the FFNNLasso eval_score method"
             )

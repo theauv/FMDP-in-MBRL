@@ -18,7 +18,7 @@ class OneDTransitionRewardModelDictSpace(OneDTransitionRewardModel):
     observation and action are required to learn the unknown dynamics.
     e.g. In the Bikes environment, we know the dynamics of adding bikes at different locations
     but we want to learn how the trips will occur during a given period after adding the bikes.
-    Then the dynamics of stepping day, month and timeshift is also known.
+    Then the dynamics of stepping day, month and time_interval is also known.
     """
 
     # TODO: Deal with normalize and rescaling (for now none it used as either bad implemented

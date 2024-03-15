@@ -57,11 +57,11 @@ overrides:
   model_wrapper:
     _target_: src.model.dict_model_wrapper.OneDTransitionRewardModelDictSpace
     model_input_obs_key:
-    - bikes_distr
+    - bike_allocations
     - time_counter
     model_input_act_key: []
     model_output_key:
-    - bikes_distr
+    - bike_allocations
   learned_rewards: true
   trial_length: ${overrides.env_config.action_per_day}
   initial_exploration_steps: 50

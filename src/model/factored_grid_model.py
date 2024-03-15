@@ -7,12 +7,12 @@ from mbrl.models.gaussian_mlp import GaussianMLP
 
 
 # TODO: In a very general set-up, the "factored" sub-models should not be the same
-# -> see factored_simple
+# -> see factored_ffnn
 
 
 class FactoredGaussianMLP(GaussianMLP):
     """
-    Simple factored GaussianMLP model
+    FFNN factored GaussianMLP model
     Should be generalized as we move to more complex environments
 
     Instead of processing the whole state-action input tensor of dimension [state_space+state_action],
