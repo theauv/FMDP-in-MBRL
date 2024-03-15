@@ -1,8 +1,0 @@
-- experiment.with_tracking=true
-- overrides.num_epochs_train_model=10
-- dynamics_model=gaussian_process
-- dynamics_model.model_lr=0.1
-- overrides.env_config.centroids_coord=src/env/bikes_data/LouVelo_centroids/LouVelo_centroids_coords.npy
-- overrides.env_config.station_dependencies=src/env/bikes_data/LouVelo_centroids/factors_radius_1-2.npy
-- experiment.run_configs.name=test_gaussian_process_lr_0.1
-- experiment.run_configs.group=euler_multistep_artificial_43centroid

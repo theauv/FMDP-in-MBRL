@@ -1,7 +1,0 @@
-- experiment.with_tracking=true
-- overrides.initial_exploration_steps=100
-- overrides.num_epochs_train_model=50
-- dynamics_model=factored_gp
-- dynamics_model.model_lr=0.1
-- experiment.run_configs.name=test_factored_gp_lr_0.1
-- experiment.run_configs.group=euler_multistep_artificial_5centroid
